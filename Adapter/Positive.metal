@@ -8,7 +8,8 @@
 
 #include <metal_stdlib>
 using namespace metal;
-
+constant float L1 [[ function_constant(0) ]];
+constant float L2 [[ function_constant(1) ]];
 kernel void PositiveGenerate(device float * const theta [[ buffer(0) ]],
 							 device float const * const phi [[ buffer(1) ]],
 							 constant uint const & N [[ buffer(2) ]],
@@ -21,9 +22,7 @@ kernel void PositiveGenerate(device float * const theta [[ buffer(0) ]],
 kernel void PositiveGradient(device float * const delta [[ buffer(0) ]],
 							 device float const * const theta [[ buffer(1) ]],
 							 device float const * const phi [[ buffer(2) ]],
-							 constant float const & L1 [[ buffer(3) ]],
-							 constant float const & L2 [[ buffer(4) ]],
-							 constant uint const & N [[ buffer(5) ]],
+							 constant uint const & N [[ buffer(3) ]],
 							 uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;

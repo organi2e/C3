@@ -10,13 +10,15 @@ import Metal
 public class Regular {
 	let generate: MTLComputePipelineState
 	let gradient: MTLComputePipelineState
-	let adapt: MTLComputePipelineState
 	let limit: Int
-	private init(pipeline: (MTLComputePipelineState, MTLComputePipelineState, MTLComputePipelineState), count: Int) {
+	public var L1: Float
+	public var L2: Float
+	private init(pipeline: (MTLComputePipelineState, MTLComputePipelineState), count: Int) {
 		generate = pipeline.0
 		gradient = pipeline.1
-		adapt = pipeline.2
 		limit = count
+		L1 = 0
+		L2 = 0
 	}
 	public static func factory() -> (MTLDevice) throws -> (Int) -> Adapter {
 		let bundle: Bundle = Bundle(for: self)
@@ -24,9 +26,8 @@ public class Regular {
 			let library: MTLLibrary = try $0.makeDefaultLibrary(bundle: bundle)
 			let generate: MTLComputePipelineState = try library.make(name: "RegularGenerate")
 			let gradient: MTLComputePipelineState = try library.make(name: "RegularGradient")
-			let adapt: MTLComputePipelineState = try library.make(name: "RegularAdapt")
 			return {
-				Regular(pipeline: (generate, gradient, adapt), count: $0)
+				Regular(pipeline: (generate, gradient), count: $0)
 			}
 		}
 	}
@@ -62,25 +63,6 @@ extension Regular: Adapter {
 		encoder.setBuffer(Δ, offset: 0, at: 0)
 		encoder.setBuffer(θ, offset: 0, at: 1)
 		encoder.setBuffer(φ, offset: 0, at: 2)
-		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 3)
-		encoder.dispatchThreadgroups(MTLSize(width: (limit-1)/threads+1, height: 1, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.endEncoding()
-		
-	}
-	public func adapt(commandBuffer: MTLCommandBuffer, φ: MTLBuffer, θ: MTLBuffer, Δ: MTLBuffer) {
-		
-		assert( adapt.device === commandBuffer.device )
-		assert( adapt.device === φ.device && limit * MemoryLayout<Float>.size <= φ.length )
-		assert( adapt.device === θ.device && limit * MemoryLayout<Float>.size <= θ.length )
-		assert( adapt.device === Δ.device && limit * MemoryLayout<Float>.size <= Δ.length )
-		
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		let threads: Int = adapt.threadExecutionWidth
-		encoder.setComputePipelineState(adapt)
-		encoder.setBuffer(φ, offset: 0, at: 0)
-		encoder.setBuffer(θ, offset: 0, at: 1)
-		encoder.setBuffer(Δ, offset: 0, at: 2)
 		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 3)
 		encoder.dispatchThreadgroups(MTLSize(width: (limit-1)/threads+1, height: 1, depth: 1),
 		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))

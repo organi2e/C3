@@ -10,17 +10,18 @@ import Metal
 public class Linear {
 	let gradient: MTLComputePipelineState
 	let limit: Int
-	public var L1: Float = 0
-	public var L2: Float = 1e-4
 	private init(pipeline: MTLComputePipelineState, count: Int) {
 		gradient = pipeline
 		limit = count
 	}
-	public static func factory() -> (MTLDevice) throws -> (Int) -> Adapter {
+	public static func factory(L1: Float = 0, L2: Float = 0) -> (MTLDevice) throws -> (Int) -> Adapter {
 		let bundle: Bundle = Bundle(for: self)
 		return {
+			let constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
+			constantValues.setConstantValue([L1], type: .float, withName: "L1")
+			constantValues.setConstantValue([L2], type: .float, withName: "L2")
 			let library: MTLLibrary = try $0.makeDefaultLibrary(bundle: bundle)
-			let pipeline: MTLComputePipelineState = try library.make(name: "LinearGradient")
+			let pipeline: MTLComputePipelineState = try library.make(name: "LinearGradient", constantValues: constantValues)
 			return {
 				Linear(pipeline: pipeline, count: $0)
 			}
@@ -51,9 +52,7 @@ extension Linear: Adapter {
 		encoder.setBuffer(Δ, offset: 0, at: 0)
 		encoder.setBuffer(θ, offset: 0, at: 1)
 		encoder.setBuffer(φ, offset: 0, at: 2)
-		encoder.setBytes(&L1, length: MemoryLayout<Float>.size, at: 3)
-		encoder.setBytes(&L2, length: MemoryLayout<Float>.size, at: 4)
-		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 5)
+		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 3)
 		encoder.dispatchThreadgroups(MTLSize(width: (limit-1)/threads+1, height: 1, depth: 1),
 		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
 		encoder.endEncoding()
