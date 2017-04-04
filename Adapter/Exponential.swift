@@ -7,14 +7,19 @@
 //
 
 import Metal
+
 public class Exponential {
 	let generate: MTLComputePipelineState
 	let gradient: MTLComputePipelineState
 	let limit: Int
+	public var L1: Float
+	public var L2: Float
 	private init(pipeline: (MTLComputePipelineState, MTLComputePipelineState), count: Int) {
 		generate = pipeline.0
 		gradient = pipeline.1
 		limit = count
+		L1 = 0
+		L2 = 0
 	}
 	public static func factory() -> (MTLDevice) throws -> (Int) -> Adapter {
 		let bundle: Bundle = Bundle(for: self)

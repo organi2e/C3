@@ -10,6 +10,7 @@ import MetalKit
 import simd
 import XCTest
 @testable import Distributor
+/*
 class GaussDerivatorTests: XCTestCase {
 	func testDerivateP() {
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
@@ -124,12 +125,12 @@ class GaussDerivatorTests: XCTestCase {
 			do {
 				let derivator: Derivator = try GaussDerivator.factory(device: device)(ylen, xlen, 2)
 				let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-				derivator.derivate(commandBuffer: commandBuffer, Δ: Δw, Δφ: Δφ, φ: activator.φ(0)) {
-					$0.jacobian(a: w, x: x, count: xlen)
-				}
-				derivator.derivate(commandBuffer: commandBuffer, Δ: Δw, Δφ: Δφ, φ: activator.φ(0)) {
-					$0.jacobian(b: b, y: y, g: activator.g(0), j: derivator.j(-1))
-				}
+				derivator.flush(commandBuffer: commandBuffer)
+				derivator.jacobian(commandBuffer: commandBuffer, a: w, x: x, count: xlen)
+				derivator.fix(commandBuffer: commandBuffer, φ: activator.φ(0))
+				derivator.flush(commandBuffer: commandBuffer)
+				derivator.jacobian(commandBuffer: commandBuffer, b: b, y: y, g: activator.g(0), j: derivator.j(-1))
+				derivator.fix(commandBuffer: commandBuffer, φ: activator.φ(0))
 				commandBuffer.commit()
 				commandBuffer.waitUntilCompleted()
 				
@@ -173,13 +174,18 @@ class GaussDerivatorTests: XCTestCase {
 			do {
 				let derivator: GaussDerivator = try GaussDerivator.factory(device: device)(ylen, 1, 2) as! GaussDerivator
 				let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-				derivator.derivate(commandBuffer: commandBuffer, Δ: Δc, Δφ: Δφ, φ: activator.φ(0)) {
-					$0.jacobian(c: c)
-				}
-				derivator.derivate(commandBuffer: commandBuffer, Δ: Δc, Δφ: Δφ, φ: activator.φ(0)) {
-					$0.jacobian(d: d, φ: activator.φ(-1), j: derivator.j(-1))
-					$0.jacobian(c: c)
-				}
+				let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
+				encoder.fill(buffer: Δc.μ, range: NSRange(location: 0, length: Δc.μ.length), value: 0)
+				encoder.fill(buffer: Δc.σ, range: NSRange(location: 0, length: Δc.σ.length), value: 0)
+				encoder.endEncoding()
+				derivator.flush(commandBuffer: commandBuffer)
+				derivator.jacobian(commandBuffer: commandBuffer, c: c)
+				derivator.fix(commandBuffer: commandBuffer, φ: activator.φ(0))
+				derivator.flush(commandBuffer: commandBuffer)
+				derivator.jacobian(commandBuffer: commandBuffer, d: d, φ: activator.φ(-1), j: derivator.j(-1))
+				derivator.jacobian(commandBuffer: commandBuffer, c: c)
+				derivator.fix(commandBuffer: commandBuffer, φ: activator.φ(0))
+				derivator.derivate(commandBuffer: commandBuffer, Δθ: Δc, Δφ: Δφ)
 				commandBuffer.commit()
 				commandBuffer.waitUntilCompleted()
 				
@@ -409,3 +415,4 @@ private func uniform(count: Int, α: Float = -1, β: Float = 1) -> Array<Float> 
 private func sq(_ x: la_object_t) -> la_object_t {
 	return la_elementwise_product(x, x)
 }
+*/
