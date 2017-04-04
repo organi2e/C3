@@ -16,15 +16,15 @@ public class Positive {
 		gradient = pipeline.1
 		limit = count
 	}
-	public static func factory(L1: Float = 0, L2: Float = 0) -> (MTLDevice) throws -> (Int) -> Adapter {
+	public static func adapter(L1: Float = 0, L2: Float = 0) -> (MTLDevice) throws -> (Int) -> Adapter {
 		let bundle: Bundle = Bundle(for: self)
+		let kernel: String = String(describing: self)
+		let constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
+		constantValues.setConstantValue([1, L1, L2], type: .float3, withName: "LRW")
 		return {
 			let library: MTLLibrary = try $0.makeDefaultLibrary(bundle: bundle)
-			let constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
-			constantValues.setConstantValue([L1], type: .float, withName: "L1")
-			constantValues.setConstantValue([L2], type: .float, withName: "L2")
-			let generate: MTLComputePipelineState = try library.make(name: "PositiveGenerate")
-			let gradient: MTLComputePipelineState = try library.make(name: "PositiveGradient", constantValues: constantValues)
+			let generate: MTLComputePipelineState = try library.make(name: "\(kernel)Generate")
+			let gradient: MTLComputePipelineState = try library.make(name: "\(kernel)Gradient", constantValues: constantValues)
 			return {
 				Positive(pipeline: (generate, gradient), count: $0)
 			}

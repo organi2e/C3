@@ -7,26 +7,24 @@
 //
 
 import Metal
-
 public class Exponential {
 	let generate: MTLComputePipelineState
 	let gradient: MTLComputePipelineState
 	let limit: Int
-	public var L1: Float
-	public var L2: Float
 	private init(pipeline: (MTLComputePipelineState, MTLComputePipelineState), count: Int) {
 		generate = pipeline.0
 		gradient = pipeline.1
 		limit = count
-		L1 = 0
-		L2 = 0
 	}
-	public static func factory() -> (MTLDevice) throws -> (Int) -> Adapter {
+	public static func adapter(L1: Float = 0, L2: Float = 0) -> (MTLDevice) throws -> (Int) -> Adapter {
 		let bundle: Bundle = Bundle(for: self)
+		let kernel: String = String(describing: self)
+		let constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
+		constantValues.setConstantValue([1, L1, L2], type: .float3, withName: "LRW")
 		return {
 			let library: MTLLibrary = try $0.makeDefaultLibrary(bundle: bundle)
-			let generate: MTLComputePipelineState = try library.make(name: "ExponentialGenerate")
-			let gradient: MTLComputePipelineState = try library.make(name: "ExponentialGradient")
+			let generate: MTLComputePipelineState = try library.make(name: "\(kernel)Generate")
+			let gradient: MTLComputePipelineState = try library.make(name: "\(kernel)Gradient", constantValues: constantValues)
 			return {
 				Exponential(pipeline: (generate, gradient), count: $0)
 			}
