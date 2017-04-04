@@ -52,6 +52,12 @@
 		8754F8C51E8B9F54006B088A /* Regular.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8754F8BE1E8B9F54006B088A /* Regular.swift */; };
 		8754F8C71E8B9FAF006B088A /* Positive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8754F8C61E8B9FAF006B088A /* Positive.swift */; };
 		8754F8C91E8B9FBD006B088A /* Positive.metal in Sources */ = {isa = PBXBuildFile; fileRef = 8754F8C81E8B9FBD006B088A /* Positive.metal */; };
+		87B846291E9393B200844835 /* Softplus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B846281E9393B200844835 /* Softplus.swift */; };
+		87B8462B1E9393C100844835 /* Softplus.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B8462A1E9393C100844835 /* Softplus.metal */; };
+		87B8462D1E93984B00844835 /* Tanh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8462C1E93984B00844835 /* Tanh.swift */; };
+		87B8462F1E93985500844835 /* Tanh.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B8462E1E93985500844835 /* Tanh.metal */; };
+		87B846311E93A48500844835 /* Floor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B846301E93A48500844835 /* Floor.swift */; };
+		87B846331E93A49000844835 /* Floor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B846321E93A49000844835 /* Floor.metal */; };
 		87E5BA091E8CFF9B00D5983D /* GaussDistributorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E5BA081E8CFF9B00D5983D /* GaussDistributorTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -167,6 +173,12 @@
 		8754F8C81E8B9FBD006B088A /* Positive.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Positive.metal; path = ../../Adapter/Positive.metal; sourceTree = "<group>"; };
 		879EFE4B1E9254380078CDC7 /* libswiftsimd.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libswiftsimd.tbd; path = System/Library/PrivateFrameworks/Swift/libswiftsimd.tbd; sourceTree = SDKROOT; };
 		879EFE4D1E9255AC0078CDC7 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		87B846281E9393B200844835 /* Softplus.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Softplus.swift; path = ../../Adapter/Softplus.swift; sourceTree = "<group>"; };
+		87B8462A1E9393C100844835 /* Softplus.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Softplus.metal; path = ../../Adapter/Softplus.metal; sourceTree = "<group>"; };
+		87B8462C1E93984B00844835 /* Tanh.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Tanh.swift; path = ../../Adapter/Tanh.swift; sourceTree = "<group>"; };
+		87B8462E1E93985500844835 /* Tanh.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Tanh.metal; path = ../../Adapter/Tanh.metal; sourceTree = "<group>"; };
+		87B846301E93A48500844835 /* Floor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Floor.swift; path = ../../Adapter/Floor.swift; sourceTree = "<group>"; };
+		87B846321E93A49000844835 /* Floor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Floor.metal; path = ../../Adapter/Floor.metal; sourceTree = "<group>"; };
 		87E5BA081E8CFF9B00D5983D /* GaussDistributorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GaussDistributorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -349,12 +361,18 @@
 			children = (
 				8754F8BC1E8B9F54006B088A /* Linear.swift */,
 				8754F8BB1E8B9F54006B088A /* Linear.metal */,
+				87B846281E9393B200844835 /* Softplus.swift */,
+				87B8462A1E9393C100844835 /* Softplus.metal */,
 				8754F8C61E8B9FAF006B088A /* Positive.swift */,
 				8754F8C81E8B9FBD006B088A /* Positive.metal */,
+				87B846301E93A48500844835 /* Floor.swift */,
+				87B846321E93A49000844835 /* Floor.metal */,
 				8754F8BA1E8B9F54006B088A /* Exponential.swift */,
 				8754F8B91E8B9F54006B088A /* Exponential.metal */,
 				8754F8BE1E8B9F54006B088A /* Regular.swift */,
 				8754F8BD1E8B9F54006B088A /* Regular.metal */,
+				87B8462C1E93984B00844835 /* Tanh.swift */,
+				87B8462E1E93985500844835 /* Tanh.metal */,
 				8754F8B81E8B9F54006B088A /* Adapter.swift */,
 				8754F8A31E8B9F0E006B088A /* Adapter.h */,
 				8754F8A41E8B9F0E006B088A /* Info.plist */,
@@ -778,12 +796,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				87B8462F1E93985500844835 /* Tanh.metal in Sources */,
+				87B8462B1E9393C100844835 /* Softplus.metal in Sources */,
 				8754F8C41E8B9F54006B088A /* Regular.metal in Sources */,
 				8754F8C21E8B9F54006B088A /* Linear.metal in Sources */,
 				8754F8BF1E8B9F54006B088A /* Adapter.swift in Sources */,
+				87B8462D1E93984B00844835 /* Tanh.swift in Sources */,
+				87B846331E93A49000844835 /* Floor.metal in Sources */,
 				8754F8C51E8B9F54006B088A /* Regular.swift in Sources */,
 				8754F8C71E8B9FAF006B088A /* Positive.swift in Sources */,
+				87B846291E9393B200844835 /* Softplus.swift in Sources */,
 				8754F8C91E8B9FBD006B088A /* Positive.metal in Sources */,
+				87B846311E93A48500844835 /* Floor.swift in Sources */,
 				8754F8C11E8B9F54006B088A /* Exponential.swift in Sources */,
 				8754F8C01E8B9F54006B088A /* Exponential.metal in Sources */,
 				8754F8C31E8B9F54006B088A /* Linear.swift in Sources */,

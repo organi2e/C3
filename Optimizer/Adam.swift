@@ -24,6 +24,7 @@ public class Adam {
 	}
 	public static func factory(α: Float = 1e-3, β: Float = 0.9, γ: Float = 0.999, ε: Float = 0) -> (MTLDevice) throws -> (Int) -> Optimizer {
 		let bundle: Bundle = Bundle(for: self)
+		let kernel: String = String(describing: self)
 		let constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
 		constantValues.setConstantValue([α], type: .float, withName: "alpha")
 		constantValues.setConstantValue([β], type: .float, withName: "beta")
@@ -31,7 +32,7 @@ public class Adam {
 		constantValues.setConstantValue([ε], type: .float, withName: "epsilon")
 		return {
 			let library: MTLLibrary = try $0.makeDefaultLibrary(bundle: bundle)
-			let function: MTLFunction = try library.makeFunction(name: "AdamOptimize", constantValues: constantValues)
+			let function: MTLFunction = try library.makeFunction(name: "\(kernel)Optimize", constantValues: constantValues)
 			let pipeline: MTLComputePipelineState = try $0.makeComputePipelineState(function: function)
 			return {
 				Adam(pipeline: pipeline, count: $0)

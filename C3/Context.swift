@@ -39,7 +39,7 @@ public class Context: NSManagedObjectContext {
 		}
 	}
 	public init(storage: URL? = nil,
-	            adapter: (μ: (MTLDevice)throws->(Int)->Adapter, σ: (MTLDevice)throws->(Int)->Adapter) = (μ: Linear.factory(), σ: Positive.factory()),
+	            adapter: (μ: (MTLDevice)throws->(Int)->Adapter, σ: (MTLDevice)throws->(Int)->Adapter) = (μ: Linear.adapter(), σ: Linear.adapter()),
 	            optimizer: (MTLDevice)throws->(Int) -> Optimizer = SGD.factory(),
 	            concurrencyType: NSManagedObjectContextConcurrencyType = .privateQueueConcurrencyType) throws {
 		guard let mtl: Device = MTLCreateSystemDefaultDevice() else { throw ErrorCase.NoDeviceFound }

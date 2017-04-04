@@ -10,6 +10,7 @@ import XCTest
 import Accelerate
 import Metal
 import Optimizer
+import Adapter
 @testable import C3
 
 class C3Tests: XCTestCase {
@@ -62,51 +63,21 @@ class C3Tests: XCTestCase {
 	}
 	*/
 	func testChain() {
-		let storage: URL? = nil//FileManager.default.temporaryDirectory.appendingPathComponent("C3.sqlite")
 		do {
-			let IS: Array<Array<Float>> = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1]]
-			let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,0,1,0], [0,0,0,1]]
-			let context: Context = try Context(storage: storage, optimizer: SGD.factory(η: 0.5))
+			let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0]]
+			let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
+			let context: Context = try Context(storage: nil,//storage,
+											   adapter: (μ: Regular.adapter(L2: 1e-8), σ: Regular.adapter(L2: 1e-8)),
+			                                   optimizer: SMORMS3.factory(α: 0.001))
 			
 			let I: Cell = try context.make(label: "I", width: 4)
 			let H: Cell = try context.make(label: "H", width: 256, input: [I])
 			let G: Cell = try context.make(label: "G", width: 256, input: [H])
-			let O: Cell = try context.make(label: "O", width: 4, input: [G])
+			let F: Cell = try context.make(label: "F", width: 256, input: [G])
+			let O: Cell = try context.make(label: "O", width: 4, input: [F])
 			
-			/*
-			(0..<8).forEach {
-				let k: Int = $0 % 4
-				print("----")
-				
-				O.collect_clear()
-				I.correct_clear()
-				O.target = OS[k]
-				I.source = IS[k]
-				O.collect()
-				I.correct()
-				
-				print(O.source, O.target)
-				print("Y")
-				print("χ=", Array(O.state!.buf))
-				print("φμ=", Array(O.cache[0].φ.μ.buf))
-				print("g=", Array(O.cache[0].g.μ.buf))
-				print("Δφ=", Array(O.cache[0].Δφ.μ.buf))
-				print("Y-X")
-				print("θ=", Array(O.input.first!.θ.μ.buf))
-				print("ja=", Array(O.input.first!.ja[0].μ.buf))
-				print("Δa=", Array(O.input.first!.Δ.μ.buf))
-				print("jx=", Array(O.input.first!.jx[0].μ.buf))
-				//print("Δx=", Array(O.input.first!.Δ.μ.buf))
-				print("X")
-				print("χ=", Array(O.input.first!.input.state!.buf))
-				print("φμ=", Array(O.input.first!.input.cache[0].φ.μ.buf))
-				print("g=", Array(O.input.first!.input.cache[0].g.μ.buf))
-				print("Δφ=", Array(O.input.first!.input.cache[0].Δφ.μ.buf))
-				
-			}
-			*/
 			measure {
-				(0..<256).forEach {
+				(0..<1024).forEach {
 					let ref: Int = $0 % 4
 					O.collect_clear()
 					I.correct_clear()
