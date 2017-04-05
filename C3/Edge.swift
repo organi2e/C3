@@ -5,64 +5,66 @@
 //  Created by Kota Nakano on 2017/03/29.
 //
 //
-
+import CoreData
 import Distributor
-
 internal class Edge: Arcane {
-	var jx: RingBuffer<(μ: Buffer, σ: Buffer)> = RingBuffer<(μ: Buffer, σ: Buffer)>(buffer: [], offset: 0)
-	var ja: RingBuffer<(μ: Buffer, σ: Buffer)> = RingBuffer<(μ: Buffer, σ: Buffer)>(buffer: [], offset: 0)
+	struct Cache {
+		let jx: (μ: Buffer, σ: Buffer)
+		let ja: (μ: Buffer, σ: Buffer)
+		init(context: Context, count: Int) {
+			jx = (
+				μ: context.make(length: count * MemoryLayout<Float>.size, options: .storageModePrivate),
+				σ: context.make(length: count * MemoryLayout<Float>.size, options: .storageModePrivate)
+			)
+			ja = (
+				μ: context.make(length: count * MemoryLayout<Float>.size, options: .storageModePrivate),
+				σ: context.make(length: count * MemoryLayout<Float>.size, options: .storageModePrivate)
+			)
+		}
+	}
+	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
 }
 extension Edge {
-	func collect_clear(commandBuffer: CommandBuffer) {
-		input.collect_clear()
+	func collect_refresh() {
+		guard input.output.contains(self) else { return }
+		input.collect_refresh()
 	}
 	func collect(collector: Collector, ignore: Set<Cell>) {
 		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
 		let x: Buffer = input.collect(ignore: ignore)
-		refresh(commandBuffer: collector.order) {
-			
-			output.distributor.flush(commandBuffer: collector.order, θ: jx.rotate())
-			output.distributor.jacobian(commandBuffer: collector.order, Σ: jx[0], x: x, a: $0, count: count)
-			
-			output.distributor.flush(commandBuffer: collector.order, θ: ja.rotate())
-			output.distributor.jacobian(commandBuffer: collector.order, Σ: ja[0], a: $0, x: x, count: count)
-			
+		output.distributor.flush(commandBuffer: collector.order, θ: cache[0].jx)
+		output.distributor.flush(commandBuffer: collector.order, θ: cache[0].ja)
+		access(commandBuffer: collector.order) {
+			output.distributor.jacobian(commandBuffer: collector.order, Σ: cache[0].jx, x: x, a: $0, count: count)
+			output.distributor.jacobian(commandBuffer: collector.order, Σ: cache[0].ja, a: $0, x: x, count: count)
 			collector.collect(w: $0, x: x, count: count.cols)
-			
 		}
 	}
 }
 extension Edge {
-	func correct_clear(commandBuffer: CommandBuffer) {
-		output.correct_clear()
+	func correct_refresh() {
+		guard output.input.contains(self) else { return }
+		output.correct_refresh()
+		cache.rotate()
 	}
 	func correct(corrector: Corrector, ignore: Set<Cell>) {
-		
 		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
 		let (Δφ, φ): (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = output.correct(ignore: ignore)
-		
-		output.distributor.jacobian(commandBuffer: corrector.order, j: ja[0], Σ: ja[0], φ: φ, count: count)
+		output.distributor.jacobian(commandBuffer: corrector.order, j: cache[0].ja, Σ: cache[0].ja, φ: φ, count: count)
+		output.distributor.jacobian(commandBuffer: corrector.order, j: cache[0].jx, Σ: cache[0].jx, φ: φ, count: count)
 		update(commandBuffer: corrector.order) {
-			output.distributor.derivate(commandBuffer: corrector.order, Δ: $0, j: ja[0], Δφ: Δφ, count: count)
+			output.distributor.derivate(commandBuffer: corrector.order, Δ: $0, j: cache[0].ja, Δφ: Δφ, count: count)
 		}
-		
-		output.distributor.jacobian(commandBuffer: corrector.order, j: jx[0], Σ: jx[0], φ: φ, count: count)
-		corrector.correct(j: jx[0], Δ: Δφ, count: output.width)
-		
+		corrector.correct(j: cache[0].jx, Δ: Δφ, count: output.width)
 	}
 }
 extension Edge {
 	override func setup(commandBuffer: CommandBuffer, count: Int) {
 		super.setup(commandBuffer: commandBuffer, count: count)
 		let ref: Array<Void> = Array<Void>(repeating: (), count: output.depth)
-		ja = RingBuffer<(μ: Buffer, σ: Buffer)>(buffer: ref.map {(
-			μ: context.make(length: count * MemoryLayout<Float>.size),
-			σ: context.make(length: count * MemoryLayout<Float>.size)
-		)}, offset: 0)
-		jx = RingBuffer<(μ: Buffer, σ: Buffer)>(buffer: ref.map {(
-			μ: context.make(length: count * MemoryLayout<Float>.size),
-			σ: context.make(length: count * MemoryLayout<Float>.size)
-		)}, offset: 0)
+		cache = RingBuffer<Cache>(buffer: ref.map{
+			Cache(context: context, count: count)
+		}, offset: 0)
 	}
 	override func awakeFromFetch() {
 		super.awakeFromFetch()

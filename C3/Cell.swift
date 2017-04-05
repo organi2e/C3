@@ -5,15 +5,30 @@
 //  Created by Kota Nakano on 2017/03/29.
 //
 //
-
+import CoreData
 import Distributor
-
 public class Cell: ManagedObject {
 	struct Cache {
 		let χ: Buffer
 		let φ: (μ: Buffer, σ: Buffer)
 		let g: (μ: Buffer, σ: Buffer)
-		let Δφ: (μ: Buffer, σ: Buffer)
+		let Δ: (μ: Buffer, σ: Buffer)
+		init(context: Context, count: Int) {
+			let length: Int = count * MemoryLayout<Float>.size
+			χ = context.make(length: length, options: .storageModePrivate)
+			φ = (
+				μ: context.make(length: length, options: .storageModePrivate),
+				σ: context.make(length: length, options: .storageModePrivate)
+			)
+			g = (
+				μ: context.make(length: length, options: .storageModePrivate),
+				σ: context.make(length: length, options: .storageModePrivate)
+			)
+			Δ = (
+				μ: context.make(length: length, options: .storageModePrivate),
+				σ: context.make(length: length, options: .storageModePrivate)
+			)
+		}
 	}
 	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
 	var state: Buffer?
@@ -21,13 +36,13 @@ public class Cell: ManagedObject {
 	var delta: (μ: Buffer, σ: Buffer)?
 }
 extension Cell {
-	public func collect_clear() {
-		state = nil
-		let commandBuffer: CommandBuffer = context.make()
+	public func collect_refresh() {
 		input.forEach {
-			$0.collect_clear(commandBuffer: commandBuffer)
+			$0.collect_refresh()
 		}
-		commandBuffer.commit()
+		bias.collect_refresh()
+		state = nil
+		cache.rotate()
 	}
 	public func collect() {
 		let _: Buffer = collect(ignore: [])
@@ -38,9 +53,8 @@ extension Cell {
 		} else if let state: Buffer = state {
 			return state
 		} else {
-			let latest: Cache = cache.rotate()
 			let commandBuffer: CommandBuffer = context.make()
-			context.gaussDistributor.activate(commandBuffer: commandBuffer, χ: latest.χ, φ: latest.φ, count: width) { (collector: Collector) -> Void in
+			distributor.activate(commandBuffer: commandBuffer, χ: cache[0].χ, φ: cache[0].φ, count: width) { (collector: Collector) -> Void in
 				input.forEach { $0.collect(collector: collector, ignore: ignore.union([self])) }
 				bias.collect(collector: collector)
 			}
@@ -51,37 +65,37 @@ extension Cell {
 	}
 }
 extension Cell {
-	public func correct_clear() {
-		delta = nil
-		let commandBuffer: CommandBuffer = context.make()
+	public func correct_refresh() {
 		output.forEach {
-			$0.correct_clear(commandBuffer: commandBuffer)
+			$0.correct_refresh()
 		}
-		commandBuffer.commit()
+		bias.correct_refresh()
+		delta = nil
+		study?.setPurgeableState(.empty)
 	}
 	public func correct() {
-		let _ = correct(ignore: [])
+		let _: (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = correct(ignore: [])
 	}
 	internal func correct(ignore: Set<Cell>) -> (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) {
 		if ignore.contains(self) {
-			return (Δφ: cache[-1].Δφ, φ: cache[-1].φ)
+			return (Δφ: cache[-1].Δ, φ: cache[-1].φ)
 		} else if let Δφ: (μ: Buffer, σ: Buffer) = delta {
 			return (Δφ: Δφ, φ: cache[0].φ)
 		} else {
 			let commandBuffer: CommandBuffer = context.make()
-			context.gaussDistributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δφ, g: cache[0].g, φ: cache[0].φ, count: width) { (corrector: Corrector) -> Void in
-				if let ϝ: Buffer = study, let χ: Buffer = state {
+			distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, g: cache[0].g, φ: cache[0].φ, count: width) { (corrector: Corrector) -> Void in
+				if let χ: Buffer = state, let ϝ: Buffer = study {
 					corrector.correct(χ: χ, ϝ: ϝ)
 				} else {
 					output.forEach {
 						$0.correct(corrector: corrector, ignore: ignore.union([self]))
-					}
+					}	
 				}
 			}
-			bias.correct(commandBuffer: commandBuffer, Δφ: cache[0].Δφ, φ: cache[0].φ)
+			bias.correct(commandBuffer: commandBuffer, Δφ: cache[0].Δ, φ: cache[0].φ)
 			commandBuffer.commit()
-			delta = cache[0].Δφ
-			return (Δφ: cache[0].Δφ, φ: cache[0].φ)
+			delta = cache[0].Δ
+			return (Δφ: cache[0].Δ, φ: cache[0].φ)
 		}
 	}
 }
@@ -101,7 +115,8 @@ extension Cell {
 			return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(target.contents())), count: width))
 		}
 		set {
-			state = newValue.isEmpty ? nil : context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModePrivate)
+			state = newValue.isEmpty ? nil : context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)),
+			                                              options: .storageModePrivate)
 		}
 	}
 	var target: Array<Float> {
@@ -118,19 +133,15 @@ extension Cell {
 			return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(target.contents())), count: width))
 		}
 		set {
-			study = newValue.isEmpty ? nil : context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModePrivate)
+			study = newValue.isEmpty ? nil : context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)),
+			                                              options: .storageModePrivate)
 		}
 	}
 }
 extension Cell {
 	internal func setup(commandBuffer: CommandBuffer) {
-		let length: Int = width * MemoryLayout<Float>.size
-		let options: MTLResourceOptions = .storageModePrivate
 		cache = RingBuffer(buffer: Array<Void>(repeating: (), count: depth).map {
-			Cache(χ: context.make(length: length, options: options),
-			      φ: (μ: context.make(length: length, options: options), σ: context.make(length: length, options: options)),
-			      g: (μ: context.make(length: length, options: options), σ: context.make(length: length, options: options)),
-			      Δφ: (μ: context.make(length: length, options: options), σ: context.make(length: length, options: options)))
+			Cache(context: context, count: width)
 		}, offset: 0)
 	}
 	public override func awakeFromFetch() {
@@ -160,6 +171,7 @@ extension Cell {
 	@NSManaged var input: Set<Edge>
 	@NSManaged var output: Set<Edge>
 	@NSManaged var bias: Bias
+	@NSManaged var decay: Decay?
 }
 extension Context {
 	public func make(label: String,
@@ -173,19 +185,13 @@ extension Context {
 		let cell: Cell = try make()
 		cell.label = label
 		cell.width = width
-		try output.forEach {
-			let _: Edge = try make(commandBuffer: commandBuffer, output: $0, input: cell)
-		}
-		try input.forEach {
-			let _: Edge = try make(commandBuffer: commandBuffer, output: cell, input: $0)
-		}
+		cell.output = Set<Edge>(try output.map{try make(commandBuffer: commandBuffer, output: $0, input: cell)})
+		cell.input = Set<Edge>(try input.map{try make(commandBuffer: commandBuffer, output: cell, input: $0)})
 		if recurrent {
 			
 		}
 		cell.bias = try make(commandBuffer: commandBuffer, cell: cell)
-		if decay {
-			
-		}
+		cell.decay = !decay ? nil : try make(commandBuffer: commandBuffer, cell: cell)
 		cell.setup(commandBuffer: commandBuffer)
 		commandBuffer.commit()
 		return cell
@@ -195,12 +201,11 @@ extension Context {
 			guard let value: Any = value else { return [] }
 			return [(format, value)]
 		}
-		let request: NSFetchRequest<Cell> = NSFetchRequest<Cell>(entityName: String(describing: Cell.self))
 		let formats: [(String, Any)] = bind(format: "label = %@", value: label) + bind(format: "width = %@", value: width)
-		request.predicate = formats.isEmpty ? nil : NSPredicate(
-			format: formats.map { $0.0 }.joined(separator: " and "),
-			argumentArray: formats.map { $0.1 }
+		let predicate: NSPredicate = NSPredicate(
+			format: formats.map{$0.0}.joined(separator: " and "),
+			argumentArray: formats.map{$0.1}
 		)
-		return try fetch(request)
+		return try fetch(predicate: predicate)
 	}
 }

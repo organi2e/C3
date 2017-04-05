@@ -58,7 +58,14 @@
 		87B8462F1E93985500844835 /* Tanh.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B8462E1E93985500844835 /* Tanh.metal */; };
 		87B846311E93A48500844835 /* Floor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B846301E93A48500844835 /* Floor.swift */; };
 		87B846331E93A49000844835 /* Floor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B846321E93A49000844835 /* Floor.metal */; };
+		87C3C2741E94C58C00A62C11 /* Decay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C2731E94C58C00A62C11 /* Decay.swift */; };
+		87C3C27D1E94C90100A62C11 /* Logistic.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C27B1E94C90100A62C11 /* Logistic.metal */; };
+		87C3C27E1E94C90100A62C11 /* Logistic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C27C1E94C90100A62C11 /* Logistic.swift */; };
+		87C3C2801E94D06B00A62C11 /* Capture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C27F1E94D06B00A62C11 /* Capture.swift */; };
 		87E5BA091E8CFF9B00D5983D /* GaussDistributorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E5BA081E8CFF9B00D5983D /* GaussDistributorTests.swift */; };
+		87EEBCE31E94E0A80079BA43 /* Adapter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8754F8A11E8B9F0E006B088A /* Adapter.framework */; };
+		87EEBCE41E94E0A80079BA43 /* Distributor.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8754F8461E8B96AB006B088A /* Distributor.framework */; };
+		87EEBCE51E94E0A80079BA43 /* Optimizer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8754F8691E8B970E006B088A /* Optimizer.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -179,6 +186,10 @@
 		87B8462E1E93985500844835 /* Tanh.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Tanh.metal; path = ../../Adapter/Tanh.metal; sourceTree = "<group>"; };
 		87B846301E93A48500844835 /* Floor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Floor.swift; path = ../../Adapter/Floor.swift; sourceTree = "<group>"; };
 		87B846321E93A49000844835 /* Floor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Floor.metal; path = ../../Adapter/Floor.metal; sourceTree = "<group>"; };
+		87C3C2731E94C58C00A62C11 /* Decay.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Decay.swift; path = ../../C3/Decay.swift; sourceTree = "<group>"; };
+		87C3C27B1E94C90100A62C11 /* Logistic.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Logistic.metal; path = ../../Adapter/Logistic.metal; sourceTree = "<group>"; };
+		87C3C27C1E94C90100A62C11 /* Logistic.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Logistic.swift; path = ../../Adapter/Logistic.swift; sourceTree = "<group>"; };
+		87C3C27F1E94D06B00A62C11 /* Capture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Capture.swift; path = ../../C3/Capture.swift; sourceTree = "<group>"; };
 		87E5BA081E8CFF9B00D5983D /* GaussDistributorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GaussDistributorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -194,6 +205,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				87EEBCE31E94E0A80079BA43 /* Adapter.framework in Frameworks */,
+				87EEBCE41E94E0A80079BA43 /* Distributor.framework in Frameworks */,
+				87EEBCE51E94E0A80079BA43 /* Optimizer.framework in Frameworks */,
 				87497DD21E9257080013C12C /* C3.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -252,8 +266,10 @@
 				87497DE01E9257200013C12C /* Arcane.swift */,
 				87497DE11E9257200013C12C /* Bias.swift */,
 				87497DE41E9257200013C12C /* Cell.swift */,
+				87C3C2731E94C58C00A62C11 /* Decay.swift */,
 				87497DE61E9257200013C12C /* Edge.swift */,
 				87497DE51E9257200013C12C /* Context.swift */,
+				87C3C27F1E94D06B00A62C11 /* Capture.swift */,
 				87497DE71E9257200013C12C /* RingBuffer.swift */,
 				87497DCB1E9257080013C12C /* C3.h */,
 				87497DE21E9257200013C12C /* C3.xcdatamodeld */,
@@ -359,6 +375,8 @@
 		8754F8A21E8B9F0E006B088A /* Adapter */ = {
 			isa = PBXGroup;
 			children = (
+				87C3C27C1E94C90100A62C11 /* Logistic.swift */,
+				87C3C27B1E94C90100A62C11 /* Logistic.metal */,
 				8754F8BC1E8B9F54006B088A /* Linear.swift */,
 				8754F8BB1E8B9F54006B088A /* Linear.metal */,
 				87B846281E9393B200844835 /* Softplus.swift */,
@@ -729,7 +747,9 @@
 				87497DE91E9257200013C12C /* Bias.swift in Sources */,
 				87497DEB1E9257200013C12C /* Cell.swift in Sources */,
 				87497DED1E9257200013C12C /* Edge.swift in Sources */,
+				87C3C2801E94D06B00A62C11 /* Capture.swift in Sources */,
 				87497DE81E9257200013C12C /* Arcane.swift in Sources */,
+				87C3C2741E94C58C00A62C11 /* Decay.swift in Sources */,
 				87497DEC1E9257200013C12C /* Context.swift in Sources */,
 				87497DEE1E9257200013C12C /* RingBuffer.swift in Sources */,
 				87497DEA1E9257200013C12C /* C3.xcdatamodeld in Sources */,
@@ -801,6 +821,7 @@
 				8754F8C41E8B9F54006B088A /* Regular.metal in Sources */,
 				8754F8C21E8B9F54006B088A /* Linear.metal in Sources */,
 				8754F8BF1E8B9F54006B088A /* Adapter.swift in Sources */,
+				87C3C27E1E94C90100A62C11 /* Logistic.swift in Sources */,
 				87B8462D1E93984B00844835 /* Tanh.swift in Sources */,
 				87B846331E93A49000844835 /* Floor.metal in Sources */,
 				8754F8C51E8B9F54006B088A /* Regular.swift in Sources */,
@@ -809,6 +830,7 @@
 				8754F8C91E8B9FBD006B088A /* Positive.metal in Sources */,
 				87B846311E93A48500844835 /* Floor.swift in Sources */,
 				8754F8C11E8B9F54006B088A /* Exponential.swift in Sources */,
+				87C3C27D1E94C90100A62C11 /* Logistic.metal in Sources */,
 				8754F8C01E8B9F54006B088A /* Exponential.metal in Sources */,
 				8754F8C31E8B9F54006B088A /* Linear.swift in Sources */,
 			);

@@ -5,8 +5,8 @@
 //  Created by Kota Nakano on 2017/03/29.
 //
 //
-
 import Adapter
+import Distributor
 import Optimizer
 internal class Arcane: ManagedObject {
 	var μ: Variable?
@@ -21,14 +21,12 @@ extension Arcane {
 		private let φ: Buffer
 		private let a: Adapter
 		private let o: Optimizer
-		init(commandBuffer: CommandBuffer, data: Data, adapter: Adapter, optimizer: Optimizer) {
-			let device: Device = commandBuffer.device
-			φ = data.withUnsafeBytes { device.makeBuffer(bytes: $0, length: data.count, options: .storageModeShared) }
-			θ = device.makeBuffer(length: data.count, options: .storageModePrivate)
-			Δ = device.makeBuffer(length: data.count, options: .storageModePrivate)
+		init(context: Context, data: Data, adapter: Adapter, optimizer: Optimizer) {
+			φ = context.make(data: data, options: .storageModeShared)
+			θ = context.make(length: data.count, options: .storageModePrivate)
+			Δ = context.make(length: data.count, options: .storageModePrivate)
 			a = adapter
 			o = optimizer
-			o.reset(commandBuffer: commandBuffer)	
 		}
 		func flush(commandBuffer: CommandBuffer) {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
@@ -42,19 +40,28 @@ extension Arcane {
 			a.gradient(commandBuffer: commandBuffer, Δ: Δ, θ: θ, φ: φ)
 			o.optimize(commandBuffer: commandBuffer, θ: φ, Δ: Δ)
 		}
+		func reset(commandBuffer: CommandBuffer) {
+			o.reset(commandBuffer: commandBuffer)
+		}
 		var data: Data {
 			return Data(bytesNoCopy: φ.contents(), count: φ.length, deallocator: .none)
 		}
 	}
-	internal func update(commandBuffer: CommandBuffer, handler: ((μ: Buffer, σ: Buffer)) -> Void) {
+	func update(commandBuffer: CommandBuffer, handler: ((μ: Buffer, σ: Buffer)) -> Void) {
 		if let μ: Variable = μ, let σ: Variable = σ {
 			func will(_: CommandBuffer) {
-				willChangeValue(forKey: Arcane.locationkey)
-				willChangeValue(forKey: Arcane.logscalekey)
+				func block() {
+					willChangeValue(forKey: Arcane.locationkey)
+					willChangeValue(forKey: Arcane.logscalekey)
+				}
+				context.perform(block)
 			}
 			func done(_: CommandBuffer) {
-				didChangeValue(forKey: Arcane.logscalekey)
-				didChangeValue(forKey: Arcane.locationkey)
+				func block() {
+					didChangeValue(forKey: Arcane.logscalekey)
+					didChangeValue(forKey: Arcane.locationkey)
+				}
+				context.perform(block)
 			}
 			
 			μ.flush(commandBuffer: commandBuffer)
@@ -67,17 +74,25 @@ extension Arcane {
 			
 			commandBuffer.addScheduledHandler(will)
 			commandBuffer.addCompletedHandler(done)
+		} else {
+			assertionFailure()
 		}
 	}
-	internal func refresh(commandBuffer: CommandBuffer, handler: ((μ: Buffer, σ: Buffer)) -> Void) {
+	func access(commandBuffer: CommandBuffer, handler: ((μ: Buffer, σ: Buffer)) -> Void) {
 		if let μ: Variable = μ, let σ: Variable = σ {
 			func will(_: CommandBuffer) {
-				willAccessValue(forKey: Arcane.locationkey)
-				willAccessValue(forKey: Arcane.logscalekey)
+				func block() {
+					willAccessValue(forKey: Arcane.locationkey)
+					willAccessValue(forKey: Arcane.logscalekey)
+				}
+				context.perform(block)
 			}
 			func done(_: CommandBuffer) {
-				didAccessValue(forKey: Arcane.logscalekey)
-				didAccessValue(forKey: Arcane.locationkey)
+				func block() {
+					didAccessValue(forKey: Arcane.logscalekey)
+					didAccessValue(forKey: Arcane.locationkey)
+				}
+				context.perform(block)
 			}
 			
 			μ.refresh(commandBuffer: commandBuffer)
@@ -87,18 +102,26 @@ extension Arcane {
 			
 			commandBuffer.addScheduledHandler(will)
 			commandBuffer.addCompletedHandler(done)
+		} else {
+			assertionFailure()
 		}
 	}
-	internal func setup(commandBuffer: CommandBuffer, count: Int) {
-		
+	func setup(commandBuffer: CommandBuffer, count: Int) {
+	
 		assert( count * MemoryLayout<Float>.size <= location.count)
 		assert( count * MemoryLayout<Float>.size <= logscale.count)
 		
-		μ = Structs(commandBuffer: commandBuffer, data: location, adapter: context.μadapterFactory(count), optimizer: context.optimizerFactory(count))
-		σ = Structs(commandBuffer: commandBuffer, data: logscale, adapter: context.σadapterFactory(count), optimizer: context.optimizerFactory(count))
+		μ = Structs(context: context, data: location, adapter: context.μadapterFactory(count), optimizer: context.optimizerFactory(count))
+		σ = Structs(context: context, data: logscale, adapter: context.σadapterFactory(count), optimizer: context.optimizerFactory(count))
 		
-		setPrimitiveValue(μ?.data, forKey: Arcane.locationkey)
-		setPrimitiveValue(σ?.data, forKey: Arcane.logscalekey)
+		μ?.reset(commandBuffer: commandBuffer)
+		σ?.reset(commandBuffer: commandBuffer)
+		
+		func block() {
+			setPrimitiveValue(μ?.data, forKey: Arcane.locationkey)
+			setPrimitiveValue(σ?.data, forKey: Arcane.logscalekey)
+		}
+		context.perform(block)
 		
 	}
 }

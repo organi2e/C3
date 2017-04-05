@@ -57,11 +57,11 @@ class GaussDistributorTests: XCTestCase {
 			let la_φμ: la_object_t = [
 				la_matrix_product(la_wμ, la_x),
 				la_elementwise_product(la_d, la_pμ)
-			].reduce(la_cμ, la_sum)
+				].reduce(la_cμ, la_sum)
 			let la_φv: la_object_t = [
 				la_matrix_product(la_elementwise_product(la_wσ, la_wσ), la_elementwise_product(la_x, la_x)),
 				la_elementwise_product(la_elementwise_product(la_d, la_d), la_elementwise_product(la_pσ, la_pσ))
-			].reduce(la_elementwise_product(la_cσ, la_cσ), la_sum)
+				].reduce(la_elementwise_product(la_cσ, la_cσ), la_sum)
 			let la_χ: la_object_t = la_matrix_from_float_buffer(zip(la_φμ.array, la_φv.array).map{ fma(erf($0.0*rsqrt(2.0*$0.1)), 0.5, 0.5) }, la_count_t(width), 1, 1, hint, attr)
 			
 			XCTAssert( la_status(la_φμ) == 0 )
@@ -169,8 +169,8 @@ class GaussDistributorTests: XCTestCase {
 			XCTAssert( la_status(la_Δ1μ) == 0 )
 			XCTAssert( la_status(la_Δ1σ) == 0 )
 			
-			let la_j1μ: la_object_t = j0.μ.matrix(rows: refer, cols: width)
-			let la_j1σ: la_object_t = j0.σ.matrix(rows: refer, cols: width)
+			let la_j1μ: la_object_t = j1.μ.matrix(rows: refer, cols: width)
+			let la_j1σ: la_object_t = j1.σ.matrix(rows: refer, cols: width)
 			
 			XCTAssert( la_status(la_j1μ) == 0 )
 			XCTAssert( la_status(la_j1σ) == 0 )
@@ -181,20 +181,27 @@ class GaussDistributorTests: XCTestCase {
 			XCTAssert( la_status(la_χ) == 0 )
 			XCTAssert( la_status(la_ϝ) == 0 )
 			
-			let la_Δ: la_object_t = [
+			let la_Δ: la_object_t = la_matrix_from_float_buffer([
 				la_matrix_product(la_transpose(la_j0μ), la_Δ0μ),
 				la_matrix_product(la_transpose(la_j1μ), la_Δ1μ),
 				la_matrix_product(la_transpose(la_j0σ), la_Δ0σ),
 				la_matrix_product(la_transpose(la_j1σ), la_Δ1σ),
-			].reduce(la_difference(la_χ, la_ϝ), la_sum)
+				la_difference(la_χ, la_ϝ)
+			].reduce(la_splat_from_float(0, attr), la_sum).array.map(sign), la_count_t(width), 1, 1, hint, attr)
 			
 			XCTAssert( la_status(la_Δ) == 0 )
 			
-			let la_Δφμ: la_object_t = la_matrix_product(la_Δgμ.diagonale, la_Δ)
-			let la_Δφσ: la_object_t = la_matrix_product(la_Δgσ.diagonale, la_Δ)
+			let la_Δφμ: la_object_t = la_matrix_product(la_gμ.diagonale, la_Δ)
+			let la_Δφσ: la_object_t = la_matrix_product(la_gσ.diagonale, la_Δ)
 			
 			XCTAssert( la_status(la_Δφμ) == 0 )
 			XCTAssert( la_status(la_Δφσ) == 0 )
+			
+			let la_ΔΔφμ: la_object_t = la_difference(la_Δφμ, Δφ.μ.matrix(rows: width, cols: 1))
+			let la_ΔΔφσ: la_object_t = la_difference(la_Δφσ, Δφ.σ.matrix(rows: width, cols: 1))
+			
+			XCTAssert( la_status(la_ΔΔφμ) == 0 )
+			XCTAssert( la_status(la_ΔΔφσ) == 0 )
 			
 			commandBuffer.waitUntilCompleted()
 			
@@ -210,8 +217,8 @@ class GaussDistributorTests: XCTestCase {
 			XCTAssert( rmsegμ < 1e-6 )
 			XCTAssert( rmsegσ < 1e-6 )
 			
-			let rmseΔφμ: Float = la_norm_as_float(la_Δφμ, norm) * rsqrt(Float(width))
-			let rmseΔφσ: Float = la_norm_as_float(la_Δφσ, norm) * rsqrt(Float(width))
+			let rmseΔφμ: Float = la_norm_as_float(la_ΔΔφμ, norm) * rsqrt(Float(width))
+			let rmseΔφσ: Float = la_norm_as_float(la_ΔΔφσ, norm) * rsqrt(Float(width))
 			
 			XCTAssert( rmseΔφμ < 1e-6 )
 			XCTAssert( rmseΔφσ < 1e-6 )

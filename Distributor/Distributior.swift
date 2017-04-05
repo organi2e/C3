@@ -22,7 +22,6 @@ public protocol Collector {
 struct CorrectorPipeline {
 	let J: MTLComputePipelineState
 	let G: MTLComputePipelineState
-	let D: MTLComputePipelineState
 }
 public protocol Corrector {
 	func correct(j: (μ: MTLBuffer, σ: MTLBuffer), Δ: (μ: MTLBuffer, σ: MTLBuffer), count: Int)
