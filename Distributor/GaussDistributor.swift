@@ -8,7 +8,7 @@
 
 import Accelerate
 import Metal
-
+/*
 public class GaussActivator {
 	let width: Int
 	var index: Int
@@ -77,7 +77,7 @@ extension GaussActivator {
 		let order: MTLCommandBuffer
 		let state: CollectorPipeline
 		let width: Int
-		let Σ: (μ: MTLBuffer, σ: MTLBuffer)
+		let φ: (μ: MTLBuffer, σ: MTLBuffer)
 		public func collect(w: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer, count: Int) {
 			assert( order.device === state.W.device )
 			assert( order.device === Σ.μ.device && width * MemoryLayout<Float>.size <= Σ.μ.length )
@@ -303,6 +303,7 @@ extension GaussActivator {
 extension GaussActivator: Activator {
 	
 }
+*/
 public class GaussDerivator {
 	let width: Int
 	let refer: Int
@@ -624,10 +625,12 @@ public class GaussDistributor {
 	let correctorPipeline: CorrectorPipeline
 	let jacobianPipeline: JacobianPipeline
 	let deltaPipeline: DeltaPipeline
-	public init(device: MTLDevice) throws {
+	public init(device: MTLDevice, xorshift: (Int, Int, Int) = (13, 17, 5)) throws {
 		let bundle: Bundle = Bundle(for: GaussDistributor.self)
 		let library: MTLLibrary = try device.makeDefaultLibrary(bundle: bundle)
-		activatorPipeline = try library.make(name: "GaussActivateP")
+		let xorshiftValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
+		xorshiftValues.setConstantValue([uint(xorshift.0), uint(xorshift.1), uint(xorshift.2)], type: .uint3, withName: "xorshift")
+		activatorPipeline = try library.make(name: "GaussActivateP", constantValues: xorshiftValues)
 		derivatorPipeline = try library.make(name: "GaussDerivateP")
 		collectorPipeline = CollectorPipeline(
 			W: try library.make(name: "GaussCollectW"),
@@ -637,8 +640,7 @@ public class GaussDistributor {
 		)
 		correctorPipeline = CorrectorPipeline(
 			J: try library.make(name: "GaussCorrectJ"),
-			G: try library.make(name: "GaussCorrectG"),
-			D: try library.make(name: "GaussCorrectD")
+			G: try library.make(name: "GaussCorrectG")
 		)
 		jacobianPipeline = JacobianPipeline(
 			X: try library.make(name: "GaussJacobianX"),
@@ -754,17 +756,18 @@ extension GaussDistributor {
 			assert( commandBuffer.device === χ.device && count * MemoryLayout<Float>.size <= χ.length )
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.size <= φ.μ.length )
 			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.size <= φ.σ.length )
-			typealias T = ushort
+			typealias T = uint
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
 			let threads: Int = activatorPipeline.threadExecutionWidth
 			let bytes: Int = count * MemoryLayout<T>.size
+			let data: Data = Data(capacity: bytes)
 			encoder.setComputePipelineState(activatorPipeline)
 			encoder.setBuffer(χ, offset: 0, at: 0)
 			encoder.setBuffer(φ.μ, offset: 0, at: 1)
 			encoder.setBuffer(φ.σ, offset: 0, at: 2)
-			Data(capacity: bytes).withUnsafeBytes { (ref: UnsafePointer<T>) -> Void in
-				arc4random_buf(UnsafeMutablePointer(mutating: ref), bytes)
-				encoder.setBytes(ref, length: bytes, at: 3)
+			arc4random_buf(UnsafeMutablePointer(mutating: data.withUnsafeBytes{$0}), bytes)
+			data.withUnsafeBytes {
+				encoder.setBytes($0, length: bytes, at: 3)
 			}
 			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 4)
 			encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),

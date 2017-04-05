@@ -35,6 +35,15 @@ template<typename T> T erf(T z) {
 template<typename T> inline T sq(const T x) {
 	return x * x;
 }
+inline float2x2 const sq(const float2x2 x) {
+	return float2x2(sq(x[0]),
+					sq(x[1]));
+}
+inline float3x3 const sq(const float3x3 x) {
+	return float3x3(sq(x[0]),
+					sq(x[1]),
+					sq(x[2]));
+}
 inline float4x4 const sq(const float4x4 x) {
 	return float4x4(sq(x[0]),
 					sq(x[1]),
@@ -288,15 +297,6 @@ kernel void GaussCorrectJ(device float * const dx [[ buffer(0) ]],
 		*(device float *)(dx+row.x) += accum->x;
 	}
 }
-kernel void GaussCorrectD(device float * const dx [[ buffer(0) ]],
-						  device float const * const g [[ buffer(1) ]],
-						  constant uint const & N [[ buffer(2) ]],
-						  uint const n [[ thread_position_in_grid ]]) {
-	if ( n < N ) {
-		int const idx = n;
-		dx[idx] += g[idx];
-	}
-}
 kernel void GaussCorrectG(device float * const dx [[ buffer(0) ]],
 						  device float const * const x [[ buffer(1) ]],
 						  device float const * const d [[ buffer(2) ]],
@@ -304,7 +304,7 @@ kernel void GaussCorrectG(device float * const dx [[ buffer(0) ]],
 						  uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		dx[idx] += x[idx] - d[idx];
+		dx[idx] += (x[idx] - d[idx]);
 	}
 }
 /*----------------------------------------------------------------*/
@@ -377,7 +377,7 @@ kernel void GaussJacobianB(device float * const ju [[ buffer(0) ]],
 		//			}
 		//		}
 		float4 const gu = *(device float4*)(Ju+p.y);
-		for ( int3 idx = int3(int2(b.x, p.x)*int2(K, N)+int2(p.y, b.y), 0), dx = int3(K, N, 1) ; idx.z < 4 ; idx += dx ) {
+		for ( int3 idx = int3(int2(b.x, p.x) * int2(K, N) + int2(p.y, b.y), 0), dx = int3(K, N, 1) ; idx.z < 4 ; idx += dx ) {
 			bool4 const bmask = b.x + idx.z < M && p.y + M_INC < K;
 			bool4 const pmask = p.x + idx.z < K && b.y + M_INC < N;
 			rb[idx.z] = select(0,   (*(device float4*)(Bu+idx.x))*gu, bmask);
@@ -395,7 +395,7 @@ kernel void GaussJacobianB(device float * const ju [[ buffer(0) ]],
 			ru[3] += rp * rb[3];
 		}
 		float4 const gs = *(device float4*)(Js+p.y)**(device float4*)(Y+p.y);
-		for ( int3 idx = int3(int2(b.x, p.x)*int2(K, N)+int2(p.y, b.y), 0), dx = int3(K, N, 1) ; idx.z < 4 ; idx += dx ) {
+		for ( int3 idx = int3(int2(b.x, p.x) * int2(K, N) + int2(p.y, b.y), 0), dx = int3(K, N, 1) ; idx.z < 4 ; idx += dx ) {
 			bool4 const bmask = b.x + idx.z < M && p.y + M_INC < K;
 			bool4 const pmask = p.x + idx.z < K && b.y + M_INC < N;
 			rb[idx.z] = select(0, sq(*(device float4*)(Bs+idx.x))*gs, bmask);
@@ -484,16 +484,46 @@ kernel void GaussJacobianF(device float * const ju [[ buffer(0) ]],
 	}
 }
 /*----------------------------------------------------------------*/
+constant uint3 xorshift [[ function_constant(0) ]];
 kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   device float const * const u [[ buffer(1) ]],
 						   device float const * const s [[ buffer(2) ]],
 						   constant ushort const * const seeds [[ buffer(3) ]],
 						   constant uint const & N [[ buffer(4) ]],
-						   uint const n [[ thread_position_in_grid ]] ) {
+						   uint const n [[ thread_position_in_grid ]]) {
+/*
+						   uint const t [[ thread_position_in_threadgroup ]],
+						   uint const T [[ threadgroups_per_grid ]]) {
+	float const g = exp2(-32.0);
+	uint4 seq = *(constant uint4*)(seeds+4*t);
+	seq = select(~0, seq, seq == 0);
+	for ( int k = 4 * t, K = N ; k < K ; k += 4 * T ) {
+		float4 const x = *(device float4*)(u+k) / *(device float4*)(s+k);
+		float4 const p = fma(erf(M_SQRT1_2_F*x), 0.5, 0.5);
+		float4 const n = g * float4(seq);
+		float4 const y = p;//step(n, p);
+//		float4 const y = step(fma(float4(seq), g, -1.0), erf(M_SQRT1_2_F*x));
+//		float4 const y = step(0.0, erf(M_SQRT1_2_F*x));
+//		float4 const y = fma(erf(M_SQRT1_2_F*x), 0.5, 0.5);
+		seq ^= seq << xorshift.x;
+		seq ^= seq >> xorshift.y;
+		seq ^= seq << xorshift.z;
+		switch(min(4, K-k)) {
+			case 4:*(device float4*)(f+k) = y.xyzw;
+				break;
+			case 3:*(device float3*)(f+k) = y.xyz;
+				break;
+			case 2:*(device float2*)(f+k) = y.xy;
+				break;
+			case 1:*(device float *)(f+k) = y.x;
+				break;
+		}
+	}
+*/
 	if ( n < N ) {
 		int const idx = n;
-		float const y = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 0.5, 0.5);
-		f[idx] = step(seeds[idx]/65536.0, y);
+	//	float const y = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 0.5, 0.5);
+		f[idx] = step(seeds[idx], fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32768.0, 32768.0));
 		//f[idx] = y;
 	}
 }

@@ -27,7 +27,6 @@ kernel void TanhGradient(device float * const delta [[ buffer(0) ]],
 						 uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const p = phi[idx];
 		float const f = theta[idx];
 		float const g = W * W - f * f;
 		delta[idx] = g * dot(LRW, float3(delta[idx], sign(f), f));

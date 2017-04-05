@@ -6,6 +6,7 @@
 //
 //
 
+import Accelerate
 import CoreData
 import Metal
 
@@ -39,8 +40,8 @@ public class Context: NSManagedObjectContext {
 		}
 	}
 	public init(storage: URL? = nil,
-	            adapter: (μ: (MTLDevice)throws->(Int)->Adapter, σ: (MTLDevice)throws->(Int)->Adapter) = (μ: Linear.adapter(), σ: Linear.adapter()),
-	            optimizer: (MTLDevice)throws->(Int) -> Optimizer = SGD.factory(),
+	            adapter: (μ: (MTLDevice) throws -> (Int)->Adapter, σ: (MTLDevice) throws -> (Int) -> Adapter) = (μ: Linear.adapter(), σ: Linear.adapter()),
+	            optimizer: (MTLDevice) throws -> (Int) -> Optimizer = SGD.factory(),
 	            concurrencyType: NSManagedObjectContextConcurrencyType = .privateQueueConcurrencyType) throws {
 		guard let mtl: Device = MTLCreateSystemDefaultDevice() else { throw ErrorCase.NoDeviceFound }
 		device = mtl
@@ -61,10 +62,13 @@ public class Context: NSManagedObjectContext {
 	}
 }
 extension Context {
+	/*
 	public override func save() throws {
-		var encounter: Error?
 		let commandBuffer: CommandBuffer = make()
+		var encounter: Error?
 		func complete(_: CommandBuffer) {
+			print("U", updatedObjects.count)
+			print("I", insertedObjects.count)
 			do {
 				try super.save()
 			} catch {
@@ -78,21 +82,12 @@ extension Context {
 			throw error
 		}
 	}
-	/*
-	public func save(handler: @escaping (Error) -> Void) {
-		let commandBuffer: CommandBuffer = make()
-		func complete(_: CommandBuffer) {
-			do {
-				try save()
-			} catch let error {
-				handler(error)
-			}
-		}
-		commandBuffer.addCompletedHandler(complete)
-		commandBuffer.commit()
-	}*/
+	*/
 }
 extension Context {
+	func make(data: Data, options: MTLResourceOptions = []) -> Buffer {
+		return data.withUnsafeBytes { device.makeBuffer(bytes: $0, length: data.count, options: options) }
+	}
 	func make(length: Int, options: MTLResourceOptions = []) -> Buffer {
 		return device.makeBuffer(length: length, options: options)
 	}
@@ -102,10 +97,57 @@ extension Context {
 	func make() -> CommandBuffer {
 		return queue.makeCommandBuffer()
 	}
+}
+extension Context {
 	func make<T: ManagedObject>() throws -> T {
 		let name: String = String(describing: T.self)
-		guard let entity: T = NSEntityDescription.insertNewObject(forEntityName: name, into: self) as? T else { throw ErrorCase.InvalidEntity(name: name) }
+		var cache: NSManagedObject?
+		func block() {
+			cache = NSEntityDescription.insertNewObject(forEntityName: name, into: self)
+		}
+		performAndWait(block)
+		guard let entity: T = cache as? T else { throw ErrorCase.InvalidEntity(name: name) }
 		return entity
+	}
+	func fetch<T: ManagedObject>(predicate: NSPredicate) throws -> [T] {
+		let name: String = String(describing: T.self)
+		var cache: [T] = []
+		var e: Error?
+		func block() {
+			let request: NSFetchRequest<T> = NSFetchRequest<T>(entityName: name)
+			request.predicate = predicate
+			do {
+				cache = try fetch(request)
+			} catch {
+				e = error
+			}
+		}
+		performAndWait(block)
+		if let error: Error = e {
+			throw error
+		}
+		return cache
+	}
+	func remove(object: ManagedObject) {
+		func block() {
+			delete(object)
+		}
+		perform(block)
+	}
+	func store(handler: @escaping(Error)->()) {
+		let commandBuffer: CommandBuffer = make()
+		func block() {
+			do {
+				try save()
+			} catch {
+				handler(error)
+			}
+		}
+		func complete(_: CommandBuffer) {
+			performAndWait(block)
+		}
+		commandBuffer.addCompletedHandler(complete)
+		commandBuffer.commit()
 	}
 }
 public typealias ManagedObject = NSManagedObject
@@ -119,6 +161,7 @@ internal protocol Variable {
 	func flush(commandBuffer: CommandBuffer)
 	func update(commandBuffer: CommandBuffer)
 	func refresh(commandBuffer: CommandBuffer)
+	func reset(commandBuffer: CommandBuffer)
 	var θ: Buffer { get }
 	var Δ: Buffer { get }
 	var data: Data { get }
