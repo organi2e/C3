@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		87197B4C1E96393000D62866 /* Variable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87197B4B1E96393000D62866 /* Variable.swift */; };
+		87263D431E97E9DB00A4B75B /* RegFloor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87263D421E97E9DB00A4B75B /* RegFloor.swift */; };
+		87263D451E97E9EC00A4B75B /* RegFloor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87263D441E97E9EC00A4B75B /* RegFloor.metal */; };
 		87B8463C1E93AF3A00844835 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8463B1E93AF3A00844835 /* AppDelegate.swift */; };
 		87B8463E1E93AF3A00844835 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8463D1E93AF3A00844835 /* ViewController.swift */; };
 		87B846411E93AF3A00844835 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 87B8463F1E93AF3A00844835 /* Main.storyboard */; };
@@ -185,6 +187,8 @@
 
 /* Begin PBXFileReference section */
 		87197B4B1E96393000D62866 /* Variable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Variable.swift; path = ../../C3/Variable.swift; sourceTree = "<group>"; };
+		87263D421E97E9DB00A4B75B /* RegFloor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RegFloor.swift; path = ../../Adapter/RegFloor.swift; sourceTree = "<group>"; };
+		87263D441E97E9EC00A4B75B /* RegFloor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = RegFloor.metal; path = ../../Adapter/RegFloor.metal; sourceTree = "<group>"; };
 		87B846381E93AF3A00844835 /* Stage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Stage.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		87B8463B1E93AF3A00844835 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		87B8463D1E93AF3A00844835 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -463,6 +467,8 @@
 				87B846F01E93B1A600844835 /* Positive.metal */,
 				87B846F31E93B1A600844835 /* Regular.swift */,
 				87B846F21E93B1A600844835 /* Regular.metal */,
+				87263D421E97E9DB00A4B75B /* RegFloor.swift */,
+				87263D441E97E9EC00A4B75B /* RegFloor.metal */,
 				87B846F51E93B1A600844835 /* Softplus.swift */,
 				87B846F41E93B1A600844835 /* Softplus.metal */,
 				87B846F71E93B1A600844835 /* Tanh.swift */,
@@ -976,6 +982,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				87263D451E97E9EC00A4B75B /* RegFloor.metal in Sources */,
 				87B847051E93B1A600844835 /* Tanh.metal in Sources */,
 				87C3C27A1E94C88600A62C11 /* Logistic.metal in Sources */,
 				87B846F81E93B1A600844835 /* Adapter.swift in Sources */,
@@ -985,6 +992,7 @@
 				87C3C2781E94C87500A62C11 /* Logistic.swift in Sources */,
 				87B847061E93B1A600844835 /* Tanh.swift in Sources */,
 				87B846FA1E93B1A600844835 /* Exponential.swift in Sources */,
+				87263D431E97E9DB00A4B75B /* RegFloor.swift in Sources */,
 				87B847031E93B1A600844835 /* Softplus.metal in Sources */,
 				87B846FC1E93B1A600844835 /* Floor.swift in Sources */,
 				87B846FB1E93B1A600844835 /* Floor.metal in Sources */,

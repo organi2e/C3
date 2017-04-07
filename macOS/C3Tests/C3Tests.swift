@@ -15,7 +15,7 @@ import Adapter
 
 let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
 //let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
-let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0]]
+let IS: Array<Array<Float>> = [[1,0,0,0], [0,1,0,0], [0,0,1,0], [1,0,0,0]]
 //let GS: Array<Array<Float>> = [[1,1,1,0], [1,1,0,1], [1,1,0,0], [1,0,1,1]]
 let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
 class C3Tests: XCTestCase {
@@ -73,21 +73,21 @@ class C3Tests: XCTestCase {
 				let I: Cell = try context.make(label: "I", width: 4, type: .Gauss)
 				let H: Cell = try context.make(label: "H", width: 256, type: .Gauss, input: [I], decay: true)
 				let G: Cell = try context.make(label: "G", width: 256, type: .Gauss, input: [H], decay: true)
-				let F: Cell = try context.make(label: "F", width: 256, type: .Gauss, input: [G], decay: true)
-				let _: Cell = try context.make(label: "O", width: 4, type: .Gauss, input: [F], decay: true)
+				//let F: Cell = try context.make(label: "F", width: 256, type: .Gauss, input: [G], decay: true)
+				let _: Cell = try context.make(label: "O", width: 4, type: .Gauss, input: [G], decay: false)
 				try context.save()
 			}
 			do {
 				let context: Context = try Context(
 					storage: storage
-					,optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-3)
+					,optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-2)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
 					print("try")
 					(0..<1024).forEach {
-						let ref: Int = ($0/8) % 4
+						let ref: Int = $0 % 4
 						O.collect_refresh()
 						I.correct_refresh()
 						O.target = OS[ref]
@@ -97,8 +97,10 @@ class C3Tests: XCTestCase {
 //						print(O.source)
 					}
 				}
+				print(O.source)
 				try context.save()
 			}
+
 			do {
 				let context: Context = try Context(
 					storage: storage
@@ -109,9 +111,9 @@ class C3Tests: XCTestCase {
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				
 				print("gpu")
-				for k in 0..<256 {
+				(0..<16).forEach {
 					O.collect_refresh()
-					I.source = IS[(k/8)%4]
+					I.source = IS[ $0 % 4 ]
 					O.collect()
 					print(O.source)
 				}

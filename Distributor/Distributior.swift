@@ -22,10 +22,16 @@ public protocol Collector {
 struct CorrectorPipeline {
 	let J: MTLComputePipelineState
 	let G: MTLComputePipelineState
+	let N: MTLComputePipelineState
 }
+//ErrorCollector
+//ValueCollector
+//ErrorAdjustor
+//JacobFtting
 public protocol Corrector {
-	func correct(j: (μ: MTLBuffer, σ: MTLBuffer), Δ: (μ: MTLBuffer, σ: MTLBuffer), count: Int)
+	//func correct(j: (μ: MTLBuffer, σ: MTLBuffer), Δ: (μ: MTLBuffer, σ: MTLBuffer), count: Int)
 	func correct(χ: MTLBuffer, ϝ: MTLBuffer)
+	var Δ: MTLBuffer { get }
 	var order: MTLCommandBuffer { get }
 }
 public protocol Activator {
@@ -33,6 +39,15 @@ public protocol Activator {
 	func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), corrector: (Corrector)->Void)
 	var φ: (Int) -> (μ: MTLBuffer, σ: MTLBuffer) { get }
 	var g: (Int) -> (μ: MTLBuffer, σ: MTLBuffer) { get }
+}
+public protocol Jacobian {
+	func jacobian(x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer))
+	func jacobian(a: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer)
+	func jacobian(b: (μ: MTLBuffer, σ: MTLBuffer), y: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer))
+	func jacobian(c: (μ: MTLBuffer, σ: MTLBuffer))
+	func jacobian(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer))
+	func jacobian(φ: (μ: MTLBuffer, σ: MTLBuffer), d: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer))
+	var order: MTLCommandBuffer { get }
 }
 struct JacobianPipeline {
 	let X: MTLComputePipelineState
@@ -66,6 +81,7 @@ public protocol Derivator {
 public protocol Distributor {
 	func activate(commandBuffer: MTLCommandBuffer, χ: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector)->Void)
 	func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector)->Void)
+	/*
 	func jacobian(commandBuffer: MTLCommandBuffer,
 	              Σ: (μ: MTLBuffer, σ: MTLBuffer),
 	              x: MTLBuffer,
@@ -98,6 +114,17 @@ public protocol Distributor {
 	              φ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
 	func derivate(commandBuffer: MTLCommandBuffer, Δ: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer), Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
 	func derivate(commandBuffer: MTLCommandBuffer, Δ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer), Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
-	func flush(commandBuffer: MTLCommandBuffer, θ: MTLBuffer)
-	func flush(commandBuffer: MTLCommandBuffer, θ: (μ: MTLBuffer, σ: MTLBuffer))
+	*/
+	func derivate(commandBuffer: MTLCommandBuffer, Δx: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
+	              Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
+	              count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void)
+	func derivate(commandBuffer: MTLCommandBuffer, Δv: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
+	              Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
+	              count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void)
+	func derivate(commandBuffer: MTLCommandBuffer, Δθ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer),
+	              Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
+	              count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void)
+	
+	//func flush(commandBuffer: MTLCommandBuffer, θ: MTLBuffer)
+	//func flush(commandBuffer: MTLCommandBuffer, θ: (μ: MTLBuffer, σ: MTLBuffer))
 }

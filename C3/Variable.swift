@@ -13,17 +13,14 @@ internal struct Variable {
 	internal let Δ: Buffer
 	internal let θ: Buffer
 	private let φ: Buffer
-	private let ψ: Buffer
 	private let a: Adapter
 	private let o: Optimizer
 	init(context: Context, data: Data, adapter: Adapter, optimizer: Optimizer) {
 		Δ = context.make(length: data.count, options: .storageModePrivate)
 		θ = context.make(length: data.count, options: .storageModePrivate)
-		φ = context.make(length: data.count, options: .storageModePrivate)
-		ψ = context.make(data: data, options: .storageModeShared)
+		φ = context.make(data: data, options: .storageModeShared)
 		a = adapter
 		o = optimizer
-		print(a)
 	}
 	func flush(commandBuffer: CommandBuffer) {
 		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
@@ -40,17 +37,7 @@ internal struct Variable {
 	func reset(commandBuffer: CommandBuffer) {
 		o.reset(commandBuffer: commandBuffer)
 	}
-	func load(commandBuffer: CommandBuffer) {
-		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		encoder.copy(from: ψ, sourceOffset: 0, to: φ, destinationOffset: 0, size: min(ψ.length, φ.length))
-		encoder.endEncoding()
-	}
-	func save(commandBuffer: CommandBuffer) {
-		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		encoder.copy(from: φ, sourceOffset: 0, to: ψ, destinationOffset: 0, size: min(φ.length, ψ.length))
-		encoder.endEncoding()
-	}
 	var data: Data {
-		return Data(bytesNoCopy: ψ.contents(), count: ψ.length, deallocator: .none)
+		return Data(bytesNoCopy: φ.contents(), count: φ.length, deallocator: .none)
 	}
 }

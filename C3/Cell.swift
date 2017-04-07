@@ -14,7 +14,7 @@ public class Cell: ManagedObject {
 		let φ: (μ: Buffer, σ: Buffer)
 		let g: (μ: Buffer, σ: Buffer)
 		let Δ: (μ: Buffer, σ: Buffer)
-		init(context: Context, count: Int) {
+		init(context: Context, count: Int, encoder: BlitCommandEncoder) {
 			let length: Int = count * MemoryLayout<Float>.size
 			χ = context.make(length: length, options: .storageModePrivate)
 			φ = (
@@ -29,27 +29,25 @@ public class Cell: ManagedObject {
 				μ: context.make(length: length, options: .storageModePrivate),
 				σ: context.make(length: length, options: .storageModePrivate)
 			)
+			[χ, φ.μ, φ.σ, g.μ, g.σ, Δ.μ, Δ.σ].forEach {
+				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
+			}
 		}
 	}
 	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
-	var state: Buffer?
-	var study: Buffer?
-	var delta: (μ: Buffer, σ: Buffer)?
+	var state: Buffer? = nil
+	var study: Buffer? = nil
+	var delta: (μ: Buffer, σ: Buffer)? = nil
 }
 extension Cell {
 	public func collect_refresh() {
-		let commandBuffer: CommandBuffer = context.make()
-		collect_refresh(commandBuffer: commandBuffer)
-		commandBuffer.commit()
-	}
-	internal func collect_refresh(commandBuffer: CommandBuffer) {
 		input.forEach {
-			$0.collect_refresh(commandBuffer: commandBuffer)
+			$0.collect_refresh()
 		}
-		bias.collect_refresh(commandBuffer: commandBuffer)
-		decay?.collect_refresh(commandBuffer: commandBuffer)
-		state = nil
+		bias.collect_refresh()
+		decay?.collect_refresh()
 		cache.rotate()
+		state = nil
 	}
 	public func collect() {
 		let _: Buffer = collect(ignore: [])
@@ -61,7 +59,7 @@ extension Cell {
 			return state
 		} else {
 			let commandBuffer: CommandBuffer = context.make()
-			distributor.activate(commandBuffer: commandBuffer, χ: cache[0].χ, φ: cache[0].φ, count: width) { (collector: Collector) -> Void in
+			distributor.activate(commandBuffer: commandBuffer, χ: cache[0].χ, φ: cache[0].φ, count: width) {(collector: Collector) in
 				input.forEach { $0.collect(collector: collector, ignore: ignore.union([self])) }
 				bias.collect(collector: collector)
 				decay?.collect(collector: collector)
@@ -73,11 +71,6 @@ extension Cell {
 	}
 }
 extension Cell {
-	func jacobian(commandBuffer: CommandBuffer, Σ: (μ: Buffer, σ: Buffer), j: (μ: Buffer, σ: Buffer), count: (rows: Int, cols: Int)) {
-		decay?.jacobian(commandBuffer: commandBuffer, Σ: Σ, j: j, count: count)
-	}
-}
-extension Cell {
 	public func correct_refresh() {
 		output.forEach {
 			$0.correct_refresh()
@@ -85,7 +78,6 @@ extension Cell {
 		bias.correct_refresh()
 		decay?.correct_refresh()
 		delta = nil
-		study?.setPurgeableState(.empty)
 	}
 	public func correct() {
 		let _: (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = correct(ignore: [])
@@ -97,7 +89,7 @@ extension Cell {
 			return (Δφ: Δφ, φ: cache[0].φ)
 		} else {
 			let commandBuffer: CommandBuffer = context.make()
-			distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, g: cache[0].g, φ: cache[0].φ, count: width) { (corrector: Corrector) -> Void in
+			distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, g: cache[0].g, φ: cache[0].φ, count: width) {(corrector: Corrector)in
 				if let χ: Buffer = state {
 					if let ϝ: Buffer = study {
 						corrector.correct(χ: χ, ϝ: ϝ)
@@ -116,7 +108,11 @@ extension Cell {
 		}
 	}
 }
-
+extension Cell {
+	func jacobian(jacobian: Jacobian, j: (μ: Buffer, σ: Buffer)) {
+		decay?.jacobian(jacobian: jacobian, j: j)
+	}
+}
 extension Cell {
 	var source: Array<Float> {
 		get {
@@ -157,9 +153,11 @@ extension Cell {
 }
 extension Cell {
 	internal func setup(commandBuffer: CommandBuffer) {
+		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 		cache = RingBuffer(buffer: Array<Void>(repeating: (), count: depth).map {
-			Cache(context: context, count: width)
+			Cache(context: context, count: width, encoder: encoder)
 		}, offset: 0)
+		encoder.endEncoding()
 	}
 	public override func awakeFromFetch() {
 		super.awakeFromFetch()
@@ -176,7 +174,7 @@ extension Cell {
 }
 extension Cell {
 	var depth: Int {
-		return 4
+		return 2
 	}
 	var distributor: Distributor {
 		guard let distributorType: DistributorType = DistributorType(rawValue: type) else { fatalError(type) }
@@ -245,5 +243,11 @@ extension Context {
 			argumentArray: formats.map{$0.1}
 		)
 		return try fetch(predicate: predicate)
+	}
+}
+private extension String {
+	var distributorType: DistributorType {
+		guard let distributorType: DistributorType = DistributorType(rawValue: self) else { fatalError(self) }
+		return distributorType
 	}
 }
