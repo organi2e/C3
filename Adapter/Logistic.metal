@@ -8,7 +8,6 @@
 
 #include <metal_stdlib>
 using namespace metal;
-constant float3 LRW [[ function_constant(0) ]];
 kernel void LogisticGenerate(device float * const theta [[ buffer(0) ]],
 								device float const * const phi [[ buffer(1) ]],
 								constant uint const & N [[ buffer(2) ]],
@@ -27,7 +26,6 @@ kernel void LogisticGradient(device float * const delta [[ buffer(0) ]],
 	if ( n < N ) {
 		int const idx = n;
 		float const f = theta[idx];
-		float const g = f*(1-f);
-		delta[idx] = g * dot(LRW, float3(delta[idx], sign(f), f));
+		delta[idx] *= f*(1-f);
 	}
 }

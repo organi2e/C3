@@ -9,10 +9,11 @@
 #include <metal_stdlib>
 using namespace metal;
 
-constant float alpha [[ function_constant(0) ]];
+constant float3 alpha [[ function_constant(0) ]];
 constant float beta [[ function_constant(1) ]];
 constant float gamma [[ function_constant(2) ]];
 constant float epsilon [[ function_constant(3) ]];
+
 template<typename T> T sq(T const x) {
 	return x * x;
 }
@@ -29,7 +30,8 @@ kernel void AdamOptimize(device float * const theta [[ buffer(0) ]],
 		p = mix(float2(g, sq(g)), p, float2(beta, gamma));
 	
 		float const r = rsqrt(p.y+epsilon);
-		theta[idx] -= alpha * p.x * select(0.0, r, isnormal(r));
+		float const t = theta[idx];
+		theta[idx] -= dot(alpha, float3(t, sign(t), p.x * select(0.0, r, isnormal(r))));
 		
 		parameters[idx] = p;
 	}

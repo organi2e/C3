@@ -14,24 +14,39 @@ import Adapter
 import Distributor
 import Optimizer
 
+public enum DistributorType: String {
+	case Gauss = "Gauss"
+}
+public enum AdapterType: String {
+	case Tanh = "Tanh"
+	case Linear = "Linear"
+	case Floor = "Floor"
+	case Regular = "Regular"
+	case Logistic = "Logistic"
+	case Softplus = "Softplus"
+	case Positive = "Positive"
+	case Exponential = "Exponential"
+}
 public class Context: NSManagedObjectContext {
 	let device: Device
 	let queue: CommandQueue
-	let gaussDistributor: Distributor
-	let μadapterFactory: (Int) -> Adapter
-	let σadapterFactory: (Int) -> Adapter
 	let optimizerFactory: (Int) -> Optimizer
+	let adapter: Dictionary<AdapterType, (Int)->Adapter>
+	let distributor: Dictionary<DistributorType, Distributor>
 	enum ErrorCase: Error, CustomStringConvertible {
 		case InvalidContext
 		case InvalidEntity(name: String)
+		case InvalidParameter(key: String, value: Any)
 		case NoModelFound
 		case NoDeviceFound
 		var description: String {
 			switch self {
-			case let .InvalidEntity(name):
+			case .InvalidEntity(let name):
 				return "Invalid entity\(name)"
 			case .InvalidContext:
 				return "This context is invalid"
+			case .InvalidParameter(let key, let value):
+				return "Invalid value \(value) for \(key)"
 			case .NoModelFound:
 				return "No CoreData definition was found"
 			case .NoDeviceFound:
@@ -40,16 +55,29 @@ public class Context: NSManagedObjectContext {
 		}
 	}
 	public init(storage: URL? = nil,
-	            adapter: (μ: (MTLDevice) throws -> (Int)->Adapter, σ: (MTLDevice) throws -> (Int) -> Adapter) = (μ: Linear.adapter(), σ: Linear.adapter()),
 	            optimizer: (MTLDevice) throws -> (Int) -> Optimizer = SGD.factory(),
 	            concurrencyType: NSManagedObjectContextConcurrencyType = .privateQueueConcurrencyType) throws {
 		guard let mtl: Device = MTLCreateSystemDefaultDevice() else { throw ErrorCase.NoDeviceFound }
 		device = mtl
+		adapter = try {
+			var result: Dictionary<AdapterType, (Int)->Adapter> = Dictionary<AdapterType, (Int)->Adapter>()
+			result.updateValue(Linear.init, forKey: .Linear)
+			result.updateValue(try Tanh.adapter(device: $0), forKey: .Tanh)
+			result.updateValue(try Floor.adapter(device: $0), forKey: .Floor)
+			result.updateValue(try Regular.adapter(device: $0), forKey: .Regular)
+			result.updateValue(try Positive.adapter(device: $0), forKey: .Positive)
+			result.updateValue(try Softplus.adapter(device: $0), forKey: .Softplus)
+			result.updateValue(try Logistic.adapter(device: $0), forKey: .Logistic)
+			result.updateValue(try Exponential.adapter(device: $0), forKey: .Exponential)
+			return result
+		} (device)
+		distributor = try {
+			var result: Dictionary<DistributorType, Distributor> = Dictionary<DistributorType, Distributor>()
+			result.updateValue(try GaussDistributor(device: $0), forKey: .Gauss)
+			return result
+		} (device)
 		queue = device.makeCommandQueue()
-		μadapterFactory = try adapter.μ(device)
-		σadapterFactory = try adapter.σ(device)
 		optimizerFactory = try optimizer(device)
-		gaussDistributor = try GaussDistributor(device: device)
 		super.init(concurrencyType: concurrencyType)
 		guard let model: NSManagedObjectModel = NSManagedObjectModel.mergedModel(from: [Bundle(for: type(of: self))]) else { throw ErrorCase.NoModelFound }
 		let store: NSPersistentStoreCoordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
@@ -97,6 +125,28 @@ extension Context {
 	func make() -> CommandBuffer {
 		return queue.makeCommandBuffer()
 	}
+	func make(count: Int, type: AdapterType) -> Adapter {
+		guard let factory: (Int) -> Adapter = adapter[type] else { fatalError(type.rawValue) }
+		return factory(count)
+	}
+	func make(type: DistributorType) -> Distributor {
+		guard let distributor: Distributor = distributor[type] else { fatalError(type.rawValue) }
+		return distributor
+	}
+	func make(count: Int) -> Optimizer {
+		return optimizerFactory(count)
+	}
+}
+extension Context {
+	public func connect(output: Cell, input: Cell) throws {
+		guard output.objectID != input.objectID && output.input.filter({$0.input.objectID==input.objectID}).isEmpty else { return }
+		let commandBuffer: CommandBuffer = make()
+		output.input.insert(try make(commandBuffer: commandBuffer, output: output, input: input))
+		commandBuffer.commit()
+	}
+	public func disconnect(output: Cell, input: Cell) {
+		output.input.filter{$0.input.objectID == input.objectID}.forEach(remove)
+	}
 }
 extension Context {
 	func make<T: ManagedObject>() throws -> T {
@@ -134,6 +184,7 @@ extension Context {
 		}
 		perform(block)
 	}
+	/*
 	func store(handler: @escaping(Error)->()) {
 		let commandBuffer: CommandBuffer = make()
 		func block() {
@@ -149,6 +200,7 @@ extension Context {
 		commandBuffer.addCompletedHandler(complete)
 		commandBuffer.commit()
 	}
+	*/
 }
 public typealias ManagedObject = NSManagedObject
 internal extension ManagedObject {
@@ -156,15 +208,6 @@ internal extension ManagedObject {
 		guard let context: Context = managedObjectContext as? Context else { fatalError(Context.ErrorCase.InvalidContext.description) }
 		return context
 	}
-}
-internal protocol Variable {
-	func flush(commandBuffer: CommandBuffer)
-	func update(commandBuffer: CommandBuffer)
-	func refresh(commandBuffer: CommandBuffer)
-	func reset(commandBuffer: CommandBuffer)
-	var θ: Buffer { get }
-	var Δ: Buffer { get }
-	var data: Data { get }
 }
 internal typealias Device = MTLDevice
 internal typealias Buffer = MTLBuffer

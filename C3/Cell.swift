@@ -5,6 +5,7 @@
 //  Created by Kota Nakano on 2017/03/29.
 //
 //
+import Accelerate
 import CoreData
 import Distributor
 public class Cell: ManagedObject {
@@ -37,10 +38,16 @@ public class Cell: ManagedObject {
 }
 extension Cell {
 	public func collect_refresh() {
+		let commandBuffer: CommandBuffer = context.make()
+		collect_refresh(commandBuffer: commandBuffer)
+		commandBuffer.commit()
+	}
+	internal func collect_refresh(commandBuffer: CommandBuffer) {
 		input.forEach {
-			$0.collect_refresh()
+			$0.collect_refresh(commandBuffer: commandBuffer)
 		}
-		bias.collect_refresh()
+		bias.collect_refresh(commandBuffer: commandBuffer)
+		decay?.collect_refresh(commandBuffer: commandBuffer)
 		state = nil
 		cache.rotate()
 	}
@@ -57,6 +64,7 @@ extension Cell {
 			distributor.activate(commandBuffer: commandBuffer, χ: cache[0].χ, φ: cache[0].φ, count: width) { (collector: Collector) -> Void in
 				input.forEach { $0.collect(collector: collector, ignore: ignore.union([self])) }
 				bias.collect(collector: collector)
+				decay?.collect(collector: collector)
 			}
 			commandBuffer.commit()
 			state = cache[0].χ
@@ -65,11 +73,17 @@ extension Cell {
 	}
 }
 extension Cell {
+	func jacobian(commandBuffer: CommandBuffer, Σ: (μ: Buffer, σ: Buffer), j: (μ: Buffer, σ: Buffer), count: (rows: Int, cols: Int)) {
+		decay?.jacobian(commandBuffer: commandBuffer, Σ: Σ, j: j, count: count)
+	}
+}
+extension Cell {
 	public func correct_refresh() {
 		output.forEach {
 			$0.correct_refresh()
 		}
 		bias.correct_refresh()
+		decay?.correct_refresh()
 		delta = nil
 		study?.setPurgeableState(.empty)
 	}
@@ -84,15 +98,18 @@ extension Cell {
 		} else {
 			let commandBuffer: CommandBuffer = context.make()
 			distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, g: cache[0].g, φ: cache[0].φ, count: width) { (corrector: Corrector) -> Void in
-				if let χ: Buffer = state, let ϝ: Buffer = study {
-					corrector.correct(χ: χ, ϝ: ϝ)
-				} else {
-					output.forEach {
-						$0.correct(corrector: corrector, ignore: ignore.union([self]))
-					}	
+				if let χ: Buffer = state {
+					if let ϝ: Buffer = study {
+						corrector.correct(χ: χ, ϝ: ϝ)
+					} else {
+						output.forEach {
+							$0.correct(corrector: corrector, ignore: ignore.union([self]))
+						}
+					}
 				}
 			}
 			bias.correct(commandBuffer: commandBuffer, Δφ: cache[0].Δ, φ: cache[0].φ)
+			decay?.correct(commandBuffer: commandBuffer, Δφ: cache[0].Δ, φ: cache[0].φ)
 			commandBuffer.commit()
 			delta = cache[0].Δ
 			return (Δφ: cache[0].Δ, φ: cache[0].φ)
@@ -159,15 +176,17 @@ extension Cell {
 }
 extension Cell {
 	var depth: Int {
-		return 2
+		return 4
 	}
 	var distributor: Distributor {
-		return context.gaussDistributor
+		guard let distributorType: DistributorType = DistributorType(rawValue: type) else { fatalError(type) }
+		return context.make(type: distributorType)
 	}
 }
 extension Cell {
 	@NSManaged var label: String
 	@NSManaged var width: Int
+	@NSManaged var type: String
 	@NSManaged var input: Set<Edge>
 	@NSManaged var output: Set<Edge>
 	@NSManaged var bias: Bias
@@ -176,15 +195,17 @@ extension Cell {
 extension Context {
 	public func make(label: String,
 	                 width: Int,
+	                 type: DistributorType,
 	                 output: [Cell] = [],
 	                 input: [Cell] = [],
 	                 decay: Bool = false,
 	                 recurrent: Bool = false) throws -> Cell {
-		assert(0<width)
+		guard 0 < width else { throw ErrorCase.InvalidParameter(key: "width", value: width) }
 		let commandBuffer: CommandBuffer = make()
 		let cell: Cell = try make()
 		cell.label = label
 		cell.width = width
+		cell.type = type.rawValue
 		cell.output = Set<Edge>(try output.map{try make(commandBuffer: commandBuffer, output: $0, input: cell)})
 		cell.input = Set<Edge>(try input.map{try make(commandBuffer: commandBuffer, output: cell, input: $0)})
 		if recurrent {
@@ -196,6 +217,23 @@ extension Context {
 		commandBuffer.commit()
 		return cell
 	}
+	private func make(commandBuffer: CommandBuffer, cell: Cell) throws -> Bias {
+		let count: Int = cell.width
+		let bias: Bias = try make()
+		bias.cell = cell
+		bias.location = Data(count: count * MemoryLayout<Float>.size)
+		bias.scale = Data(count: count * MemoryLayout<Float>.size)
+		bias.location.withUnsafeMutableBytes {
+			vDSP_vfill([0.0], $0, 1, vDSP_Length(count))
+		}
+		bias.scale.withUnsafeMutableBytes {
+			vDSP_vfill([1.0], $0, 1, vDSP_Length(count))
+		}
+		bias.setup(commandBuffer: commandBuffer, count: count)
+		return bias
+	}
+}
+extension Context {
 	public func fetch(label: String? = nil, width: Int? = nil) throws -> [Cell] {
 		func bind(format: String, value: Any?) -> [(String, Any)] {
 			guard let value: Any = value else { return [] }

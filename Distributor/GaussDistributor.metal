@@ -522,9 +522,8 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 */
 	if ( n < N ) {
 		int const idx = n;
-	//	float const y = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 0.5, 0.5);
 		f[idx] = step(seeds[idx], fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32768.0, 32768.0));
-		//f[idx] = y;
+//		f[idx] = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 0.5, 0.5);
 	}
 }
 kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],

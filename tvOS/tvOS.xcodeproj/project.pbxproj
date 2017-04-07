@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		87197B4C1E96393000D62866 /* Variable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87197B4B1E96393000D62866 /* Variable.swift */; };
 		87B8463C1E93AF3A00844835 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8463B1E93AF3A00844835 /* AppDelegate.swift */; };
 		87B8463E1E93AF3A00844835 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8463D1E93AF3A00844835 /* ViewController.swift */; };
 		87B846411E93AF3A00844835 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 87B8463F1E93AF3A00844835 /* Main.storyboard */; };
@@ -44,8 +45,6 @@
 		87B846FA1E93B1A600844835 /* Exponential.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B846EB1E93B1A600844835 /* Exponential.swift */; };
 		87B846FB1E93B1A600844835 /* Floor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B846EC1E93B1A600844835 /* Floor.metal */; };
 		87B846FC1E93B1A600844835 /* Floor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B846ED1E93B1A600844835 /* Floor.swift */; };
-		87B846FD1E93B1A600844835 /* Linear.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B846EE1E93B1A600844835 /* Linear.metal */; };
-		87B846FE1E93B1A600844835 /* Linear.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B846EF1E93B1A600844835 /* Linear.swift */; };
 		87B846FF1E93B1A600844835 /* Positive.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B846F01E93B1A600844835 /* Positive.metal */; };
 		87B847001E93B1A600844835 /* Positive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B846F11E93B1A600844835 /* Positive.swift */; };
 		87B847011E93B1A600844835 /* Regular.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B846F21E93B1A600844835 /* Regular.metal */; };
@@ -185,6 +184,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		87197B4B1E96393000D62866 /* Variable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Variable.swift; path = ../../C3/Variable.swift; sourceTree = "<group>"; };
 		87B846381E93AF3A00844835 /* Stage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Stage.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		87B8463B1E93AF3A00844835 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		87B8463D1E93AF3A00844835 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -236,8 +236,6 @@
 		87B846EB1E93B1A600844835 /* Exponential.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Exponential.swift; path = ../../Adapter/Exponential.swift; sourceTree = "<group>"; };
 		87B846EC1E93B1A600844835 /* Floor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Floor.metal; path = ../../Adapter/Floor.metal; sourceTree = "<group>"; };
 		87B846ED1E93B1A600844835 /* Floor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Floor.swift; path = ../../Adapter/Floor.swift; sourceTree = "<group>"; };
-		87B846EE1E93B1A600844835 /* Linear.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Linear.metal; path = ../../Adapter/Linear.metal; sourceTree = "<group>"; };
-		87B846EF1E93B1A600844835 /* Linear.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Linear.swift; path = ../../Adapter/Linear.swift; sourceTree = "<group>"; };
 		87B846F01E93B1A600844835 /* Positive.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Positive.metal; path = ../../Adapter/Positive.metal; sourceTree = "<group>"; };
 		87B846F11E93B1A600844835 /* Positive.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Positive.swift; path = ../../Adapter/Positive.swift; sourceTree = "<group>"; };
 		87B846F21E93B1A600844835 /* Regular.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Regular.metal; path = ../../Adapter/Regular.metal; sourceTree = "<group>"; };
@@ -413,6 +411,7 @@
 				87EEBCE71E9508220079BA43 /* Decay.swift */,
 				87B8471E1E93BD4B00844835 /* Context.swift */,
 				87EEBCE61E9508220079BA43 /* Capture.swift */,
+				87197B4B1E96393000D62866 /* Variable.swift */,
 				87B847201E93BD4B00844835 /* RingBuffer.swift */,
 				87B8471B1E93BD4B00844835 /* C3.xcdatamodeld */,
 				87B8465D1E93AF4800844835 /* C3.h */,
@@ -458,8 +457,6 @@
 				87B846EA1E93B1A600844835 /* Exponential.metal */,
 				87B846ED1E93B1A600844835 /* Floor.swift */,
 				87B846EC1E93B1A600844835 /* Floor.metal */,
-				87B846EF1E93B1A600844835 /* Linear.swift */,
-				87B846EE1E93B1A600844835 /* Linear.metal */,
 				87C3C2771E94C87500A62C11 /* Logistic.swift */,
 				87C3C2791E94C88600A62C11 /* Logistic.metal */,
 				87B846F11E93B1A600844835 /* Positive.swift */,
@@ -945,6 +942,7 @@
 				87B847251E93BD4C00844835 /* Context.swift in Sources */,
 				87B847271E93BD4C00844835 /* RingBuffer.swift in Sources */,
 				87B847231E93BD4C00844835 /* C3.xcdatamodeld in Sources */,
+				87197B4C1E96393000D62866 /* Variable.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -980,11 +978,9 @@
 			files = (
 				87B847051E93B1A600844835 /* Tanh.metal in Sources */,
 				87C3C27A1E94C88600A62C11 /* Logistic.metal in Sources */,
-				87B846FD1E93B1A600844835 /* Linear.metal in Sources */,
 				87B846F81E93B1A600844835 /* Adapter.swift in Sources */,
 				87B847021E93B1A600844835 /* Regular.swift in Sources */,
 				87B846FF1E93B1A600844835 /* Positive.metal in Sources */,
-				87B846FE1E93B1A600844835 /* Linear.swift in Sources */,
 				87B847001E93B1A600844835 /* Positive.swift in Sources */,
 				87C3C2781E94C87500A62C11 /* Logistic.swift in Sources */,
 				87B847061E93B1A600844835 /* Tanh.swift in Sources */,

@@ -21,8 +21,9 @@ internal class Bias: Arcane {
 	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
 }
 extension Bias {
-	func collect_refresh() {
-		guard cell.bias === self else { return }
+	func collect_refresh(commandBuffer: CommandBuffer) {
+		guard cell.bias.objectID == objectID else { return }
+		refresh(commandBuffer: commandBuffer)
 	}
 	func collect(collector: Collector) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
@@ -35,11 +36,12 @@ extension Bias {
 }
 extension Bias {
 	func correct_refresh() {
-		guard cell.bias === self else { return }
+		guard cell.bias.objectID == objectID else { return }
 		cache.rotate()
 	}
 	func correct(commandBuffer: CommandBuffer, Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
+		cell.jacobian(commandBuffer: commandBuffer, Σ: cache[0].j, j: cache[-1].j, count: count)
 		cell.distributor.jacobian(commandBuffer: commandBuffer, j: cache[0].j, Σ: cache[0].j, φ: φ, count: count)
 		update(commandBuffer: commandBuffer) {
 			cell.distributor.derivate(commandBuffer: commandBuffer, Δ: $0, j: cache[0].j, Δφ: Δφ, count: count)
@@ -71,16 +73,5 @@ extension Bias {
 	@NSManaged var cell: Cell
 }
 extension Context {
-	@nonobjc internal func make(commandBuffer: CommandBuffer, cell: Cell) throws -> Bias {
-		typealias T = Float
-		let count: Int = cell.width
-		let bias: Bias = try make()
-		let μ: T = T(0)
-		let σ: T = T(1)
-		bias.cell = cell
-		bias.location = Data(bytes: Array<T>(repeating: μ, count: count), count: count * MemoryLayout<T>.size)
-		bias.logscale = Data(bytes: Array<T>(repeating: σ, count: count), count: count * MemoryLayout<T>.size)
-		bias.setup(commandBuffer: commandBuffer, count: count)
-		return bias
-	}
+	
 }

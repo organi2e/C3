@@ -22,11 +22,11 @@ public class Adam {
 		groups = MTLSize(width: (limit-1)/threads.width+1, height: 1, depth: 1)
 		parameters = pipeline.device.makeBuffer(length: limit * MemoryLayout<float2>.size, options: .storageModePrivate)
 	}
-	public static func factory(α: Float = 1e-3, β: Float = 0.9, γ: Float = 0.999, ε: Float = 0) -> (MTLDevice) throws -> (Int) -> Optimizer {
+	public static func factory(L2: Float = 0.0, L1: Float = 0.0, α: Float = 1e-3, β: Float = 0.9, γ: Float = 0.999, ε: Float = 0) -> (MTLDevice) throws -> (Int) -> Optimizer {
 		let bundle: Bundle = Bundle(for: self)
 		let kernel: String = String(describing: self)
 		let constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
-		constantValues.setConstantValue([α], type: .float, withName: "alpha")
+		constantValues.setConstantValue([L2, L1, α], type: .float3, withName: "alpha")
 		constantValues.setConstantValue([β], type: .float, withName: "beta")
 		constantValues.setConstantValue([γ], type: .float, withName: "gamma")
 		constantValues.setConstantValue([ε], type: .float, withName: "epsilon")
