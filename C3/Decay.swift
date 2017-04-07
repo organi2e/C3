@@ -25,13 +25,14 @@ internal class Decay: Arcane {
 	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
 }
 extension Decay {
-	func collect_refresh() {
-		
+	func collect_refresh(commandBuffer: CommandBuffer) {
+		guard cell.decay?.objectID == objectID else { fatalError() }
+		fixing(commandBuffer: commandBuffer)
 	}
 	func collect(collector: Collector) {
 		guard cell.decay?.objectID == objectID else { fatalError() }
-		access(commandBuffer: collector.order) {
-			collector.collect(d: $0.σ, φ: cell.cache[-1].φ)
+		access {
+			collector.collect(d: $0.μ, φ: cell.cache[-1].φ)
 		}
 	}
 }
@@ -42,20 +43,23 @@ extension Decay {
 	}
 	func correct(commandBuffer: CommandBuffer, Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
-		update(commandBuffer: commandBuffer) {
-			cell.distributor.derivate(commandBuffer: commandBuffer, Δv: $0.σ, j: cache[0].j, Δφ: Δφ, φ: φ, count: count) {(jacobian: Jacobian)in
-				access(commandBuffer: commandBuffer) {
-					jacobian.jacobian(d: $0.σ, φ: cell.cache[-1].φ)
+		change(commandBuffer: commandBuffer) {
+			cell.distributor.derivate(commandBuffer: commandBuffer, Δv: $0.μ, j: cache[0].j, Δφ: Δφ, φ: φ, count: count) {(jacobian: Jacobian)in
+				access {
+					jacobian.jacobian(d: $0.μ, φ: cell.cache[-1].φ)
 				}
-				cell.jacobian(jacobian: jacobian, j: cache[-1].j)
+				cell.jacobian(jacobian: jacobian) {
+					cache[$0].j
+				}
 			}
 		}
 	}
 }
 extension Decay {
-	func jacobian(jacobian: Jacobian, j: (μ: Buffer, σ: Buffer)) {
-		access(commandBuffer: jacobian.order) {
-			jacobian.jacobian(φ: cell.cache[-1].φ, d: $0.σ, j: j)
+	func jacobian(jacobian: Jacobian, refer: (Int) -> (μ: Buffer, σ: Buffer)) {
+		guard cell.decay?.objectID == objectID else { fatalError() }
+		access {
+			jacobian.jacobian(φ: cell.cache[-1].φ, d: $0.μ, j: refer(-1))
 		}
 	}
 }
@@ -92,9 +96,9 @@ extension Context {
 		let decay: Decay = try make()
 		decay.cell = cell
 		decay.location = Data(count: count * MemoryLayout<Float>.size)
-		decay.locationType = AdapterType.Linear.rawValue
+		decay.locationType = AdapterType.Logistic.rawValue
 		decay.scale = Data(count: count * MemoryLayout<Float>.size)
-		decay.scaleType = AdapterType.Logistic.rawValue
+		decay.scaleType = AdapterType.Discard.rawValue
 		decay.setup(commandBuffer: commandBuffer, count: count)
 		return decay
 	}

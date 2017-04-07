@@ -15,7 +15,7 @@ import Adapter
 
 let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
 //let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
-let IS: Array<Array<Float>> = [[1,0,0,0], [0,1,0,0], [0,0,1,0], [1,0,0,0]]
+let IS: Array<Array<Float>> = [[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,1,0,0]]
 //let GS: Array<Array<Float>> = [[1,1,1,0], [1,1,0,1], [1,1,0,0], [1,0,1,1]]
 let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
 class C3Tests: XCTestCase {
@@ -71,8 +71,8 @@ class C3Tests: XCTestCase {
 			do {
 				let context: Context = try Context(storage: storage)
 				let I: Cell = try context.make(label: "I", width: 4, type: .Gauss)
-				let H: Cell = try context.make(label: "H", width: 256, type: .Gauss, input: [I], decay: true)
-				let G: Cell = try context.make(label: "G", width: 256, type: .Gauss, input: [H], decay: true)
+				let H: Cell = try context.make(label: "H", width: 256, type: .Gauss, input: [I], decay: true, recurrent: [-1, -2])
+				let G: Cell = try context.make(label: "G", width: 256, type: .Gauss, input: [H], decay: true, recurrent: [-1, -2])
 				//let F: Cell = try context.make(label: "F", width: 256, type: .Gauss, input: [G], decay: true)
 				let _: Cell = try context.make(label: "O", width: 4, type: .Gauss, input: [G], decay: false)
 				try context.save()
@@ -87,7 +87,7 @@ class C3Tests: XCTestCase {
 				measure {
 					print("try")
 					(0..<1024).forEach {
-						let ref: Int = $0 % 4
+						let ref: Int = ( $0 / 32 ) % 4
 						O.collect_refresh()
 						I.correct_refresh()
 						O.target = OS[ref]
@@ -97,7 +97,6 @@ class C3Tests: XCTestCase {
 //						print(O.source)
 					}
 				}
-				print(O.source)
 				try context.save()
 			}
 
@@ -111,9 +110,9 @@ class C3Tests: XCTestCase {
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				
 				print("gpu")
-				(0..<16).forEach {
+				(0..<256).forEach {
 					O.collect_refresh()
-					I.source = IS[ $0 % 4 ]
+					I.source = IS[ ( $0 / 32 ) % 4 ]
 					O.collect()
 					print(O.source)
 				}

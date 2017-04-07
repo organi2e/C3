@@ -145,6 +145,7 @@ public func matrix_product(_ lhs: LaObjet, _ rhs: LaObjet) -> LaObjet {
 	return la_matrix_product(lhs, rhs)
 }
 extension Context {
+	/*
 	public func capture(output: Cell, input: Cell) -> (LaObjet, LaObjet) {
 		guard let edge: Edge = output.input.filter({ $0.input.objectID == input.objectID }).first else { return (la_splat_from_float(0, attr), la_splat_from_float(0, attr)) }
 		let rows: Int = output.width
@@ -193,6 +194,7 @@ extension Context {
 			la_matrix_from_float_buffer(σ.ref, la_count_t(width), 1, 1, hint, attr)
 		)
 	}
+	*/
 }
 private extension Buffer {
 	var buf: UnsafeMutableBufferPointer<Float> {
