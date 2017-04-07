@@ -5,6 +5,7 @@
 //  Created by Kota Nakano on 2017/03/29.
 //
 //
+import Accelerate
 import CoreData
 import Distributor
 internal class Bias: Arcane {
@@ -24,12 +25,13 @@ internal class Bias: Arcane {
 	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
 }
 extension Bias {
-	func collect_refresh() {
-		
+	func collect_refresh(commandBuffer: CommandBuffer) {
+		guard cell.bias.objectID == objectID else { fatalError() }
+		fixing(commandBuffer: commandBuffer)
 	}
 	func collect(collector: Collector) {
 		guard cell.bias.objectID == objectID else { fatalError() }
-		access(commandBuffer: collector.order) {
+		access {
 			collector.collect(c: $0)
 		}
 	}
@@ -41,12 +43,14 @@ extension Bias {
 	}
 	func correct(commandBuffer: CommandBuffer, Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
-		update(commandBuffer: commandBuffer) {
-			cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: cache[0].j, Δφ: Δφ, φ: φ, count: count) {(jacobian: Jacobian)in
-				access(commandBuffer: commandBuffer) {
+		change(commandBuffer: commandBuffer) {
+			cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: cache[0].j, Δφ: Δφ, φ: φ, count: count) { jacobian in
+				access {
 					jacobian.jacobian(c: $0)
 				}
-				cell.jacobian(jacobian: jacobian, j: cache[-1].j)
+				cell.jacobian(jacobian: jacobian) {
+					cache[$0].j
+				}
 			}
 		}
 	}
@@ -78,5 +82,19 @@ extension Bias {
 	@NSManaged var cell: Cell
 }
 extension Context {
-	
+	@nonobjc internal func make(commandBuffer: CommandBuffer, cell: Cell) throws -> Bias {
+		let count: Int = cell.width
+		let bias: Bias = try make()
+		bias.cell = cell
+		bias.location = Data(count: count * MemoryLayout<Float>.size)
+		bias.scale = Data(count: count * MemoryLayout<Float>.size)
+		bias.location.withUnsafeMutableBytes {
+			vDSP_vfill([0.0], $0, 1, vDSP_Length(count))
+		}
+		bias.scale.withUnsafeMutableBytes {
+			vDSP_vfill([1.0], $0, 1, vDSP_Length(count))
+		}
+		bias.setup(commandBuffer: commandBuffer, count: count)
+		return bias
+	}
 }

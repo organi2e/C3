@@ -29,12 +29,13 @@ internal class Edge: Arcane {
 	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
 }
 extension Edge {
-	func collect_refresh() {
-		input.collect_refresh()
+	func collect_refresh(commandBuffer: CommandBuffer) {
+		input.collect_refresh(commandBuffer: commandBuffer)
+		fixing(commandBuffer: commandBuffer)
 	}
 	func collect(collector: Collector, ignore: Set<Cell>) {
 		let count: Int = input.width
-		access(commandBuffer: collector.order) {
+		access {
 			collector.collect(w: $0, x: input.collect(ignore: ignore), count: count)
 		}
 	}
@@ -48,18 +49,22 @@ extension Edge {
 		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
 		let (Δφ, φ): (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = output.correct(ignore: ignore)
 		if let x: Buffer = input.state {
-			output.distributor.derivate(commandBuffer: corrector.order, Δx: corrector.Δ, j: cache[0].jx, Δφ: Δφ, φ: φ, count: count) {(jacobian: Jacobian)in
-				access(commandBuffer: corrector.order) {
+			output.distributor.derivate(commandBuffer: corrector.order, Δx: corrector.Δ, j: cache[0].jx, Δφ: Δφ, φ: φ, count: count) { jacobian in
+				access {
 					jacobian.jacobian(x: x, a: $0)
 				}
-				output.jacobian(jacobian: jacobian, j: cache[-1].jx)
+				output.jacobian(jacobian: jacobian) {
+					cache[$0].jx
+				}
 			}
-			update(commandBuffer: corrector.order) {
-				output.distributor.derivate(commandBuffer: corrector.order, Δθ: $0, j: cache[0].ja, Δφ: Δφ, φ: φ, count: count) {(jacobian: Jacobian)in
-					access(commandBuffer: corrector.order) {
+			change(commandBuffer: corrector.order) {
+				output.distributor.derivate(commandBuffer: corrector.order, Δθ: $0, j: cache[0].ja, Δφ: Δφ, φ: φ, count: count) { jacobian in 
+					access {
 						jacobian.jacobian(a: $0, x: x)
 					}
-					output.jacobian(jacobian: jacobian, j: cache[-1].ja)
+					output.jacobian(jacobian: jacobian) {
+						cache[$0].ja
+					}
 				}
 			}
 		}

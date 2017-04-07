@@ -11,6 +11,19 @@ public protocol Adapter {
 	func generate(commandBuffer: MTLCommandBuffer, θ: MTLBuffer, φ: MTLBuffer)
 	func gradient(commandBuffer: MTLCommandBuffer, Δ: MTLBuffer, θ: MTLBuffer, φ: MTLBuffer)
 }
+public class Discard {
+	public init(count: Int) {
+		
+	}
+}
+extension Discard: Adapter {
+	public func generate(commandBuffer: MTLCommandBuffer, θ: MTLBuffer, φ: MTLBuffer) {
+		
+	}
+	public func gradient(commandBuffer: MTLCommandBuffer, Δ: MTLBuffer, θ: MTLBuffer, φ: MTLBuffer) {
+		
+	}
+}
 public class Linear {
 	let limit: Int
 	public init(count: Int) {

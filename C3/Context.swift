@@ -18,6 +18,7 @@ public enum DistributorType: String {
 	case Gauss = "Gauss"
 }
 public enum AdapterType: String {
+	case Discard = "Discard"
 	case Tanh = "Tanh"
 	case Linear = "Linear"
 	case Floor = "Floor"
@@ -62,6 +63,7 @@ public class Context: NSManagedObjectContext {
 		device = mtl
 		adapter = try {
 			var result: Dictionary<AdapterType, (Int)->Adapter> = Dictionary<AdapterType, (Int)->Adapter>()
+			result.updateValue(Discard.init, forKey: .Discard)
 			result.updateValue(Linear.init, forKey: .Linear)
 			result.updateValue(try Tanh.adapter(device: $0), forKey: .Tanh)
 			result.updateValue(try Floor.adapter(device: $0), forKey: .Floor)
@@ -168,6 +170,7 @@ extension Context {
 		func block() {
 			let request: NSFetchRequest<T> = NSFetchRequest<T>(entityName: name)
 			request.predicate = predicate
+			request.returnsObjectsAsFaults = false
 			do {
 				cache = try fetch(request)
 			} catch {
@@ -185,6 +188,26 @@ extension Context {
 			delete(object)
 		}
 		perform(block)
+	}
+	public override func save() throws {
+		var encounter: Error?
+		func done(_: CommandBuffer) {
+			func block() {
+				do {
+					try super.save()
+				} catch {
+					encounter = error
+				}
+			}
+			performAndWait(block)
+		}
+		let commandBuffer: CommandBuffer = make()
+		commandBuffer.addCompletedHandler(done)
+		commandBuffer.commit()
+		commandBuffer.waitUntilCompleted()
+		if let encounter: Error = encounter {
+			throw encounter
+		}
 	}
 	/*
 	func store(handler: @escaping(Error)->()) {
