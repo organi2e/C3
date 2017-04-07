@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		87197B4E1E9647DF00D62866 /* Variable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87197B4D1E9647DF00D62866 /* Variable.swift */; };
+		87263D481E97EAC900A4B75B /* RegFloor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87263D461E97EAC900A4B75B /* RegFloor.metal */; };
+		87263D491E97EAC900A4B75B /* RegFloor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87263D471E97EAC900A4B75B /* RegFloor.swift */; };
 		87497DD21E9257080013C12C /* C3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87497DC91E9257080013C12C /* C3.framework */; };
 		87497DD71E9257080013C12C /* C3Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87497DD61E9257080013C12C /* C3Tests.swift */; };
 		87497DD91E9257080013C12C /* C3.h in Headers */ = {isa = PBXBuildFile; fileRef = 87497DCB1E9257080013C12C /* C3.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -121,6 +123,8 @@
 
 /* Begin PBXFileReference section */
 		87197B4D1E9647DF00D62866 /* Variable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Variable.swift; path = ../../C3/Variable.swift; sourceTree = "<group>"; };
+		87263D461E97EAC900A4B75B /* RegFloor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = RegFloor.metal; path = ../../Adapter/RegFloor.metal; sourceTree = "<group>"; };
+		87263D471E97EAC900A4B75B /* RegFloor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RegFloor.swift; path = ../../Adapter/RegFloor.swift; sourceTree = "<group>"; };
 		87497DC91E9257080013C12C /* C3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = C3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		87497DCB1E9257080013C12C /* C3.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = C3.h; sourceTree = "<group>"; };
 		87497DCC1E9257080013C12C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -374,6 +378,8 @@
 		8754F8A21E8B9F0E006B088A /* Adapter */ = {
 			isa = PBXGroup;
 			children = (
+				87263D461E97EAC900A4B75B /* RegFloor.metal */,
+				87263D471E97EAC900A4B75B /* RegFloor.swift */,
 				87C3C27C1E94C90100A62C11 /* Logistic.swift */,
 				87C3C27B1E94C90100A62C11 /* Logistic.metal */,
 				87B846281E9393B200844835 /* Softplus.swift */,
@@ -818,6 +824,7 @@
 				87B8462B1E9393C100844835 /* Softplus.metal in Sources */,
 				8754F8C41E8B9F54006B088A /* Regular.metal in Sources */,
 				8754F8BF1E8B9F54006B088A /* Adapter.swift in Sources */,
+				87263D491E97EAC900A4B75B /* RegFloor.swift in Sources */,
 				87C3C27E1E94C90100A62C11 /* Logistic.swift in Sources */,
 				87B8462D1E93984B00844835 /* Tanh.swift in Sources */,
 				87B846331E93A49000844835 /* Floor.metal in Sources */,
@@ -829,6 +836,7 @@
 				8754F8C11E8B9F54006B088A /* Exponential.swift in Sources */,
 				87C3C27D1E94C90100A62C11 /* Logistic.metal in Sources */,
 				8754F8C01E8B9F54006B088A /* Exponential.metal in Sources */,
+				87263D481E97EAC900A4B75B /* RegFloor.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

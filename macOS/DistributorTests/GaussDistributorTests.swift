@@ -133,8 +133,8 @@ class GaussDistributorTests: XCTestCase {
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
 			let distributor: Distributor = try GaussDistributor(device: device)
 			distributor.activate(commandBuffer: commandBuffer, Δφ: Δφ, g: g, φ: φ, count: width) {
-				$0.correct(j: j0, Δ: Δ0, count: refer)
-				$0.correct(j: j1, Δ: Δ1, count: refer)
+//				$0.correct(j: j0, Δ: Δ0, count: refer)
+//				$0.correct(j: j1, Δ: Δ1, count: refer)
 				$0.correct(χ: χ, ϝ: ϝ)
 			}
 			commandBuffer.commit()
@@ -156,7 +156,7 @@ class GaussDistributorTests: XCTestCase {
 			
 			XCTAssert( la_status(la_Δ0μ) == 0 )
 			XCTAssert( la_status(la_Δ0σ) == 0 )
-			
+			/*
 			let la_j0μ: la_object_t = j0.μ.matrix(rows: refer, cols: width)
 			let la_j0σ: la_object_t = j0.σ.matrix(rows: refer, cols: width)
 			
@@ -174,7 +174,7 @@ class GaussDistributorTests: XCTestCase {
 			
 			XCTAssert( la_status(la_j1μ) == 0 )
 			XCTAssert( la_status(la_j1σ) == 0 )
-			
+			*/
 			let la_χ: la_object_t = χ.matrix(rows: width, cols: 1)
 			let la_ϝ: la_object_t = ϝ.matrix(rows: width, cols: 1)
 			
@@ -182,10 +182,10 @@ class GaussDistributorTests: XCTestCase {
 			XCTAssert( la_status(la_ϝ) == 0 )
 			
 			let la_Δ: la_object_t = la_matrix_from_float_buffer([
-				la_matrix_product(la_transpose(la_j0μ), la_Δ0μ),
-				la_matrix_product(la_transpose(la_j1μ), la_Δ1μ),
-				la_matrix_product(la_transpose(la_j0σ), la_Δ0σ),
-				la_matrix_product(la_transpose(la_j1σ), la_Δ1σ),
+			//	la_matrix_product(la_transpose(la_j0μ), la_Δ0μ),
+			//	la_matrix_product(la_transpose(la_j1μ), la_Δ1μ),
+			//	la_matrix_product(la_transpose(la_j0σ), la_Δ0σ),
+			//	la_matrix_product(la_transpose(la_j1σ), la_Δ1σ),
 				la_difference(la_χ, la_ϝ)
 			].reduce(la_splat_from_float(0, attr), la_sum).array.map(sign), la_count_t(width), 1, 1, hint, attr)
 			
@@ -222,6 +222,513 @@ class GaussDistributorTests: XCTestCase {
 			
 			XCTAssert( rmseΔφμ < 1e-6 )
 			XCTAssert( rmseΔφσ < 1e-6 )
+			
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
+	func testGX() {
+		let width: Int = 32 + Int(arc4random_uniform(224))
+		let refer: Int = 32 + Int(arc4random_uniform(224))
+		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
+		let queue: MTLCommandQueue = device.makeCommandQueue()
+		let Δx: MTLBuffer = device.makeBuffer(length: refer * MemoryLayout<Float>.size, options: [])
+		let j: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: []),
+			σ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		)
+		let a: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width * refer), options: []),
+			σ: device.makeBuffer(array: uniform(count: width * refer), options: [])
+		)
+		let d: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
+		let p: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width * refer), options: []),
+			σ: device.makeBuffer(array: uniform(count: width * refer), options: [])
+		)
+		let Δφ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width), options: [])
+		)
+		let φ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width), options: [])
+		)
+		let x: MTLBuffer = device.makeBuffer(array: uniform(count: refer), options: [])
+		do {
+			let distributor: GaussDistributor = try GaussDistributor(device: device)
+			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
+			distributor.derivate(commandBuffer: commandBuffer, Δx: Δx, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
+				$0.jacobian(x: x, a: a)
+				$0.jacobian(φ: φ, d: d, j: p)
+			}
+			commandBuffer.commit()
+			
+			let la_x: la_object_t = x.matrix(rows: refer, cols: 1)
+			
+			XCTAssert( la_status(la_x) == 0 )
+			
+			let la_φμ: la_object_t = φ.μ.matrix(rows: width, cols: 1)
+			let la_φσ: la_object_t = φ.σ.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_φμ) == 0 )
+			XCTAssert( la_status(la_φσ) == 0 )
+			
+			let la_Δφμ: la_object_t = Δφ.μ.matrix(rows: width, cols: 1)
+			let la_Δφσ: la_object_t = Δφ.σ.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_Δφμ) == 0 )
+			XCTAssert( la_status(la_Δφσ) == 0 )
+			
+			let la_pμ: la_object_t = p.μ.matrix(rows: width, cols: refer)
+			let la_pσ: la_object_t = p.σ.matrix(rows: width, cols: refer)
+			
+			XCTAssert( la_status(la_pμ) == 0 )
+			XCTAssert( la_status(la_pσ) == 0 )
+			
+			let la_d: la_object_t = d.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_d) == 0 )
+			
+			let la_aμ: la_object_t = a.μ.matrix(rows: width, cols: refer)
+			let la_aσ: la_object_t = a.σ.matrix(rows: width, cols: refer)
+			
+			XCTAssert( la_status(la_aμ) == 0 )
+			XCTAssert( la_status(la_aσ) == 0 )
+			
+			let la_jμ: la_object_t = la_sum(
+				la_scale_with_float(la_aμ, 1),
+				la_scale_with_float(la_matrix_product(la_d.diagonale, la_pμ), 1)
+			)
+			let la_jσ: la_object_t = la_matrix_product(
+				la_matrix_from_float_buffer(φ.σ.buf.map(recip), la_count_t(width), 1, 1, hint, attr).diagonale,
+				la_sum(la_scale_with_float(la_matrix_product(la_elementwise_product(la_aσ, la_aσ), la_x.diagonale), 1),
+				       la_scale_with_float(la_matrix_product(la_elementwise_product(la_elementwise_product(la_d, la_d), la_φσ).diagonale, la_pσ), 1)
+				)
+			)
+			
+			XCTAssert( la_status(la_jμ) == 0 )
+			XCTAssert( la_status(la_jσ) == 0 )
+			
+			let la_Δjμ: la_object_t = la_difference(la_jμ, j.μ.matrix(rows: width, cols: refer))
+			let la_Δjσ: la_object_t = la_difference(la_jσ, j.σ.matrix(rows: width, cols: refer))
+			
+			XCTAssert( la_status(la_Δjμ) == 0 )
+			XCTAssert( la_status(la_Δjσ) == 0 )
+			
+			let normjμ: Float = la_norm_as_float(la_jμ, norm)
+			let normjσ: Float = la_norm_as_float(la_jσ, norm)
+			
+			XCTAssert( 0 < normjμ )
+			XCTAssert( 0 < normjσ )
+			
+			commandBuffer.waitUntilCompleted()
+			
+			let rmsejμ: Float = la_norm_as_float(la_Δjμ, norm) * rsqrt(Float(width*refer))
+			let rmsejσ: Float = la_norm_as_float(la_Δjσ, norm) * rsqrt(Float(width*refer))
+			
+			XCTAssert( rmsejμ < 1e-5 )
+			XCTAssert( rmsejσ < 1e-5 )
+			
+			let la_Δx: la_object_t = la_sum(
+				la_matrix_product(la_transpose(la_jμ), la_Δφμ),
+				la_matrix_product(la_transpose(la_jσ), la_Δφσ)
+			)
+			
+			XCTAssert( la_status(la_Δx) == 0 )
+			
+			let normΔx: Float = la_norm_as_float(la_Δx, norm)
+			
+			XCTAssert( 0 < normΔx )
+			
+			let la_ΔΔx: la_object_t = la_difference(la_Δx, Δx.matrix(rows: refer, cols: 1))
+			
+			XCTAssert( la_status(la_ΔΔx) == 0 )
+			
+			let rmseΔx: Float = la_norm_as_float(la_ΔΔx, norm) * rsqrt(Float(refer))
+			
+			XCTAssert( rmseΔx < 1e-4 )
+			
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
+	func testGA() {
+		let width: Int = 32 + Int(arc4random_uniform(224))
+		let refer: Int = 32 + Int(arc4random_uniform(224))
+		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
+		let queue: MTLCommandQueue = device.makeCommandQueue()
+		let Δθ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: []),
+			σ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		)
+		let j: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: []),
+			σ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		)
+		let a: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width * refer), options: []),
+			σ: device.makeBuffer(array: uniform(count: width * refer), options: [])
+		)
+		let d: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
+		let p: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width * refer), options: []),
+			σ: device.makeBuffer(array: uniform(count: width * refer), options: [])
+		)
+		let Δφ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width), options: [])
+		)
+		let φ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width), options: [])
+		)
+		let x: MTLBuffer = device.makeBuffer(array: uniform(count: refer), options: [])
+		do {
+			let distributor: GaussDistributor = try GaussDistributor(device: device)
+			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
+			distributor.derivate(commandBuffer: commandBuffer, Δθ: Δθ, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
+				$0.jacobian(a: a, x: x)
+				$0.jacobian(φ: φ, d: d, j: p)
+			}
+			commandBuffer.commit()
+			
+			let la_x: la_object_t = x.matrix(rows: refer, cols: 1)
+			
+			XCTAssert( la_status(la_x) == 0 )
+			
+			let la_φμ: la_object_t = φ.μ.matrix(rows: width, cols: 1)
+			let la_φσ: la_object_t = φ.σ.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_φμ) == 0 )
+			XCTAssert( la_status(la_φσ) == 0 )
+			
+			let la_Δφμ: la_object_t = Δφ.μ.matrix(rows: width, cols: 1)
+			let la_Δφσ: la_object_t = Δφ.σ.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_Δφμ) == 0 )
+			XCTAssert( la_status(la_Δφσ) == 0 )
+			
+			let la_pμ: la_object_t = p.μ.matrix(rows: width, cols: refer)
+			let la_pσ: la_object_t = p.σ.matrix(rows: width, cols: refer)
+			
+			XCTAssert( la_status(la_pμ) == 0 )
+			XCTAssert( la_status(la_pσ) == 0 )
+			
+			let la_d: la_object_t = d.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_d) == 0 )
+			
+			let la_aμ: la_object_t = a.μ.matrix(rows: width, cols: refer)
+			let la_aσ: la_object_t = a.σ.matrix(rows: width, cols: refer)
+			
+			XCTAssert( la_status(la_aμ) == 0 )
+			XCTAssert( la_status(la_aσ) == 0 )
+			
+			let la_jμ: la_object_t = la_sum(
+				la_scale_with_float(la_outer_product(la_matrix_from_splat(la_splat_from_float(1, attr), la_count_t(width), 1), la_x), 1),
+				la_scale_with_float(la_matrix_product(la_d.diagonale, la_pμ), 1)
+			)
+			let la_jσ: la_object_t = la_matrix_product(
+				la_matrix_from_float_buffer(φ.σ.buf.map(recip), la_count_t(width), 1, 1, hint, attr).diagonale,
+				la_sum(la_scale_with_float(la_matrix_product(la_aσ, la_elementwise_product(la_x, la_x).diagonale), 1),
+				       la_scale_with_float(la_matrix_product(la_elementwise_product(la_elementwise_product(la_d, la_d), la_φσ).diagonale, la_pσ), 1)
+				)
+			)
+			
+			XCTAssert( la_status(la_jμ) == 0 )
+			XCTAssert( la_status(la_jσ) == 0 )
+			
+			let la_Δjμ: la_object_t = la_difference(la_jμ, j.μ.matrix(rows: width, cols: refer))
+			let la_Δjσ: la_object_t = la_difference(la_jσ, j.σ.matrix(rows: width, cols: refer))
+			
+			XCTAssert( la_status(la_Δjμ) == 0 )
+			XCTAssert( la_status(la_Δjσ) == 0 )
+			
+			let normjμ: Float = la_norm_as_float(la_jμ, norm)
+			let normjσ: Float = la_norm_as_float(la_jσ, norm)
+			
+			XCTAssert( 0 < normjμ )
+			XCTAssert( 0 < normjσ )
+			
+			commandBuffer.waitUntilCompleted()
+			
+			let rmsejμ: Float = la_norm_as_float(la_Δjμ, norm) * rsqrt(Float(width*refer))
+			let rmsejσ: Float = la_norm_as_float(la_Δjσ, norm) * rsqrt(Float(width*refer))
+			
+			XCTAssert( rmsejμ < 1e-5 )
+			XCTAssert( rmsejσ < 1e-5 )
+			
+			let la_Δθμ: la_object_t = la_matrix_product(la_Δφμ.diagonale, la_jμ)
+			let la_Δθσ: la_object_t = la_matrix_product(la_Δφσ.diagonale, la_jσ)
+			
+			XCTAssert( la_status(la_Δθμ) == 0 )
+			XCTAssert( la_status(la_Δθσ) == 0 )
+			
+			let normΔθμ: Float = la_norm_as_float(la_Δθμ, norm)
+			let normΔθσ: Float = la_norm_as_float(la_Δθσ, norm)
+			
+			XCTAssert( 0 < normΔθμ )
+			XCTAssert( 0 < normΔθσ )
+			
+			let la_ΔΔθμ: la_object_t = la_difference(la_Δθμ, Δθ.μ.matrix(rows: width, cols: refer))
+			let la_ΔΔθσ: la_object_t = la_difference(la_Δθσ, Δθ.σ.matrix(rows: width, cols: refer))
+			
+			XCTAssert( la_status(la_ΔΔθμ) == 0 )
+			XCTAssert( la_status(la_ΔΔθσ) == 0 )
+			
+			let rmseΔθμ: Float = la_norm_as_float(la_ΔΔθμ, norm) * rsqrt(Float(width*refer))
+			let rmseΔθσ: Float = la_norm_as_float(la_ΔΔθσ, norm) * rsqrt(Float(width*refer))
+			
+			XCTAssert( rmseΔθμ < 1e-5 )
+			XCTAssert( rmseΔθσ < 1e-5 )
+			
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
+	func testGC() {
+		let width: Int = 32 + Int(arc4random_uniform(224))
+		let refer: Int = 1 + Int(arc4random_uniform(255))
+		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
+		let queue: MTLCommandQueue = device.makeCommandQueue()
+		let Δθ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: []),
+			σ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		)
+		let j: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: []),
+			σ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		)
+		let c: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width), options: [])
+		)
+		let d: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
+		let p: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width * refer), options: []),
+			σ: device.makeBuffer(array: uniform(count: width * refer), options: [])
+		)
+		let Δφ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width), options: [])
+		)
+		let φ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width).map(sign), options: [])
+		)
+		do {
+			let distributor: GaussDistributor = try GaussDistributor(device: device)
+			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
+			distributor.derivate(commandBuffer: commandBuffer, Δθ: Δθ, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
+				$0.jacobian(c: c)
+				$0.jacobian(φ: φ, d: d, j: p)
+			}
+			commandBuffer.commit()
+			
+			let la_φμ: la_object_t = φ.μ.matrix(rows: width, cols: 1)
+			let la_φσ: la_object_t = φ.σ.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_φμ) == 0 )
+			XCTAssert( la_status(la_φσ) == 0 )
+			
+			let la_Δφμ: la_object_t = Δφ.μ.matrix(rows: width, cols: 1)
+			let la_Δφσ: la_object_t = Δφ.σ.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_Δφμ) == 0 )
+			XCTAssert( la_status(la_Δφσ) == 0 )
+			
+			let la_pμ: la_object_t = p.μ.matrix(rows: width, cols: refer)
+			let la_pσ: la_object_t = p.σ.matrix(rows: width, cols: refer)
+			
+			XCTAssert( la_status(la_pμ) == 0 )
+			XCTAssert( la_status(la_pσ) == 0 )
+			
+			let la_d: la_object_t = d.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_d) == 0 )
+			
+			let la_cμ: la_object_t = c.μ.matrix(rows: width, cols: 1)
+			let la_cσ: la_object_t = c.σ.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_cμ) == 0 )
+			XCTAssert( la_status(la_cσ) == 0 )
+			
+			let la_jμ: la_object_t = la_sum(
+				la_scale_with_float(la_matrix_from_splat(la_splat_from_float(1, attr), la_count_t(width), la_count_t(refer)), 1),
+				la_scale_with_float(la_matrix_product(la_d.diagonale, la_pμ), 1)
+			)
+			let la_jσ: la_object_t = la_matrix_product(
+				la_matrix_from_float_buffer(φ.σ.buf.map(recip), la_count_t(width), 1, 1, hint, attr).diagonale,
+				la_sum(la_scale_with_float(la_outer_product(la_cσ, la_vector_from_splat(la_splat_from_float(1, attr), la_count_t(refer))), 1),
+				       la_scale_with_float(la_matrix_product(la_elementwise_product(la_elementwise_product(la_d, la_d), la_φσ).diagonale, la_pσ), 1)
+				)
+			)
+			
+			XCTAssert( la_status(la_jμ) == 0 )
+			XCTAssert( la_status(la_jσ) == 0 )
+			
+			let la_Δjμ: la_object_t = la_difference(la_jμ, j.μ.matrix(rows: width, cols: refer))
+			let la_Δjσ: la_object_t = la_difference(la_jσ, j.σ.matrix(rows: width, cols: refer))
+			
+			XCTAssert( la_status(la_Δjμ) == 0 )
+			XCTAssert( la_status(la_Δjσ) == 0 )
+			
+			let normjμ: Float = la_norm_as_float(la_jμ, norm)
+			let normjσ: Float = la_norm_as_float(la_jσ, norm)
+			
+			XCTAssert( 0 < normjμ )
+			XCTAssert( 0 < normjσ )
+			
+			commandBuffer.waitUntilCompleted()
+			
+			let rmsejμ: Float = la_norm_as_float(la_Δjμ, norm) * rsqrt(Float(width*refer))
+			let rmsejσ: Float = la_norm_as_float(la_Δjσ, norm) * rsqrt(Float(width*refer))
+			
+			XCTAssert( rmsejμ < 1e-6 )
+			XCTAssert( rmsejσ < 1e-6 )
+			
+			let la_Δθμ: la_object_t = la_matrix_product(la_Δφμ.diagonale, la_jμ)
+			let la_Δθσ: la_object_t = la_matrix_product(la_Δφσ.diagonale, la_jσ)
+			
+			XCTAssert( la_status(la_Δθμ) == 0 )
+			XCTAssert( la_status(la_Δθσ) == 0 )
+			
+			let normΔθμ: Float = la_norm_as_float(la_Δθμ, norm)
+			let normΔθσ: Float = la_norm_as_float(la_Δθσ, norm)
+			
+			XCTAssert( 0 < normΔθμ )
+			XCTAssert( 0 < normΔθσ )
+			
+			let la_ΔΔθμ: la_object_t = la_difference(la_Δθμ, Δθ.μ.matrix(rows: width, cols: refer))
+			let la_ΔΔθσ: la_object_t = la_difference(la_Δθσ, Δθ.σ.matrix(rows: width, cols: refer))
+			
+			XCTAssert( la_status(la_ΔΔθμ) == 0 )
+			XCTAssert( la_status(la_ΔΔθσ) == 0 )
+			
+			let rmseΔθμ: Float = la_norm_as_float(la_ΔΔθμ, norm) * rsqrt(Float(width*refer))
+			let rmseΔθσ: Float = la_norm_as_float(la_ΔΔθσ, norm) * rsqrt(Float(width*refer))
+			
+			XCTAssert( rmseΔθμ < 1e-6 )
+			XCTAssert( rmseΔθσ < 1e-6 )
+			
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
+	func testGD() {
+		let width: Int = 32 + Int(arc4random_uniform(224))
+		let refer: Int = 1// + Int(arc4random_uniform(255))
+		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
+		let queue: MTLCommandQueue = device.makeCommandQueue()
+		let Δv: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		let j: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: []),
+			σ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		)
+		let c: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width), options: [])
+		)
+		let d: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
+		let p: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width * refer), options: []),
+			σ: device.makeBuffer(array: uniform(count: width * refer), options: [])
+		)
+		let Δφ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width), options: [])
+		)
+		let φ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width).map(sign), options: [])
+		)
+		do {
+			let distributor: GaussDistributor = try GaussDistributor(device: device)
+			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
+			distributor.derivate(commandBuffer: commandBuffer, Δv: Δv, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
+				$0.jacobian(d: d, φ: φ)
+				//$0.jacobian(φ: φ, d: d, j: p)
+			}
+			commandBuffer.commit()
+			
+			let la_φμ: la_object_t = φ.μ.matrix(rows: width, cols: 1)
+			let la_φσ: la_object_t = φ.σ.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_φμ) == 0 )
+			XCTAssert( la_status(la_φσ) == 0 )
+			
+			let la_Δφμ: la_object_t = Δφ.μ.matrix(rows: width, cols: 1)
+			let la_Δφσ: la_object_t = Δφ.σ.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_Δφμ) == 0 )
+			XCTAssert( la_status(la_Δφσ) == 0 )
+			
+			let la_pμ: la_object_t = p.μ.matrix(rows: width, cols: refer)
+			let la_pσ: la_object_t = p.σ.matrix(rows: width, cols: refer)
+			
+			XCTAssert( la_status(la_pμ) == 0 )
+			XCTAssert( la_status(la_pσ) == 0 )
+			
+			let la_d: la_object_t = d.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_d) == 0 )
+			
+			let la_cμ: la_object_t = c.μ.matrix(rows: width, cols: 1)
+			let la_cσ: la_object_t = c.σ.matrix(rows: width, cols: 1)
+			
+			XCTAssert( la_status(la_cμ) == 0 )
+			XCTAssert( la_status(la_cσ) == 0 )
+			
+			let la_jμ: la_object_t = la_sum(
+				la_scale_with_float(la_outer_product(la_φμ, la_matrix_from_splat(la_splat_from_float(1, attr), la_count_t(refer), 1)), 1),
+				la_scale_with_float(la_matrix_product(la_d.diagonale, la_pμ), 0)
+			)
+			let la_jσ: la_object_t = la_matrix_product(
+				la_matrix_from_float_buffer(φ.σ.buf.map(recip), la_count_t(width), 1, 1, hint, attr).diagonale,
+				la_sum(la_scale_with_float(la_outer_product(la_elementwise_product(la_d, la_elementwise_product(la_φσ, la_φσ)), la_matrix_from_splat(la_splat_from_float(1, attr), la_count_t(refer), 1)), 1),
+				       la_scale_with_float(la_matrix_product(la_elementwise_product(la_elementwise_product(la_d, la_d), la_φσ).diagonale, la_pσ), 0)
+				)
+			)
+			
+			XCTAssert( la_status(la_jμ) == 0 )
+			XCTAssert( la_status(la_jσ) == 0 )
+			
+			let la_Δjμ: la_object_t = la_difference(la_jμ, j.μ.matrix(rows: width, cols: refer))
+			let la_Δjσ: la_object_t = la_difference(la_jσ, j.σ.matrix(rows: width, cols: refer))
+			
+			XCTAssert( la_status(la_Δjμ) == 0 )
+			XCTAssert( la_status(la_Δjσ) == 0 )
+			
+			let normjμ: Float = la_norm_as_float(la_jμ, norm)
+			let normjσ: Float = la_norm_as_float(la_jσ, norm)
+			
+			XCTAssert( 0 < normjμ )
+			XCTAssert( 0 < normjσ )
+			
+			commandBuffer.waitUntilCompleted()
+			
+			let rmsejμ: Float = la_norm_as_float(la_Δjμ, norm) * rsqrt(Float(width*refer))
+			let rmsejσ: Float = la_norm_as_float(la_Δjσ, norm) * rsqrt(Float(width*refer))
+			
+			XCTAssert( rmsejμ < 1e-6 )
+			XCTAssert( rmsejσ < 1e-6 )
+			
+			let la_Δv: la_object_t = la_sum(la_matrix_product(la_Δφμ.diagonale, la_jμ), la_matrix_product(la_Δφσ.diagonale, la_jσ))
+			
+			XCTAssert( la_status(la_Δv) == 0 )
+			
+			let normΔv: Float = la_norm_as_float(la_Δv, norm)
+			
+			XCTAssert( 0 < normΔv )
+			
+			let la_ΔΔv: la_object_t = la_difference(la_Δv, Δv.matrix(rows: width, cols: refer))
+			
+			XCTAssert( la_status(la_ΔΔv) == 0 )
+			
+			let rmseΔv: Float = la_norm_as_float(la_ΔΔv, norm) * rsqrt(Float(width*refer))
+			
+			XCTAssert( rmseΔv < 1e-6 )
 			
 		} catch {
 			XCTFail(String(describing: error))

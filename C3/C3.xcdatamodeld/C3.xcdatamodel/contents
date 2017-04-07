@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="12141" systemVersion="16E195" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Arcane" representedClassName=".Arcane" syncable="YES">
-        <attribute name="location" attributeType="Binary" syncable="YES"/>
+        <attribute name="location" attributeType="Binary" allowsExternalBinaryDataStorage="YES" syncable="YES"/>
         <attribute name="locationType" attributeType="String" syncable="YES"/>
-        <attribute name="scale" attributeType="Binary" syncable="YES"/>
+        <attribute name="scale" attributeType="Binary" allowsExternalBinaryDataStorage="YES" syncable="YES"/>
         <attribute name="scaleType" attributeType="String" syncable="YES"/>
     </entity>
     <entity name="Bias" representedClassName=".Bias" parentEntity="Arcane" syncable="YES">

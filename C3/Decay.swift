@@ -11,26 +11,26 @@ import Distributor
 internal class Decay: Arcane {
 	struct Cache {
 		let j: (μ: Buffer, σ: Buffer)
-		init(context: Context, count: Int) {
+		init(context: Context, count: Int, encoder: BlitCommandEncoder) {
 			let length: Int = count * MemoryLayout<Float>.size
 			j = (
 				μ: context.make(length: length, options: .storageModePrivate),
 				σ: context.make(length: length, options: .storageModePrivate)
 			)
+			[j.μ, j.σ].forEach {
+				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
+			}
 		}
 	}
 	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
 }
 extension Decay {
-	func collect_refresh(commandBuffer: CommandBuffer) {
-		guard cell.decay?.objectID == objectID else { fatalError() }
-		refresh(commandBuffer: commandBuffer)
+	func collect_refresh() {
+		
 	}
 	func collect(collector: Collector) {
-		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
-		cell.distributor.flush(commandBuffer: collector.order, θ: cache[0].j)
+		guard cell.decay?.objectID == objectID else { fatalError() }
 		access(commandBuffer: collector.order) {
-			cell.distributor.jacobian(commandBuffer: collector.order, Σ: cache[0].j, d: $0.σ, φ: cell.cache[-1].φ, count: count)
 			collector.collect(d: $0.σ, φ: cell.cache[-1].φ)
 		}
 	}
@@ -42,27 +42,32 @@ extension Decay {
 	}
 	func correct(commandBuffer: CommandBuffer, Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
-		cell.jacobian(commandBuffer: commandBuffer, Σ: cache[0].j, j: cache[-1].j, count: count)
-		cell.distributor.jacobian(commandBuffer: commandBuffer, j: cache[0].j, Σ: cache[0].j, φ: φ, count: count)
 		update(commandBuffer: commandBuffer) {
-			cell.distributor.derivate(commandBuffer: commandBuffer, Δ: $0.σ, j: cache[0].j, Δφ: Δφ, count: count)
+			cell.distributor.derivate(commandBuffer: commandBuffer, Δv: $0.σ, j: cache[0].j, Δφ: Δφ, φ: φ, count: count) {(jacobian: Jacobian)in
+				access(commandBuffer: commandBuffer) {
+					jacobian.jacobian(d: $0.σ, φ: cell.cache[-1].φ)
+				}
+				cell.jacobian(jacobian: jacobian, j: cache[-1].j)
+			}
 		}
 	}
 }
 extension Decay {
-	func jacobian(commandBuffer: CommandBuffer, Σ: (μ: Buffer, σ: Buffer), j: (μ: Buffer, σ: Buffer), count: (rows: Int, cols: Int)) {
-		access(commandBuffer: commandBuffer) {
-			cell.distributor.jacobian(commandBuffer: commandBuffer, Σ: Σ, d: $0.σ, φ: cell.cache[-1].φ, j: j, count: count)
+	func jacobian(jacobian: Jacobian, j: (μ: Buffer, σ: Buffer)) {
+		access(commandBuffer: jacobian.order) {
+			jacobian.jacobian(φ: cell.cache[-1].φ, d: $0.σ, j: j)
 		}
 	}
 }
 extension Decay {
 	override func setup(commandBuffer: CommandBuffer, count: Int) {
 		super.setup(commandBuffer: commandBuffer, count: count)
+		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 		let ref: Array<Void> = Array<Void>(repeating: (), count: count)
 		cache = RingBuffer<Cache>(buffer: ref.map {
-			Cache(context: context, count: count)
+			Cache(context: context, count: count, encoder: encoder)
 		}, offset: 0)
+		encoder.endEncoding()
 	}
 	override func awakeFromFetch() {
 		super.awakeFromFetch()

@@ -13,6 +13,12 @@ struct RingBuffer<T> {
 		let count: Int = buffer.count
 		offset = ( offset + 1 ) % count
 	}
+	var count: Int {
+		return buffer.count
+	}
+	var isEmpty: Bool {
+		return buffer.isEmpty
+	}
 	subscript(index: Int) -> T {
 		let count: Int = buffer.count
 		return buffer[(((index+offset)%count)+count)%count]

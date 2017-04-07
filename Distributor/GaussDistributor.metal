@@ -307,6 +307,15 @@ kernel void GaussCorrectG(device float * const dx [[ buffer(0) ]],
 		dx[idx] += (x[idx] - d[idx]);
 	}
 }
+kernel void GaussCorrectN(device float * const dx [[ buffer(0) ]],
+						  device float const * const x [[ buffer(1) ]],
+						  constant uint const & N [[ buffer(2) ]],
+						  uint const n [[ thread_position_in_grid ]]) {
+	if ( n < N ) {
+		int const idx = n;
+		dx[idx] += -x[idx];
+	}
+}
 /*----------------------------------------------------------------*/
 kernel void GaussJacobianX(device float * const ju [[ buffer(0) ]],
 						   device float * const js [[ buffer(1) ]],
@@ -451,9 +460,9 @@ kernel void GaussJacobianD(device float * const ju [[ buffer(0) ]],
 }
 kernel void GaussJacobianE(device float * const ju [[ buffer(0) ]],
 						   device float * const js [[ buffer(1) ]],
-						   device float const * const d [[ buffer(2) ]],
-						   device float const * const u [[ buffer(3) ]],
-						   device float const * const s [[ buffer(4) ]],
+						   device float const * const u [[ buffer(2) ]],
+						   device float const * const s [[ buffer(3) ]],
+						   device float const * const d [[ buffer(4) ]],
 						   device float const * const pu [[ buffer(5) ]],
 						   device float const * const ps [[ buffer(6) ]],
 						   constant uint2 const & N [[ buffer(7) ]],
@@ -469,18 +478,16 @@ kernel void GaussJacobianE(device float * const ju [[ buffer(0) ]],
 }
 kernel void GaussJacobianF(device float * const ju [[ buffer(0) ]],
 						   device float * const js [[ buffer(1) ]],
-						   device float * const jm [[ buffer(2) ]],
-						   device float * const jv [[ buffer(3) ]],
-						   device float const * const u [[ buffer(4) ]],
-						   device float const * const s [[ buffer(5) ]],
-						   constant uint2 const & N [[ buffer(6) ]],
+						   device float const * const u [[ buffer(2) ]],
+						   device float const * const s [[ buffer(3) ]],
+						   constant uint2 const & N [[ buffer(4) ]],
 						   uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
 		int const idx = rows * N.y + cols;
-		ju[idx] = jm[idx];
-		js[idx] = jv[idx] / s[rows];
+		//ju[idx] = jm[idx];
+		js[idx] /= s[rows];
 	}
 }
 /*----------------------------------------------------------------*/
@@ -532,15 +539,13 @@ kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   device float * const gs [[ buffer(3) ]],
 						   device float const * const u [[ buffer(4) ]],
 						   device float const * const s [[ buffer(5) ]],
-						   device float const * const d [[ buffer(6) ]],
-						   device float const * const b [[ buffer(7) ]],
-						   constant uint const & N [[ buffer(8) ]],
+						   constant uint const & N [[ buffer(6) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
 		float const y = s[idx];
 		float const x = u[idx] / y;
-		float const e = sign(d[idx]);
+		float const e = sign(du[idx]);
 		float const g = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F * exp( -0.5 * x * x ) / y;
 		du[idx] = e * ( gu[idx] = g );
 		ds[idx] = e * ( gs[idx] = g * -x );

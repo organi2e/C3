@@ -12,7 +12,7 @@ internal class Edge: Arcane {
 	struct Cache {
 		let jx: (μ: Buffer, σ: Buffer)
 		let ja: (μ: Buffer, σ: Buffer)
-		init(context: Context, count: Int) {
+		init(context: Context, count: Int, encoder: BlitCommandEncoder) {
 			jx = (
 				μ: context.make(length: count * MemoryLayout<Float>.size, options: .storageModePrivate),
 				σ: context.make(length: count * MemoryLayout<Float>.size, options: .storageModePrivate)
@@ -21,54 +21,59 @@ internal class Edge: Arcane {
 				μ: context.make(length: count * MemoryLayout<Float>.size, options: .storageModePrivate),
 				σ: context.make(length: count * MemoryLayout<Float>.size, options: .storageModePrivate)
 			)
+			[jx.μ, jx.σ, ja.μ, ja.σ].forEach {
+				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
+			}
 		}
 	}
 	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
 }
 extension Edge {
-	func collect_refresh(commandBuffer: CommandBuffer) {
-		guard input.output.contains(self) else { return }
-		input.collect_refresh(commandBuffer: commandBuffer)
-		refresh(commandBuffer: commandBuffer)
+	func collect_refresh() {
+		input.collect_refresh()
 	}
 	func collect(collector: Collector, ignore: Set<Cell>) {
-		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
-		let x: Buffer = input.collect(ignore: ignore)
-		output.distributor.flush(commandBuffer: collector.order, θ: cache[0].jx)
-		output.distributor.flush(commandBuffer: collector.order, θ: cache[0].ja)
+		let count: Int = input.width
 		access(commandBuffer: collector.order) {
-			output.distributor.jacobian(commandBuffer: collector.order, Σ: cache[0].jx, x: x, a: $0, count: count)
-			output.distributor.jacobian(commandBuffer: collector.order, Σ: cache[0].ja, a: $0, x: x, count: count)
-			collector.collect(w: $0, x: x, count: count.cols)
+			collector.collect(w: $0, x: input.collect(ignore: ignore), count: count)
 		}
 	}
 }
 extension Edge {
 	func correct_refresh() {
-		guard output.input.contains(self) else { return }
 		output.correct_refresh()
 		cache.rotate()
 	}
 	func correct(corrector: Corrector, ignore: Set<Cell>) {
 		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
 		let (Δφ, φ): (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = output.correct(ignore: ignore)
-		output.jacobian(commandBuffer: corrector.order, Σ: cache[0].jx, j: cache[-1].jx, count: count)
-		output.jacobian(commandBuffer: corrector.order, Σ: cache[0].ja, j: cache[-1].ja, count: count)
-		output.distributor.jacobian(commandBuffer: corrector.order, j: cache[0].ja, Σ: cache[0].ja, φ: φ, count: count)
-		output.distributor.jacobian(commandBuffer: corrector.order, j: cache[0].jx, Σ: cache[0].jx, φ: φ, count: count)
-		update(commandBuffer: corrector.order) {
-			output.distributor.derivate(commandBuffer: corrector.order, Δ: $0, j: cache[0].ja, Δφ: Δφ, count: count)
+		if let x: Buffer = input.state {
+			output.distributor.derivate(commandBuffer: corrector.order, Δx: corrector.Δ, j: cache[0].jx, Δφ: Δφ, φ: φ, count: count) {(jacobian: Jacobian)in
+				access(commandBuffer: corrector.order) {
+					jacobian.jacobian(x: x, a: $0)
+				}
+				output.jacobian(jacobian: jacobian, j: cache[-1].jx)
+			}
+			update(commandBuffer: corrector.order) {
+				output.distributor.derivate(commandBuffer: corrector.order, Δθ: $0, j: cache[0].ja, Δφ: Δφ, φ: φ, count: count) {(jacobian: Jacobian)in
+					access(commandBuffer: corrector.order) {
+						jacobian.jacobian(a: $0, x: x)
+					}
+					output.jacobian(jacobian: jacobian, j: cache[-1].ja)
+				}
+			}
 		}
-		corrector.correct(j: cache[0].jx, Δ: Δφ, count: output.width)
 	}
 }
 extension Edge {
 	override func setup(commandBuffer: CommandBuffer, count: Int) {
 		super.setup(commandBuffer: commandBuffer, count: count)
+		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 		let ref: Array<Void> = Array<Void>(repeating: (), count: output.depth)
-		cache = RingBuffer<Cache>(buffer: ref.map{
-			Cache(context: context, count: count)
+			cache = RingBuffer<Cache>(buffer: ref.map{
+				Cache(context: context, count: count, encoder: encoder)
 		}, offset: 0)
+		encoder.endEncoding()
 	}
 	override func awakeFromFetch() {
 		super.awakeFromFetch()
@@ -86,9 +91,6 @@ extension Edge {
 extension Edge {
 	@NSManaged var input: Cell
 	@NSManaged var output: Cell
-}
-extension Edge {
-	var depth: Int { return 2 }
 }
 extension Context {
 	internal func make(commandBuffer: CommandBuffer, output: Cell, input: Cell) throws -> Edge {

@@ -25,6 +25,7 @@ public enum AdapterType: String {
 	case Logistic = "Logistic"
 	case Softplus = "Softplus"
 	case Positive = "Positive"
+	case RegFloor = "RegFloor"
 	case Exponential = "Exponential"
 }
 public class Context: NSManagedObjectContext {
@@ -68,6 +69,7 @@ public class Context: NSManagedObjectContext {
 			result.updateValue(try Positive.adapter(device: $0), forKey: .Positive)
 			result.updateValue(try Softplus.adapter(device: $0), forKey: .Softplus)
 			result.updateValue(try Logistic.adapter(device: $0), forKey: .Logistic)
+			result.updateValue(try RegFloor.adapter(device: $0), forKey: .RegFloor)
 			result.updateValue(try Exponential.adapter(device: $0), forKey: .Exponential)
 			return result
 		} (device)
