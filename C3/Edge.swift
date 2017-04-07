@@ -5,6 +5,7 @@
 //  Created by Kota Nakano on 2017/03/29.
 //
 //
+import Accelerate
 import CoreData
 import Distributor
 internal class Edge: Arcane {
@@ -25,9 +26,10 @@ internal class Edge: Arcane {
 	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
 }
 extension Edge {
-	func collect_refresh() {
+	func collect_refresh(commandBuffer: CommandBuffer) {
 		guard input.output.contains(self) else { return }
-		input.collect_refresh()
+		input.collect_refresh(commandBuffer: commandBuffer)
+		refresh(commandBuffer: commandBuffer)
 	}
 	func collect(collector: Collector, ignore: Set<Cell>) {
 		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
@@ -50,6 +52,8 @@ extension Edge {
 	func correct(corrector: Corrector, ignore: Set<Cell>) {
 		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
 		let (Δφ, φ): (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = output.correct(ignore: ignore)
+		output.jacobian(commandBuffer: corrector.order, Σ: cache[0].jx, j: cache[-1].jx, count: count)
+		output.jacobian(commandBuffer: corrector.order, Σ: cache[0].ja, j: cache[-1].ja, count: count)
 		output.distributor.jacobian(commandBuffer: corrector.order, j: cache[0].ja, Σ: cache[0].ja, φ: φ, count: count)
 		output.distributor.jacobian(commandBuffer: corrector.order, j: cache[0].jx, Σ: cache[0].jx, φ: φ, count: count)
 		update(commandBuffer: corrector.order) {
@@ -88,15 +92,56 @@ extension Edge {
 }
 extension Context {
 	internal func make(commandBuffer: CommandBuffer, output: Cell, input: Cell) throws -> Edge {
-		typealias T = Float
 		let count: Int = output.width * input.width
 		let edge: Edge = try make()
-		let μ: T = T(0)
-		let σ: T = T(1)
 		edge.output = output
 		edge.input = input
-		edge.location = Data(bytes: Array<T>(repeating: μ, count: count), count: count * MemoryLayout<T>.size)
-		edge.logscale = Data(bytes: Array<T>(repeating: σ, count: count), count: count * MemoryLayout<T>.size)
+		edge.location = Data(count: count * MemoryLayout<Float>.size)
+		edge.scale = Data(count: count * MemoryLayout<Float>.size)
+		edge.location.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in
+			assert( MemoryLayout<Float>.size == 4 )
+			assert( MemoryLayout<UInt32>.size == 4 )
+			arc4random_buf(ref, edge.location.count)
+			vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(count))
+			vDSP_vsmsa(ref, 1, [exp2f(-32)], [exp2f(-33)], ref, 1, vDSP_Length(count))
+			cblas_sscal(Int32(count/2), 2*Float.pi, ref.advanced(by: count/2), 1)
+			vvlogf(ref, ref, [Int32(count/2)])
+			cblas_sscal(Int32(count/2), -2, ref, 1)
+			vvsqrtf(ref, ref, [Int32(count/2)])
+			vDSP_vswap(ref.advanced(by: 1), 2, ref.advanced(by: count/2), 2, vDSP_Length(count/4))
+			vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
+			//cblas_sscal(Int32(count), 1/Float(input.width), ref, 1)
+		}
+		edge.scale.withUnsafeMutableBytes {
+			vDSP_vfill([1.0], $0, 1, vDSP_Length(count))
+		}
+		/*
+		edge.scale.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in
+			//assert( MemoryLayout<Float>.size == 4 )
+			//assert( MemoryLayout<UInt32>.size == 4 )
+			//arc4random_buf(ref, edge.location.count)
+			/*
+			vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(count))
+			vDSP_vsmsa(ref, 1, [exp2f(-32)], [exp2f(-33)], ref, 1, vDSP_Length(count))
+			cblas_sscal(Int32(count/2), 2*Float.pi, ref.advanced(by: count/2), 1)
+			vvlogf(ref, ref, [Int32(count/2)])
+			cblas_sscal(Int32(count/2), -2, ref, 1)
+			vvsqrtf(ref, ref, [Int32(count/2)])
+			vDSP_vswap(ref.advanced(by: 1), 2, ref.advanced(by: count/2), 2, vDSP_Length(count/4))
+			vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
+			vvexpf(ref, ref, [Int32(count)])
+			cblas_sscal(Int32(count), 1/Float(input.width), ref, 1)
+			*/
+			/*
+			vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(count))
+			vDSP_vsmsa(ref, 1, [exp2f(-32)], [exp2f(-33)], ref, 1, vDSP_Length(count))
+			vvlogf(ref, ref, [Int32(count)])
+			cblas_sscal(Int32(count), -sqrt(2), ref, 1)
+			vvsqrtf(ref, ref, [Int32(count)])
+			*/
+			//cblas_sscal(Int32(count), 1/Float(input.width), ref, 1)
+		}
+		*/
 		edge.setup(commandBuffer: commandBuffer, count: count)
 		return edge
 	}

@@ -71,21 +71,21 @@ class C3Tests: XCTestCase {
 			do {
 				let context: Context = try Context(storage: storage)
 				let I: Cell = try context.make(label: "I", width: 4)
-				let H: Cell = try context.make(label: "H", width: 256, input: [I])
-				//let G: Cell = try context.make(label: "G", width: 256, input: [H])
-				//let F: Cell = try context.make(label: "F", width: 64, input: [G])
-				let _: Cell = try context.make(label: "O", width: 4, input: [H])
+				let H: Cell = try context.make(label: "H", width: 64, input: [I])
+				let G: Cell = try context.make(label: "G", width: 64, input: [I,H])
+				let F: Cell = try context.make(label: "F", width: 64, input: [H,G])
+				let _: Cell = try context.make(label: "O", width: 4, input: [G,F])
 				try context.save()
 			}
 			do {
 				let context: Context = try Context(
 					storage: storage
 					,adapter: (μ: Regular.adapter(), σ: Regular.adapter())
-					,optimizer: Adam.factory(α: 1e-1)
+					,optimizer: Adam.factory(L2: 1e-3, L1: 0, α: 1e-1)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
-				//measure {
+				measure {
 				(0..<1024).forEach {
 					let ref: Int = $0 % 4
 					O.collect_refresh()
@@ -96,13 +96,13 @@ class C3Tests: XCTestCase {
 					I.correct()
 					print(O.source)
 				}
-				//}
+				}
 				try context.save()
 			}
 			do {
 				let context: Context = try Context(
 					storage: storage
-					//,adapter: (μ: Regular.adapter(), σ: Regular.adapter())
+					,adapter: (μ: Regular.adapter(), σ: Regular.adapter())
 					//,optimizer: SMORMS3.factory(α: 1e-1)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
@@ -116,7 +116,7 @@ class C3Tests: XCTestCase {
 					O.collect()
 					print(O.source)
 				}
-				
+				/*
 				print("cpu")
 				let (HWμ, HWσ) = context.capture(output: H, input: I)
 				let (HCμ, HCσ) = context.capture(cell: H)
@@ -146,7 +146,7 @@ class C3Tests: XCTestCase {
 				try OWσ.write(to: URL(fileURLWithPath: "/tmp/OWs.raw"))
 				try OCμ.write(to: URL(fileURLWithPath: "/tmp/OCu.raw"))
 				try OCσ.write(to: URL(fileURLWithPath: "/tmp/OCs.raw"))
-				
+				*/
 			}
 		} catch {
 			XCTFail(String(describing: error))
