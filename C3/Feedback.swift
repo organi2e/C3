@@ -6,6 +6,7 @@
 //
 //
 import Accelerate
+import CoreData
 import Metal
 import Distributor
 internal class Feedback: Arcane {
@@ -44,7 +45,7 @@ extension Feedback {
 	func correct(commandBuffer: CommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer)) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: cell.width)
 		change(commandBuffer: commandBuffer) {
-			cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: cache[0].j, Δφ: Δφ, φ: φ, count: count) { (jacobian: Jacobian) in
+			cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: cache[0].j, Δφ: Δφ, φ: φ, count: count) { jacobian in
 				access {
 					jacobian.jacobian(a: $0, x: cell.cache[depth].χ)
 				}
@@ -56,10 +57,10 @@ extension Feedback {
 	}
 }
 extension Feedback {
-	func jacobian(jacobian: Jacobian, refer: (Int) -> (μ: Buffer, σ: Buffer)) {
-		guard cell.decay?.objectID == objectID else { fatalError() }
+	func jacobian(jacobian: Jacobian, feed: (Int) -> (μ: Buffer, σ: Buffer)) {
+		guard cell.loop.contains(self) else { fatalError() }
 		access {
-			jacobian.jacobian(b: $0, y: cell.cache[depth].χ, g: cell.cache[depth].g, j: refer(depth))
+			jacobian.jacobian(b: $0, y: cell.cache[depth].χ, g: cell.cache[depth].g, j: feed(depth))
 		}
 	}
 }
@@ -67,7 +68,7 @@ extension Feedback {
 	override func setup(commandBuffer: CommandBuffer, count: Int) {
 		super.setup(commandBuffer: commandBuffer, count: count)
 		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		let ref: Array<Void> = Array<Void>(repeating: (), count: count)
+		let ref: Array<Void> = Array<Void>(repeating: (), count: cell.depth)
 		cache = RingBuffer<Cache>(buffer: ref.map {
 			Cache(context: context, count: count, encoder: encoder)
 		}, offset: 0)

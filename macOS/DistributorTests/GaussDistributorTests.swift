@@ -11,7 +11,43 @@ import simd
 import XCTest
 @testable import Distributor
 class GaussDistributorTests: XCTestCase {
-	func testActivate() {
+	func testAV() {
+		let width: Int = 8192 + Int(arc4random_uniform(8192))
+		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
+		let queue: MTLCommandQueue = device.makeCommandQueue()
+		let dμ: Float = Float(arc4random_uniform(240)) + 16
+		let dσ: Float = Float(arc4random_uniform(240)) + 16
+		let c: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: Array<Float>(repeating: dμ, count: width), options: []),
+			σ: device.makeBuffer(array: Array<Float>(repeating: dσ, count: width), options: [])
+		)
+		let φ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(length: width * MemoryLayout<Float>.size, options: []),
+			σ: device.makeBuffer(length: width * MemoryLayout<Float>.size, options: [])
+		)
+		let χ: MTLBuffer = device.makeBuffer(length: width*MemoryLayout<Float>.size, options: [])
+		do {
+			let distributor: Distributor = try GaussDistributor(device: device)
+			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
+			distributor.activate(commandBuffer: commandBuffer, v: χ, φ: φ, count: width) {
+				$0.collect(c: c)
+			}
+			commandBuffer.commit()
+			commandBuffer.waitUntilCompleted()
+			
+			var eμ: Float = 0.0
+			var eσ: Float = 0.0
+			
+			vDSP_normalize(χ.ref, 1, nil, 0, &eμ, &eσ, vDSP_Length(width))
+			
+			XCTAssert( abs(eμ-dμ) < 1 )
+			XCTAssert( abs(log(eσ/dσ)) < 1e-2 )
+			
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
+	func testAVφ() {
 		let width: Int = 16 + Int(arc4random_uniform(240))
 		let refer: Int = 16 + Int(arc4random_uniform(240))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
@@ -47,7 +83,83 @@ class GaussDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try GaussDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.activate(commandBuffer: commandBuffer, χ: χ, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, v: χ, φ: φ, count: width) {
+				$0.collect(w: w, x: x, count: refer)
+				$0.collect(c: c)
+				$0.collect(d: d, φ: p)
+			}
+			commandBuffer.commit()
+			
+			let la_φμ: la_object_t = [
+				la_matrix_product(la_wμ, la_x),
+				la_elementwise_product(la_d, la_pμ)
+				].reduce(la_cμ, la_sum)
+			let la_φv: la_object_t = [
+				la_matrix_product(la_elementwise_product(la_wσ, la_wσ), la_elementwise_product(la_x, la_x)),
+				la_elementwise_product(la_elementwise_product(la_d, la_d), la_elementwise_product(la_pσ, la_pσ))
+				].reduce(la_elementwise_product(la_cσ, la_cσ), la_sum)
+			
+			XCTAssert( la_status(la_φμ) == 0 )
+			XCTAssert( la_status(la_φv) == 0 )
+			
+			let la_Δφμ: la_object_t = la_difference(la_φμ, φ.μ.matrix(rows: width, cols: 1))
+			let la_Δφv: la_object_t = la_difference(la_φv, la_elementwise_product(φ.σ.matrix(rows: width, cols: 1), φ.σ.matrix(rows: width, cols: 1)))
+			
+			XCTAssert( la_status(la_Δφμ) == 0 )
+			XCTAssert( la_status(la_Δφv) == 0 )
+			
+			commandBuffer.waitUntilCompleted()
+			
+			XCTAssert( 0 < la_norm_as_float(la_φμ, norm) )
+			XCTAssert( 0 < la_norm_as_float(la_φv, norm) )
+			
+			let rmseφμ: Float = la_norm_as_float(la_Δφμ, norm) * rsqrt(Float(width))
+			let rmseφv: Float = la_norm_as_float(la_Δφv, norm) * rsqrt(Float(width))
+			
+			XCTAssert( rmseφμ < 1e-5 )
+			XCTAssert( rmseφv < 1e-5 )
+			
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
+	func testAPφ() {
+		let width: Int = 16 + Int(arc4random_uniform(240))
+		let refer: Int = 16 + Int(arc4random_uniform(240))
+		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
+		let queue: MTLCommandQueue = device.makeCommandQueue()
+		let w: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width*refer), options: []),
+			σ: device.makeBuffer(array: uniform(count: width*refer), options: [])
+		)
+		let c: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width), options: [])
+		)
+		let p: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(array: uniform(count: width), options: []),
+			σ: device.makeBuffer(array: uniform(count: width), options: [])
+		)
+		let d: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
+		let x: MTLBuffer = device.makeBuffer(array: uniform(count: refer), options: [])
+		
+		let la_wμ: la_object_t = w.μ.matrix(rows: width, cols: refer)
+		let la_wσ: la_object_t = w.σ.matrix(rows: width, cols: refer)
+		let la_cμ: la_object_t = c.μ.matrix(rows: width, cols: 1)
+		let la_cσ: la_object_t = c.σ.matrix(rows: width, cols: 1)
+		let la_pμ: la_object_t = p.μ.matrix(rows: width, cols: 1)
+		let la_pσ: la_object_t = p.σ.matrix(rows: width, cols: 1)
+		let la_d: la_object_t = d.matrix(rows: width, cols: 1)
+		let la_x: la_object_t = x.matrix(rows: refer, cols: 1)
+		let φ: (μ: MTLBuffer, σ: MTLBuffer) = (
+			μ: device.makeBuffer(length: width * MemoryLayout<Float>.size, options: []),
+			σ: device.makeBuffer(length: width * MemoryLayout<Float>.size, options: [])
+		)
+		let χ: MTLBuffer = device.makeBuffer(length: width*MemoryLayout<Float>.size, options: [])
+		do {
+			let distributor: Distributor = try GaussDistributor(device: device)
+			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
+			distributor.activate(commandBuffer: commandBuffer, p: χ, φ: φ, count: width) {
 				$0.collect(w: w, x: x, count: refer)
 				$0.collect(c: c)
 				$0.collect(d: d, φ: p)
@@ -132,7 +244,7 @@ class GaussDistributorTests: XCTestCase {
 		do {
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
 			let distributor: Distributor = try GaussDistributor(device: device)
-			distributor.activate(commandBuffer: commandBuffer, Δφ: Δφ, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, Δφ: Δφ, g: g, p: χ, φ: φ, count: width) {
 //				$0.correct(j: j0, Δ: Δ0, count: refer)
 //				$0.correct(j: j1, Δ: Δ1, count: refer)
 				$0.correct(χ: χ, ϝ: ϝ)
@@ -734,6 +846,7 @@ class GaussDistributorTests: XCTestCase {
 			XCTFail(String(describing: error))
 		}
 	}
+	/*
 	func testDeltaGV() {
 		let width: Int = 16 + Int(arc4random_uniform(240))
 		let refer: Int = 16 + Int(arc4random_uniform(240))
@@ -1322,6 +1435,7 @@ class GaussDistributorTests: XCTestCase {
 			XCTFail(String(describing: error))
 		}
 	}
+	*/
 }
 
 private extension MTLDevice {

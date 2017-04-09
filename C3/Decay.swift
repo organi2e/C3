@@ -6,7 +6,9 @@
 //
 //
 
+import Accelerate
 import Distributor
+import CoreData
 
 internal class Decay: Arcane {
 	struct Cache {
@@ -56,10 +58,10 @@ extension Decay {
 	}
 }
 extension Decay {
-	func jacobian(jacobian: Jacobian, refer: (Int) -> (μ: Buffer, σ: Buffer)) {
+	func jacobian(jacobian: Jacobian, feed: (Int) -> (μ: Buffer, σ: Buffer)) {
 		guard cell.decay?.objectID == objectID else { fatalError() }
 		access {
-			jacobian.jacobian(φ: cell.cache[-1].φ, d: $0.μ, j: refer(-1))
+			jacobian.jacobian(φ: cell.cache[-1].φ, d: $0.μ, j: feed(-1))
 		}
 	}
 }
@@ -67,7 +69,7 @@ extension Decay {
 	override func setup(commandBuffer: CommandBuffer, count: Int) {
 		super.setup(commandBuffer: commandBuffer, count: count)
 		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		let ref: Array<Void> = Array<Void>(repeating: (), count: count)
+		let ref: Array<Void> = Array<Void>(repeating: (), count: cell.depth)
 		cache = RingBuffer<Cache>(buffer: ref.map {
 			Cache(context: context, count: count, encoder: encoder)
 		}, offset: 0)
@@ -95,10 +97,16 @@ extension Context {
 		let count: Int = cell.width
 		let decay: Decay = try make()
 		decay.cell = cell
-		decay.location = Data(count: count * MemoryLayout<Float>.size)
 		decay.locationType = AdapterType.Logistic.rawValue
-		decay.scale = Data(count: count * MemoryLayout<Float>.size)
+		decay.location = Data(count: count * MemoryLayout<Float>.size)
+		decay.location.withUnsafeMutableBytes {
+			vDSP_vfill([0.0], $0, 1, vDSP_Length(count))
+		}
 		decay.scaleType = AdapterType.Discard.rawValue
+		decay.scale = Data(count: count * MemoryLayout<Float>.size)
+		decay.scale.withUnsafeMutableBytes {
+			vDSP_vfill([0.0], $0, 1, vDSP_Length(count))
+		}
 		decay.setup(commandBuffer: commandBuffer, count: count)
 		return decay
 	}

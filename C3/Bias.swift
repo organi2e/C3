@@ -59,7 +59,7 @@ extension Bias {
 	override func setup(commandBuffer: CommandBuffer, count: Int) {
 		super.setup(commandBuffer: commandBuffer, count: count)
 		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		let ref: Array<Void> = Array<Void>(repeating: (), count: count)
+		let ref: Array<Void> = Array<Void>(repeating: (), count: cell.depth)
 		cache = RingBuffer<Cache>(buffer: ref.map {
 			Cache(context: context, count: count, encoder: encoder)
 		}, offset: 0)

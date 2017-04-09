@@ -313,7 +313,7 @@ kernel void GaussCorrectN(device float * const dx [[ buffer(0) ]],
 						  uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		dx[idx] += -x[idx];
+		dx[idx] += 2 * x[idx] - 1;
 	}
 }
 /*----------------------------------------------------------------*/
@@ -486,69 +486,130 @@ kernel void GaussJacobianF(device float * const ju [[ buffer(0) ]],
 		int const rows = n.x;
 		int const cols = n.y;
 		int const idx = rows * N.y + cols;
-		//ju[idx] = jm[idx];
 		js[idx] /= s[rows];
 	}
 }
 /*----------------------------------------------------------------*/
 constant uint3 xorshift [[ function_constant(0) ]];
 kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
-						   device float const * const u [[ buffer(1) ]],
-						   device float const * const s [[ buffer(2) ]],
-						   constant ushort const * const seeds [[ buffer(3) ]],
-						   constant uint const & N [[ buffer(4) ]],
-						   uint const n [[ thread_position_in_grid ]]) {
-/*
+						   device float * const gu [[ buffer(1) ]],
+						   device float * const gs [[ buffer(2) ]],
+						   device float const * const u [[ buffer(3) ]],
+						   device float const * const s [[ buffer(4) ]],
+						   constant ushort const * const seeds [[ buffer(5) ]],
+						   constant uint const & N [[ buffer(6) ]],
 						   uint const t [[ thread_position_in_threadgroup ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
-	float const g = exp2(-32.0);
-	uint4 seq = *(constant uint4*)(seeds+4*t);
-	seq = select(~0, seq, seq == 0);
-	for ( int k = 4 * t, K = N ; k < K ; k += 4 * T ) {
-		float4 const x = *(device float4*)(u+k) / *(device float4*)(s+k);
-		float4 const p = fma(erf(M_SQRT1_2_F*x), 0.5, 0.5);
-		float4 const n = g * float4(seq);
-		float4 const y = p;//step(n, p);
-//		float4 const y = step(fma(float4(seq), g, -1.0), erf(M_SQRT1_2_F*x));
-//		float4 const y = step(0.0, erf(M_SQRT1_2_F*x));
-//		float4 const y = fma(erf(M_SQRT1_2_F*x), 0.5, 0.5);
+	ushort4 seq = *(constant ushort4*)(seeds+4*t);
+	seq = select(seq, ~0, seq == 0);
+	for ( int k = 4 * t, K = N, dk = 4 * T ; k < K ; k += dk ) {
+		float4 const m = *(device float4*)(u+k);
+		float4 const r = 1 / *(device float4*)(s+k);
+		float4 const x = m * r;
+		float4 const y = step(float4(seq), fma(erf(M_SQRT1_2_F*x), 32768, 32768));
+		float4 const gm = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F * exp( -0.5 * x * x ) * r;
+		float4 const gv = gm * -x;
 		seq ^= seq << xorshift.x;
 		seq ^= seq >> xorshift.y;
 		seq ^= seq << xorshift.z;
 		switch(min(4, K-k)) {
-			case 4:*(device float4*)(f+k) = y.xyzw;
+			case 4:
+				*(device float4*)(f+k) = y.xyzw;
+				*(device float4*)(gu+k) = gm.xyzw;
+				*(device float4*)(gs+k) = gv.xyzw;
 				break;
-			case 3:*(device float3*)(f+k) = y.xyz;
+			case 3:
+				*(device float3*)(f+k) = y.xyz;
+				*(device float3*)(gu+k) = gm.xyz;
+				*(device float3*)(gs+k) = gv.xyz;
 				break;
-			case 2:*(device float2*)(f+k) = y.xy;
+			case 2:
+				*(device float2*)(f+k) = y.xy;
+				*(device float2*)(gu+k) = gm.xy;
+				*(device float2*)(gs+k) = gv.xy;
 				break;
-			case 1:*(device float *)(f+k) = y.x;
+			case 1:
+				*(device float *)(f+k) = y.x;
+				*(device float *)(gu+k) = gm.x;
+				*(device float *)(gs+k) = gv.x;
 				break;
 		}
-	}
-*/
-	if ( n < N ) {
-		int const idx = n;
-		f[idx] = step(seeds[idx], fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32768.0, 32768.0));
-//		f[idx] = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 0.5, 0.5);
 	}
 }
 kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   device float * const ds [[ buffer(1) ]],
-						   device float * const gu [[ buffer(2) ]],
-						   device float * const gs [[ buffer(3) ]],
+						   device float const * const gu [[ buffer(2) ]],
+						   device float const * const gs [[ buffer(3) ]],
 						   device float const * const u [[ buffer(4) ]],
 						   device float const * const s [[ buffer(5) ]],
 						   constant uint const & N [[ buffer(6) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const y = s[idx];
-		float const x = u[idx] / y;
 		float const e = sign(du[idx]);
-		float const g = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F * exp( -0.5 * x * x ) / y;
-		du[idx] = e * ( gu[idx] = g );
-		ds[idx] = e * ( gs[idx] = g * -x );
+		du[idx] = e * gu[idx];
+		ds[idx] = e * gs[idx];;
+	}
+}
+kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
+						   device float * const gu [[ buffer(1) ]],
+						   device float * const gs [[ buffer(2) ]],
+						   device float const * const u [[ buffer(3) ]],
+						   device float const * const s [[ buffer(4) ]],
+						   constant ushort const * const seeds [[ buffer(5) ]],
+						   constant uint const & N [[ buffer(6) ]],
+						   //uint const n [[ thread_position_in_grid ]]) {
+						   uint const t [[ thread_position_in_threadgroup ]],
+						   uint const T [[ threadgroups_per_grid ]]) {
+	ushort4 seq = *(constant ushort4*)(seeds+4*t);
+	seq = select(seq, ~0, seq == 0);
+	for ( int k = 4 * t, K = N, dk = 4 * T ; k < K ; k += dk ) {
+		float4 const x = float4(seq) / 65536.0;
+		float4 const n = sqrt(-2.0*log(x.xy)).xyxy * float4(cospi(2.0*x.zw), sinpi(2.0*x.zw));
+		float4 const y = fma(n, *(device float4*)(s+k), *(device float4*)(u+k));
+		float4 const gm = 1;//1 / *(device float4*)(u+k);
+		float4 const gv = n;//-gm * *(device float4*)(s+k) / *(device float4*)(u+k);
+		seq ^= seq << xorshift.x;
+		seq ^= seq >> xorshift.y;
+		seq ^= seq << xorshift.z;
+		switch(min(4, K-k)) {
+			case 4:
+				*(device float4*)(f+k) = y.xyzw;
+				*(device float4*)(gu+k) = gm.xyzw;
+				*(device float4*)(gs+k) = gv.xyzw;
+				break;
+			case 3:
+				*(device float3*)(f+k) = y.xyz;
+				*(device float3*)(gu+k) = gm.xyz;
+				*(device float3*)(gs+k) = gv.xyz;
+				break;
+			case 2:
+				*(device float2*)(f+k) = y.xy;
+				*(device float2*)(gu+k) = gm.xy;
+				*(device float2*)(gs+k) = gv.xy;
+				break;
+			case 1:
+				*(device float *)(f+k) = y.x;
+				*(device float *)(gu+k) = gm.x;
+				*(device float *)(gs+k) = gv.x;
+				break;
+		}
+	}
+}
+kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
+						   device float * const ds [[ buffer(1) ]],
+						   device float const * const gu [[ buffer(2) ]],
+						   device float const * const gs [[ buffer(3) ]],
+						   device float const * const u [[ buffer(4) ]],
+						   device float const * const s [[ buffer(5) ]],
+						   constant uint const & N [[ buffer(6) ]],
+						   uint const n [[ thread_position_in_grid ]]) {
+	if ( n < N ) {
+		int const idx = n;
+		float const e = du[idx];
+		float const v = s[idx];
+		du[idx] = e;
+		ds[idx] = v - 0.5 * e * e / v;
 	}
 }
 /*----------------------------------------------------------------*/

@@ -50,6 +50,9 @@ extension Cell {
 			$0.collect_refresh(commandBuffer: commandBuffer)
 		}
 		bias.collect_refresh(commandBuffer: commandBuffer)
+		loop.forEach {
+			$0.collect_refresh(commandBuffer: commandBuffer)
+		}
 		decay?.collect_refresh(commandBuffer: commandBuffer)
 		cache.rotate()
 		state = nil
@@ -63,11 +66,22 @@ extension Cell {
 		} else if let state: Buffer = state {
 			return state
 		} else {
-			let commandBuffer: CommandBuffer = context.make()
-			distributor.activate(commandBuffer: commandBuffer, χ: cache[0].χ, φ: cache[0].φ, count: width) { collector in
-				input.forEach { $0.collect(collector: collector, ignore: ignore.union([self])) }
+			func collector(collector: Collector) {
+				input.forEach {
+					$0.collect(collector: collector, ignore: ignore.union([self]))
+				}
 				bias.collect(collector: collector)
+				loop.forEach {
+					$0.collect(collector: collector)
+				}
 				decay?.collect(collector: collector)
+			}
+			let commandBuffer: CommandBuffer = context.make()
+			switch activation {
+			case .Binary:
+				distributor.activate(commandBuffer: commandBuffer, p: cache[0].χ, g: cache[0].g, φ: cache[0].φ, count: width, collector: collector)
+			case .Identity:
+				distributor.activate(commandBuffer: commandBuffer, v: cache[0].χ, g: cache[0].g, φ: cache[0].φ, count: width, collector: collector)
 			}
 			commandBuffer.commit()
 			state = cache[0].χ
@@ -81,6 +95,9 @@ extension Cell {
 			$0.correct_refresh()
 		}
 		bias.correct_refresh()
+		loop.forEach {
+			$0.correct_refresh()
+		}
 		decay?.correct_refresh()
 		delta = nil
 	}
@@ -93,32 +110,40 @@ extension Cell {
 		} else if let Δφ: (μ: Buffer, σ: Buffer) = delta {
 			return (Δφ: Δφ, φ: cache[0].φ)
 		} else {
-			let commandBuffer: CommandBuffer = context.make()
-			distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, g: cache[0].g, φ: cache[0].φ, count: width) { corrector in
-				if let χ: Buffer = state {
+			if let χ: Buffer = state {
+				func corrector(corrector: Corrector) {
+					output.forEach {
+						$0.correct(corrector: corrector, state: χ, ignore: ignore.union([self]))
+					}
 					if let ϝ: Buffer = study {
 						corrector.correct(χ: χ, ϝ: ϝ)
-					} else {
-						output.forEach {
-							$0.correct(corrector: corrector, ignore: ignore.union([self]))
-						}
 					}
 				}
+				let commandBuffer: CommandBuffer = context.make()
+				switch activation {
+				case .Binary:
+					distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, p: χ, g: cache[0].g, φ: cache[0].φ, count: width, corrector: corrector)
+				case .Identity:
+					distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, v: χ, g: cache[0].g, φ: cache[0].φ, count: width, corrector: corrector)
+				}
+				bias.correct(commandBuffer: commandBuffer, Δφ: cache[0].Δ, φ: cache[0].φ)
+				loop.forEach {
+					$0.correct(commandBuffer: commandBuffer, Δφ: cache[0].Δ, φ: cache[0].φ)
+				}
+				decay?.correct(commandBuffer: commandBuffer, Δφ: cache[0].Δ, φ: cache[0].φ)
+				commandBuffer.commit()
 			}
-			bias.correct(commandBuffer: commandBuffer, Δφ: cache[0].Δ, φ: cache[0].φ)
-			decay?.correct(commandBuffer: commandBuffer, Δφ: cache[0].Δ, φ: cache[0].φ)
-			commandBuffer.commit()
 			delta = cache[0].Δ
 			return (Δφ: cache[0].Δ, φ: cache[0].φ)
 		}
 	}
 }
 extension Cell {
-	func jacobian(jacobian: Jacobian, refer: (Int) -> (μ: Buffer, σ: Buffer)) {
+	func jacobian(jacobian: Jacobian, feed: (Int) -> (μ: Buffer, σ: Buffer)) {
 		loop.forEach {
-			$0.jacobian(jacobian: jacobian, refer: refer)
+			$0.jacobian(jacobian: jacobian, feed: feed)
 		}
-		decay?.jacobian(jacobian: jacobian, refer: refer)
+		decay?.jacobian(jacobian: jacobian, feed: feed)
 	}
 }
 extension Cell {
@@ -136,8 +161,7 @@ extension Cell {
 			return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(target.contents())), count: width))
 		}
 		set {
-			state = newValue.isEmpty ? nil : context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)),
-			                                              options: .storageModePrivate)
+			state = newValue.isEmpty ? nil : context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModePrivate)
 		}
 	}
 	var target: Array<Float> {
@@ -154,8 +178,7 @@ extension Cell {
 			return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(target.contents())), count: width))
 		}
 		set {
-			study = newValue.isEmpty ? nil : context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)),
-			                                              options: .storageModePrivate)
+			study = newValue.isEmpty ? nil : context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModePrivate)
 		}
 	}
 }
@@ -182,16 +205,23 @@ extension Cell {
 }
 extension Cell {
 	var depth: Int {
-		return loop.map{$0.depth}.reduce(2, max)
+		return loop.map{-$0.depth}.reduce(2, max)
+	}
+	var activation: ActivationType {
+		return activationType.activationType
+	}
+	var distribution: DistributionType {
+		return distributionType.distributionType
 	}
 	var distributor: Distributor {
-		return context.make(type: type.distributorType)
+		return context.make(type: distribution)
 	}
 }
 extension Cell {
 	@NSManaged var label: String
 	@NSManaged var width: Int
-	@NSManaged var type: String
+	@NSManaged var distributionType: String
+	@NSManaged var activationType: String
 	@NSManaged var input: Set<Edge>
 	@NSManaged var output: Set<Edge>
 	@NSManaged var loop: Set<Feedback>
@@ -201,7 +231,8 @@ extension Cell {
 extension Context {
 	public func make(label: String,
 	                 width: Int,
-	                 type: DistributorType,
+	                 distribution: DistributionType,
+	                 activation: ActivationType,
 	                 output: [Cell] = [],
 	                 input: [Cell] = [],
 	                 decay: Bool = false,
@@ -212,11 +243,12 @@ extension Context {
 		let cell: Cell = try make()
 		cell.label = label
 		cell.width = width
-		cell.type = type.rawValue
+		cell.distributionType = distribution.rawValue
+		cell.activationType = activation.rawValue
 		cell.output = Set<Edge>(try output.map{try make(commandBuffer: commandBuffer, output: $0, input: cell)})
 		cell.input = Set<Edge>(try input.map{try make(commandBuffer: commandBuffer, output: cell, input: $0)})
-		cell.loop = Set<Feedback>()
 		cell.bias = try make(commandBuffer: commandBuffer, cell: cell)
+		cell.loop = Set<Feedback>(try recurrent.map{try make(commandBuffer: commandBuffer, cell: cell, depth: $0)})
 		cell.decay = !decay ? nil : try make(commandBuffer: commandBuffer, cell: cell)
 		cell.setup(commandBuffer: commandBuffer)
 		commandBuffer.commit()
@@ -238,8 +270,13 @@ extension Context {
 	}
 }
 private extension String {
-	var distributorType: DistributorType {
-		guard let distributorType: DistributorType = DistributorType(rawValue: self) else { fatalError(self) }
-		return distributorType
+	var activationType: ActivationType {
+		guard let activationType: ActivationType = ActivationType(rawValue: self) else { fatalError(self) }
+		return activationType
 	}
+	var distributionType: DistributionType {
+		guard let distributionType: DistributionType = DistributionType(rawValue: self) else { fatalError(self) }
+		return distributionType
+	}
+	
 }

@@ -2,7 +2,7 @@
 //  C3Tests.swift
 //  C3Tests
 //
-//  Created by Kota Nakano on 2017/04/04.
+//  Created by Kota Nakano on 4/9/17.
 //
 //
 
@@ -13,11 +13,10 @@ import Optimizer
 import Adapter
 @testable import C3
 
-//let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
-let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3_A1.sqlite")
+let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
 //let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
 let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [1,0,0,0]]
-let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,2,0], [0,3,0,0], [0,0,4,0], [0,5,0,0], [6,0,0,0], [0,7,0,0], [0,0,0,0]]
+let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [0,0,0,0]]
 
 //let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0]]
 //let OS: Array<Array<Float>> = [[0,0,0,10], [0,0,10,0], [0,10,0,0], [10,0,0,0]]
@@ -75,10 +74,10 @@ class C3Tests: XCTestCase {
 			do {
 				let context: Context = try Context(storage: storage)
 				let I: Cell = try context.make(label: "I", width: 4, distribution: .Gauss, activation: .Identity)
-				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [-1])
+				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Identity, input: [I], decay: true, recurrent: [])
 				let G: Cell = try context.make(label: "G", width: 256, distribution: .Gauss, activation: .Identity, input: [H], decay: true, recurrent: [])
-				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Binary, input: [G], decay: true, recurrent: [-1])
-				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Identity, input: [F], decay: true)
+				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Identity, input: [G], decay: true, recurrent: [])
+				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Binary, input: [F], decay: true, recurrent: [-1])
 				try context.save()
 			}
 			do {
