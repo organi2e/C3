@@ -19,21 +19,20 @@ extension Arcane {
 	private static let scalekey: String = "scale"
 	func change(commandBuffer: CommandBuffer, handler: ((μ: Buffer, σ: Buffer)) -> Void) {
 		willAccessValue(forKey: Arcane.lifetimekey)
-		defer { didAccessValue(forKey: Arcane.lifetimekey) }
 		guard let μ: Variable = μ, let σ: Variable = σ else { fatalError(String(describing: self)) }
 		func will(_: CommandBuffer) {
 			func block() {
-				willChangeValue(forKey: Arcane.locationkey)
-				willChangeValue(forKey: Arcane.scalekey)
+				self.willChangeValue(forKey: Arcane.locationkey)
+				self.willChangeValue(forKey: Arcane.scalekey)
 			}
-			context.performAndWait(block)
+			self.context.performAndWait(block)
 		}
 		func done(_: CommandBuffer) {
 			func block() {
-				didChangeValue(forKey: Arcane.locationkey)
-				didChangeValue(forKey: Arcane.scalekey)
+				self.didChangeValue(forKey: Arcane.locationkey)
+				self.didChangeValue(forKey: Arcane.scalekey)
 			}
-			context.perform(block)
+			self.context.perform(block)
 		}
 			
 		μ.flush(commandBuffer: commandBuffer)
@@ -47,24 +46,24 @@ extension Arcane {
 		commandBuffer.addScheduledHandler(will)
 		commandBuffer.addCompletedHandler(done)
 		
+		didAccessValue(forKey: Arcane.lifetimekey)
 	}
 	func fixing(commandBuffer: CommandBuffer) {
 		willAccessValue(forKey: Arcane.lifetimekey)
-		defer { didAccessValue(forKey: Arcane.lifetimekey) }
 		guard let μ: Variable = μ, let σ: Variable = σ else { fatalError(String(describing: self)) }
 		func will(_: CommandBuffer) {
 			func block() {
-				willAccessValue(forKey: Arcane.locationkey)
-				willAccessValue(forKey: Arcane.scalekey)
+				self.willAccessValue(forKey: Arcane.locationkey)
+				self.willAccessValue(forKey: Arcane.scalekey)
 			}
-			context.performAndWait(block)
+			self.context.performAndWait(block)
 		}
 		func done(_: CommandBuffer) {
 			func block() {
-				didAccessValue(forKey: Arcane.locationkey)
-				didAccessValue(forKey: Arcane.scalekey)
+				self.didAccessValue(forKey: Arcane.locationkey)
+				self.didAccessValue(forKey: Arcane.scalekey)
 			}
-			context.perform(block)
+			self.context.perform(block)
 		}
 		
 		μ.refresh(commandBuffer: commandBuffer)
@@ -72,18 +71,18 @@ extension Arcane {
 		
 		commandBuffer.addScheduledHandler(will)
 		commandBuffer.addCompletedHandler(done)
-
+		
+		didAccessValue(forKey: Arcane.lifetimekey)
 	}
 	func access(handler: ((μ: Buffer, σ: Buffer)) -> Void) {
 		willAccessValue(forKey: Arcane.lifetimekey)
-		defer { didAccessValue(forKey: Arcane.lifetimekey) }
 		guard let μ: Variable = μ, let σ: Variable = σ else { fatalError(String(describing: self)) }
 		handler((μ: μ.θ, σ: σ.θ))
+		didAccessValue(forKey: Arcane.lifetimekey)
 	}
 	func setup(commandBuffer: CommandBuffer, count: Int) {
 		
 		willAccessValue(forKey: Arcane.lifetimekey)
-		defer { didAccessValue(forKey: Arcane.lifetimekey) }
 		
 		assert( count * MemoryLayout<Float>.size <= location.count)
 		assert( count * MemoryLayout<Float>.size <= scale.count)
@@ -100,15 +99,16 @@ extension Arcane {
 		μ?.refresh(commandBuffer: commandBuffer)
 		σ?.refresh(commandBuffer: commandBuffer)
 		
+		didAccessValue(forKey: Arcane.lifetimekey)
 	}
 }
 extension Arcane {
 	override func awakeFromInsert() {
 		super.awakeFromInsert()
 		lifetime = true
-		locationType = AdapterType.Regular.rawValue
+		locationType = AdapterType.Linear.rawValue
 		location = Data()
-		scaleType = AdapterType.RegFloor.rawValue
+		scaleType = AdapterType.Linear.rawValue
 		scale = Data()
 	}
 }

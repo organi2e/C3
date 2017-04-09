@@ -24,10 +24,6 @@ struct CorrectorPipeline {
 	let G: MTLComputePipelineState
 	let N: MTLComputePipelineState
 }
-//ErrorCollector
-//ValueCollector
-//ErrorAdjustor
-//JacobFtting
 public protocol Corrector {
 	//func correct(j: (μ: MTLBuffer, σ: MTLBuffer), Δ: (μ: MTLBuffer, σ: MTLBuffer), count: Int)
 	func correct(χ: MTLBuffer, ϝ: MTLBuffer)
@@ -58,7 +54,13 @@ struct JacobianPipeline {
 	let E: MTLComputePipelineState
 	let F: MTLComputePipelineState
 }
-struct DeltaPipeline {
+struct ActivatorPipeline {
+	let AP: MTLComputePipelineState
+	let AV: MTLComputePipelineState
+	let GP: MTLComputePipelineState
+	let GV: MTLComputePipelineState
+}
+struct DerivatorPipeline {
 	let JP: MTLComputePipelineState
 	let JV: MTLComputePipelineState
 	let GP: MTLComputePipelineState
@@ -79,8 +81,10 @@ public protocol Derivator {
 	var j: (Int) -> (μ: MTLBuffer, σ: MTLBuffer) { get }
 }
 public protocol Distributor {
-	func activate(commandBuffer: MTLCommandBuffer, χ: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector)->Void)
-	func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector)->Void)
+	func activate(commandBuffer: MTLCommandBuffer, p: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector)->Void)
+	func activate(commandBuffer: MTLCommandBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector)->Void)
+	func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), p: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector)->Void)
+	func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector)->Void)
 	/*
 	func jacobian(commandBuffer: MTLCommandBuffer,
 	              Σ: (μ: MTLBuffer, σ: MTLBuffer),

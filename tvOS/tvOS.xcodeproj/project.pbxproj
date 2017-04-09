@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		871361171E98C43B006C2A7D /* Feedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 871361161E98C43B006C2A7D /* Feedback.swift */; };
 		87197B4C1E96393000D62866 /* Variable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87197B4B1E96393000D62866 /* Variable.swift */; };
 		87263D431E97E9DB00A4B75B /* RegFloor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87263D421E97E9DB00A4B75B /* RegFloor.swift */; };
 		87263D451E97E9EC00A4B75B /* RegFloor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87263D441E97E9EC00A4B75B /* RegFloor.metal */; };
@@ -186,6 +187,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		871361161E98C43B006C2A7D /* Feedback.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Feedback.swift; path = ../../C3/Feedback.swift; sourceTree = "<group>"; };
 		87197B4B1E96393000D62866 /* Variable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Variable.swift; path = ../../C3/Variable.swift; sourceTree = "<group>"; };
 		87263D421E97E9DB00A4B75B /* RegFloor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RegFloor.swift; path = ../../Adapter/RegFloor.swift; sourceTree = "<group>"; };
 		87263D441E97E9EC00A4B75B /* RegFloor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = RegFloor.metal; path = ../../Adapter/RegFloor.metal; sourceTree = "<group>"; };
@@ -408,6 +410,7 @@
 		87B8465C1E93AF4800844835 /* C3 */ = {
 			isa = PBXGroup;
 			children = (
+				871361161E98C43B006C2A7D /* Feedback.swift */,
 				87B847191E93BD4B00844835 /* Arcane.swift */,
 				87B8471A1E93BD4B00844835 /* Bias.swift */,
 				87B8471D1E93BD4B00844835 /* Cell.swift */,
@@ -943,6 +946,7 @@
 				87B847241E93BD4C00844835 /* Cell.swift in Sources */,
 				87B847261E93BD4C00844835 /* Edge.swift in Sources */,
 				87EEBCE91E9508220079BA43 /* Decay.swift in Sources */,
+				871361171E98C43B006C2A7D /* Feedback.swift in Sources */,
 				87B847211E93BD4B00844835 /* Arcane.swift in Sources */,
 				87EEBCE81E9508220079BA43 /* Capture.swift in Sources */,
 				87B847251E93BD4C00844835 /* Context.swift in Sources */,

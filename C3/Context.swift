@@ -14,8 +14,13 @@ import Adapter
 import Distributor
 import Optimizer
 
-public enum DistributorType: String {
+public enum DistributionType: String {
+	case Degenerate = "Degenerate"
 	case Gauss = "Gauss"
+}
+public enum ActivationType: String {
+	case Binary = "Binary"
+	case Identity = "Identity"
 }
 public enum AdapterType: String {
 	case Discard = "Discard"
@@ -34,7 +39,7 @@ public class Context: NSManagedObjectContext {
 	let queue: CommandQueue
 	let optimizerFactory: (Int) -> Optimizer
 	let adapter: Dictionary<AdapterType, (Int)->Adapter>
-	let distributor: Dictionary<DistributorType, Distributor>
+	let distributor: Dictionary<DistributionType, Distributor>
 	enum ErrorCase: Error, CustomStringConvertible {
 		case InvalidContext
 		case InvalidEntity(name: String)
@@ -76,7 +81,7 @@ public class Context: NSManagedObjectContext {
 			return result
 		} (device)
 		distributor = try {
-			var result: Dictionary<DistributorType, Distributor> = Dictionary<DistributorType, Distributor>()
+			var result: Dictionary<DistributionType, Distributor> = Dictionary<DistributionType, Distributor>()
 			result.updateValue(try GaussDistributor(device: $0), forKey: .Gauss)
 			return result
 		} (device)
@@ -133,7 +138,7 @@ extension Context {
 		guard let factory: (Int) -> Adapter = adapter[type] else { fatalError(type.rawValue) }
 		return factory(count)
 	}
-	func make(type: DistributorType) -> Distributor {
+	func make(type: DistributionType) -> Distributor {
 		guard let distributor: Distributor = distributor[type] else { fatalError(type.rawValue) }
 		return distributor
 	}

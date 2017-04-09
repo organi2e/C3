@@ -15,9 +15,12 @@ import Adapter
 
 let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
 //let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
-let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
-//let GS: Array<Array<Float>> = [[1,1,1,0], [1,1,0,1], [1,1,0,0], [1,0,1,1]]
-let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
+let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [1,0,0,0]]
+let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,2,0], [0,3,0,0], [0,0,4,0], [0,5,0,0], [6,0,0,0], [0,7,0,0], [0,0,0,0]]
+
+//let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0]]
+//let OS: Array<Array<Float>> = [[0,0,0,10], [0,0,10,0], [0,10,0,0], [10,0,0,0]]
+
 class C3Tests: XCTestCase {
 	/*
 	func testSaveLoad() {
@@ -70,54 +73,57 @@ class C3Tests: XCTestCase {
 		do {
 			do {
 				let context: Context = try Context(storage: storage)
-				let I: Cell = try context.make(label: "I", width: 4)
-				let H: Cell = try context.make(label: "H", width: 64, input: [I])
-				let G: Cell = try context.make(label: "G", width: 64, input: [I,H])
-				let F: Cell = try context.make(label: "F", width: 64, input: [H,G])
-				let _: Cell = try context.make(label: "O", width: 4, input: [G,F])
+				let I: Cell = try context.make(label: "I", width: 4, distribution: .Gauss, activation: .Identity)
+				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [-1])
+				let G: Cell = try context.make(label: "G", width: 256, distribution: .Gauss, activation: .Identity, input: [H], decay: true, recurrent: [])
+				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Binary, input: [G], decay: true, recurrent: [-1])
+				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Identity, input: [F], decay: true)
 				try context.save()
 			}
 			do {
 				let context: Context = try Context(
 					storage: storage
-					,adapter: (μ: Regular.adapter(), σ: Regular.adapter())
-					,optimizer: Adam.factory(L2: 1e-3, L1: 0, α: 1e-1)
+					//,optimizer: SGD.factory(η: 1e-3)
+//					,optimizer: Adam.factory(L2: 1e-6, L1: 0, α: 1e-1)
+					,optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-1)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
-				(0..<1024).forEach {
-					let ref: Int = $0 % 4
-					O.collect_refresh()
-					I.correct_refresh()
-					O.target = OS[ref]
-					I.source = IS[ref]
-					O.collect()
-					I.correct()
-					print(O.source)
-				}
+					print("try")
+					(0..<1024).forEach {
+						let ref: Int = ( $0 / 4 ) % 8
+						O.collect_refresh()
+						I.correct_refresh()
+						O.target = OS[ref]
+						I.source = IS[ref]
+						O.collect()
+						I.correct()
+						//						print(O.source)
+					}
 				}
 				try context.save()
 			}
+			
 			do {
 				let context: Context = try Context(
 					storage: storage
-					,adapter: (μ: Regular.adapter(), σ: Regular.adapter())
 					//,optimizer: SMORMS3.factory(α: 1e-1)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
-				guard let H: Cell = try context.fetch(label: "H").last else { XCTFail(); return }
+				//guard let H: Cell = try context.fetch(label: "H").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				
 				print("gpu")
-				for k in 0..<4 {
+				(0..<64).forEach {
 					O.collect_refresh()
-					I.source = IS[k]
+					I.source = IS[ ( $0 / 4 ) % 8 ]
 					O.collect()
-					print(O.source)
+					//let x = O.source
+					print(O.source)//.map{ $0 == x.max() })
 				}
-				/*
 				print("cpu")
+				/*
 				let (HWμ, HWσ) = context.capture(output: H, input: I)
 				let (HCμ, HCσ) = context.capture(cell: H)
 				
@@ -125,17 +131,17 @@ class C3Tests: XCTestCase {
 				let (OCμ, OCσ) = context.capture(cell: O)
 				
 				(0..<4).forEach {
-					let Xp: LaObjet = make(array: IS[$0], rows: 4, cols: 1)
-					
-					let Hμ: LaObjet = matrix_product(HWμ, Xp) + HCμ
-					let Hv: LaObjet = matrix_product(HWσ*HWσ, Xp*Xp) + HCσ*HCσ
-					let Hp: LaObjet = 0.5 + 0.5 * erf(Hμ*rsqrt(2*Hv))
-					
-					let Oμ: LaObjet = matrix_product(OWμ, Hp) + OCμ
-					let Ov: LaObjet = matrix_product(OWσ*OWσ, Hp*Hp) + OCσ*OCσ
-					let Op: LaObjet = 0.5 + 0.5 * erf(Oμ*rsqrt(2*Ov))
-					
-					print(Op.array)
+				let Xp: LaObjet = make(array: IS[$0], rows: 4, cols: 1)
+				
+				let Hμ: LaObjet = matrix_product(HWμ, Xp) + HCμ
+				let Hv: LaObjet = matrix_product(HWσ*HWσ, Xp*Xp) + HCσ*HCσ
+				let Hp: LaObjet = 0.5 + 0.5 * erf(Hμ*rsqrt(2*Hv))
+				
+				let Oμ: LaObjet = matrix_product(OWμ, Hp) + OCμ
+				let Ov: LaObjet = matrix_product(OWσ*OWσ, Hp*Hp) + OCσ*OCσ
+				let Op: LaObjet = 0.5 + 0.5 * erf(Oμ*rsqrt(2*Ov))
+				
+				print(Op.array)
 				}
 				
 				try HWμ.write(to: URL(fileURLWithPath: "/tmp/HWu.raw"))

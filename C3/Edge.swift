@@ -45,26 +45,24 @@ extension Edge {
 		output.correct_refresh()
 		cache.rotate()
 	}
-	func correct(corrector: Corrector, ignore: Set<Cell>) {
+	func correct(corrector: Corrector, state: Buffer, ignore: Set<Cell>) {
 		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
 		let (Δφ, φ): (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = output.correct(ignore: ignore)
-		if let x: Buffer = input.state {
-			output.distributor.derivate(commandBuffer: corrector.order, Δx: corrector.Δ, j: cache[0].jx, Δφ: Δφ, φ: φ, count: count) { jacobian in
+		output.distributor.derivate(commandBuffer: corrector.order, Δx: corrector.Δ, j: cache[0].jx, Δφ: Δφ, φ: φ, count: count) { jacobian in
+			access {
+				jacobian.jacobian(x: state, a: $0)
+			}
+			output.jacobian(jacobian: jacobian) {
+				cache[$0].jx
+			}
+		}
+		change(commandBuffer: corrector.order) {
+			output.distributor.derivate(commandBuffer: corrector.order, Δθ: $0, j: cache[0].ja, Δφ: Δφ, φ: φ, count: count) { jacobian in
 				access {
-					jacobian.jacobian(x: x, a: $0)
+					jacobian.jacobian(a: $0, x: state)
 				}
 				output.jacobian(jacobian: jacobian) {
-					cache[$0].jx
-				}
-			}
-			change(commandBuffer: corrector.order) {
-				output.distributor.derivate(commandBuffer: corrector.order, Δθ: $0, j: cache[0].ja, Δφ: Δφ, φ: φ, count: count) { jacobian in 
-					access {
-						jacobian.jacobian(a: $0, x: x)
-					}
-					output.jacobian(jacobian: jacobian) {
-						cache[$0].ja
-					}
+					cache[$0].ja
 				}
 			}
 		}
@@ -117,38 +115,10 @@ extension Context {
 			vvsqrtf(ref, ref, [Int32(count/2)])
 			vDSP_vswap(ref.advanced(by: 1), 2, ref.advanced(by: count/2), 2, vDSP_Length(count/4))
 			vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
-			//cblas_sscal(Int32(count), 1/Float(input.width), ref, 1)
 		}
 		edge.scale.withUnsafeMutableBytes {
 			vDSP_vfill([1.0], $0, 1, vDSP_Length(count))
 		}
-		/*
-		edge.scale.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in
-			//assert( MemoryLayout<Float>.size == 4 )
-			//assert( MemoryLayout<UInt32>.size == 4 )
-			//arc4random_buf(ref, edge.location.count)
-			/*
-			vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(count))
-			vDSP_vsmsa(ref, 1, [exp2f(-32)], [exp2f(-33)], ref, 1, vDSP_Length(count))
-			cblas_sscal(Int32(count/2), 2*Float.pi, ref.advanced(by: count/2), 1)
-			vvlogf(ref, ref, [Int32(count/2)])
-			cblas_sscal(Int32(count/2), -2, ref, 1)
-			vvsqrtf(ref, ref, [Int32(count/2)])
-			vDSP_vswap(ref.advanced(by: 1), 2, ref.advanced(by: count/2), 2, vDSP_Length(count/4))
-			vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
-			vvexpf(ref, ref, [Int32(count)])
-			cblas_sscal(Int32(count), 1/Float(input.width), ref, 1)
-			*/
-			/*
-			vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(count))
-			vDSP_vsmsa(ref, 1, [exp2f(-32)], [exp2f(-33)], ref, 1, vDSP_Length(count))
-			vvlogf(ref, ref, [Int32(count)])
-			cblas_sscal(Int32(count), -sqrt(2), ref, 1)
-			vvsqrtf(ref, ref, [Int32(count)])
-			*/
-			//cblas_sscal(Int32(count), 1/Float(input.width), ref, 1)
-		}
-		*/
 		edge.setup(commandBuffer: commandBuffer, count: count)
 		return edge
 	}
