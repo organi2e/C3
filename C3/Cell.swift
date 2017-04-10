@@ -8,7 +8,7 @@
 import Accelerate
 import CoreData
 import Distributor
-public class Cell: ManagedObject {
+public class Cell: Ground {
 	struct Cache {
 		let χ: Buffer
 		let φ: (μ: Buffer, σ: Buffer)
@@ -79,7 +79,7 @@ extension Cell {
 			let commandBuffer: CommandBuffer = context.make()
 			switch activation {
 			case .Binary:
-				distributor.activate(commandBuffer: commandBuffer, p: cache[0].χ, g: cache[0].g, φ: cache[0].φ, count: width, collector: collector)
+				distributor.activate(commandBuffer: commandBuffer, f: cache[0].χ, g: cache[0].g, φ: cache[0].φ, count: width, collector: collector)
 			case .Identity:
 				distributor.activate(commandBuffer: commandBuffer, v: cache[0].χ, g: cache[0].g, φ: cache[0].φ, count: width, collector: collector)
 			}
@@ -122,7 +122,7 @@ extension Cell {
 				let commandBuffer: CommandBuffer = context.make()
 				switch activation {
 				case .Binary:
-					distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, p: χ, g: cache[0].g, φ: cache[0].φ, count: width, corrector: corrector)
+					distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, f: χ, g: cache[0].g, φ: cache[0].φ, count: width, corrector: corrector)
 				case .Identity:
 					distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, v: χ, g: cache[0].g, φ: cache[0].φ, count: width, corrector: corrector)
 				}

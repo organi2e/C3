@@ -80,6 +80,7 @@
 		87D203C21E99B49C0054A34D /* Adapter.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 87D202E21E9948840054A34D /* Adapter.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		87D203C51E99B49C0054A34D /* Distributor.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87D202FE1E99488D0054A34D /* Distributor.framework */; };
 		87D203C61E99B49C0054A34D /* Distributor.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 87D202FE1E99488D0054A34D /* Distributor.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		87D203EE1E9A353F0054A34D /* Ground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203ED1E9A353F0054A34D /* Ground.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -251,6 +252,7 @@
 		87D203A61E995E840054A34D /* Feedback.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Feedback.swift; path = ../../C3/Feedback.swift; sourceTree = "<group>"; };
 		87D203A71E995E840054A34D /* RingBuffer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RingBuffer.swift; path = ../../C3/RingBuffer.swift; sourceTree = "<group>"; };
 		87D203A81E995E840054A34D /* Variable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Variable.swift; path = ../../C3/Variable.swift; sourceTree = "<group>"; };
+		87D203ED1E9A353F0054A34D /* Ground.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Ground.swift; path = ../../C3/Ground.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -383,6 +385,7 @@
 				87D203A41E995E840054A34D /* Decay.swift */,
 				87D203A51E995E840054A34D /* Edge.swift */,
 				87D203A61E995E840054A34D /* Feedback.swift */,
+				87D203ED1E9A353F0054A34D /* Ground.swift */,
 				87D203A71E995E840054A34D /* RingBuffer.swift */,
 				87D203A81E995E840054A34D /* Variable.swift */,
 				87D2039F1E995E840054A34D /* C3.xcdatamodeld */,
@@ -914,6 +917,7 @@
 				87D203B11E995E840054A34D /* Feedback.swift in Sources */,
 				87D203B31E995E840054A34D /* Variable.swift in Sources */,
 				87D203B01E995E840054A34D /* Edge.swift in Sources */,
+				87D203EE1E9A353F0054A34D /* Ground.swift in Sources */,
 				87D203AF1E995E840054A34D /* Decay.swift in Sources */,
 				87D203AD1E995E840054A34D /* Cell.swift in Sources */,
 				87D203AE1E995E840054A34D /* Context.swift in Sources */,
