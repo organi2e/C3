@@ -35,8 +35,7 @@ public enum AdapterType: String {
 	case Exponential = "Exponential"
 }
 public class Context: NSManagedObjectContext {
-	let device: Device
-	let queue: CommandQueue
+	let mtl: MTLCommandQueue
 	let optimizerFactory: (Int) -> Optimizer
 	let adapter: Dictionary<AdapterType, (Int)->Adapter>
 	let distributor: Dictionary<DistributionType, Distributor>
@@ -61,11 +60,12 @@ public class Context: NSManagedObjectContext {
 			}
 		}
 	}
-	public init(storage: URL? = nil,
+	public init(queue: MTLCommandQueue,
+	            storage: URL? = nil,
 	            optimizer: (MTLDevice) throws -> (Int) -> Optimizer = SGD.factory(),
 	            concurrencyType: NSManagedObjectContextConcurrencyType = .privateQueueConcurrencyType) throws {
-		guard let mtl: Device = MTLCreateSystemDefaultDevice() else { throw ErrorCase.NoDeviceFound }
-		device = mtl
+		let device: Device = queue.device
+		mtl = queue
 		adapter = try {
 			var result: Dictionary<AdapterType, (Int)->Adapter> = Dictionary<AdapterType, (Int)->Adapter>()
 			result.updateValue(Discard.init, forKey: .Discard)
@@ -86,7 +86,6 @@ public class Context: NSManagedObjectContext {
 			result.updateValue(try GaussDistributor(device: $0), forKey: .Gauss)
 			return result
 		} (device)
-		queue = device.makeCommandQueue()
 		optimizerFactory = try optimizer(device)
 		super.init(concurrencyType: concurrencyType)
 		guard let model: NSManagedObjectModel = NSManagedObjectModel.mergedModel(from: [Bundle(for: type(of: self))]) else { throw ErrorCase.NoModelFound }
@@ -100,40 +99,17 @@ public class Context: NSManagedObjectContext {
 	}
 }
 extension Context {
-	/*
-	public override func save() throws {
-		let commandBuffer: CommandBuffer = make()
-		var encounter: Error?
-		func complete(_: CommandBuffer) {
-			print("U", updatedObjects.count)
-			print("I", insertedObjects.count)
-			do {
-				try super.save()
-			} catch {
-				encounter = error
-			}
-		}
-		commandBuffer.addCompletedHandler(complete)
-		commandBuffer.commit()
-		commandBuffer.waitUntilCompleted()
-		if let error: Error = encounter {
-			throw error
-		}
-	}
-	*/
-}
-extension Context {
 	func make(data: Data, options: MTLResourceOptions = []) -> Buffer {
-		return data.withUnsafeBytes { device.makeBuffer(bytes: $0, length: data.count, options: options) }
+		return data.withUnsafeBytes { mtl.device.makeBuffer(bytes: $0, length: data.count, options: options) }
 	}
 	func make(length: Int, options: MTLResourceOptions = []) -> Buffer {
-		return device.makeBuffer(length: length, options: options)
+		return mtl.device.makeBuffer(length: length, options: options)
 	}
 	func make<T>(array: Array<T>, options: MTLResourceOptions = []) -> Buffer {
-		return device.makeBuffer(bytes: array, length: array.count * MemoryLayout<T>.size, options: options)
+		return mtl.device.makeBuffer(bytes: array, length: array.count * MemoryLayout<T>.size, options: options)
 	}
 	func make() -> CommandBuffer {
-		return queue.makeCommandBuffer()
+		return mtl.makeCommandBuffer()
 	}
 	func make(count: Int, type: AdapterType) -> Adapter {
 		guard let factory: (Int) -> Adapter = adapter[type] else { fatalError(type.rawValue) }
@@ -148,10 +124,10 @@ extension Context {
 	}
 }
 extension Context {
-	public func connect(output: Cell, input: Cell) throws {
+	public func connect(output: Cell, input: Cell, adapters: (AdapterType, AdapterType)) throws {
 		guard output.objectID != input.objectID && output.input.filter({$0.input.objectID==input.objectID}).isEmpty else { return }
 		let commandBuffer: CommandBuffer = make()
-		output.input.insert(try make(commandBuffer: commandBuffer, output: output, input: input))
+		output.input.insert(try make(commandBuffer: commandBuffer, output: output, input: input, adapters: adapters))
 		commandBuffer.commit()
 	}
 	public func disconnect(output: Cell, input: Cell) {
@@ -215,23 +191,6 @@ extension Context {
 			throw encounter
 		}
 	}
-	/*
-	func store(handler: @escaping(Error)->()) {
-		let commandBuffer: CommandBuffer = make()
-		func block() {
-			do {
-				try save()
-			} catch {
-				handler(error)
-			}
-		}
-		func complete(_: CommandBuffer) {
-			performAndWait(block)
-		}
-		commandBuffer.addCompletedHandler(complete)
-		commandBuffer.commit()
-	}
-	*/
 }
 internal typealias Device = MTLDevice
 internal typealias Buffer = MTLBuffer

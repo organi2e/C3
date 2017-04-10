@@ -231,12 +231,13 @@ extension Cell {
 extension Context {
 	public func make(label: String,
 	                 width: Int,
-	                 distribution: DistributionType,
-	                 activation: ActivationType,
-	                 output: [Cell] = [],
-	                 input: [Cell] = [],
+	                 distribution: DistributionType = .Degenerate,
+	                 activation: ActivationType = .Binary,
+	                 adapters: (AdapterType, AdapterType) = (.Linear, .Linear),
+	                 output: Set<Cell> = Set<Cell>(),
+	                 input: Set<Cell> = Set<Cell>(),
 	                 decay: Bool = false,
-	                 recurrent: [Int] = []) throws -> Cell {
+	                 recurrent: Array<Int> = Array<Int>()) throws -> Cell {
 		guard 0 < width else { throw ErrorCase.InvalidParameter(key: "width", value: width) }
 		guard recurrent.filter({ 0 <= $0 }).isEmpty else { throw ErrorCase.InvalidParameter(key: "recurrent", value: recurrent) }
 		let commandBuffer: CommandBuffer = make()
@@ -245,10 +246,10 @@ extension Context {
 		cell.width = width
 		cell.distributionType = distribution.rawValue
 		cell.activationType = activation.rawValue
-		cell.output = Set<Edge>(try output.map{try make(commandBuffer: commandBuffer, output: $0, input: cell)})
-		cell.input = Set<Edge>(try input.map{try make(commandBuffer: commandBuffer, output: cell, input: $0)})
-		cell.bias = try make(commandBuffer: commandBuffer, cell: cell)
-		cell.loop = Set<Feedback>(try recurrent.map{try make(commandBuffer: commandBuffer, cell: cell, depth: $0)})
+		cell.output = Set<Edge>(try output.map{try make(commandBuffer: commandBuffer, output: $0, input: cell, adapters: adapters)})
+		cell.input = Set<Edge>(try input.map{try make(commandBuffer: commandBuffer, output: cell, input: $0, adapters: adapters)})
+		cell.bias = try make(commandBuffer: commandBuffer, cell: cell, adapters: adapters)
+		cell.loop = Set<Feedback>(try recurrent.map{try make(commandBuffer: commandBuffer, cell: cell, depth: $0, adapters: adapters)})
 		cell.decay = !decay ? nil : try make(commandBuffer: commandBuffer, cell: cell)
 		cell.setup(commandBuffer: commandBuffer)
 		commandBuffer.commit()

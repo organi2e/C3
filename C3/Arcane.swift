@@ -20,17 +20,17 @@ extension Arcane {
 		guard let μ: Variable = μ, let σ: Variable = σ else { fatalError(String(describing: self)) }
 		func will(_: CommandBuffer) {
 			func block() {
-				self.willChangeValue(forKey: Arcane.locationkey)
-				self.willChangeValue(forKey: Arcane.scalekey)
+				willChangeValue(forKey: Arcane.locationkey)
+				willChangeValue(forKey: Arcane.scalekey)
 			}
-			self.context.performAndWait(block)
+			context.performAndWait(block)
 		}
 		func done(_: CommandBuffer) {
 			func block() {
-				self.didChangeValue(forKey: Arcane.locationkey)
-				self.didChangeValue(forKey: Arcane.scalekey)
+				didChangeValue(forKey: Arcane.locationkey)
+				didChangeValue(forKey: Arcane.scalekey)
 			}
-			self.context.perform(block)
+			context.perform(block)
 		}
 			
 		μ.flush(commandBuffer: commandBuffer)
@@ -49,17 +49,17 @@ extension Arcane {
 		guard let μ: Variable = μ, let σ: Variable = σ else { fatalError(String(describing: self)) }
 		func will(_: CommandBuffer) {
 			func block() {
-				self.willAccessValue(forKey: Arcane.locationkey)
-				self.willAccessValue(forKey: Arcane.scalekey)
+				willAccessValue(forKey: Arcane.locationkey)
+				willAccessValue(forKey: Arcane.scalekey)
 			}
-			self.context.performAndWait(block)
+			context.performAndWait(block)
 		}
 		func done(_: CommandBuffer) {
 			func block() {
-				self.didAccessValue(forKey: Arcane.locationkey)
-				self.didAccessValue(forKey: Arcane.scalekey)
+				didAccessValue(forKey: Arcane.locationkey)
+				didAccessValue(forKey: Arcane.scalekey)
 			}
-			self.context.perform(block)
+			context.perform(block)
 		}
 		
 		μ.refresh(commandBuffer: commandBuffer)
@@ -90,15 +90,6 @@ extension Arcane {
 		μ?.refresh(commandBuffer: commandBuffer)
 		σ?.refresh(commandBuffer: commandBuffer)
 		
-	}
-}
-extension Arcane {
-	override func awakeFromInsert() {
-		super.awakeFromInsert()
-		locationType = AdapterType.Regular.rawValue
-		location = Data()
-		scaleType = AdapterType.RegFloor.rawValue
-		scale = Data()
 	}
 }
 extension Arcane {

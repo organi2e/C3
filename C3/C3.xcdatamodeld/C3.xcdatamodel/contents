@@ -9,7 +9,7 @@
     <entity name="Bias" representedClassName=".Bias" parentEntity="Arcane" syncable="YES">
         <relationship name="cell" maxCount="1" deletionRule="Deny" destinationEntity="Cell" inverseName="bias" inverseEntity="Cell" syncable="YES"/>
     </entity>
-    <entity name="Cell" representedClassName=".Cell" isAbstract="YES" parentEntity="Ground" syncable="YES">
+    <entity name="Cell" representedClassName=".Cell" parentEntity="Ground" syncable="YES">
         <attribute name="activationType" attributeType="String" syncable="YES"/>
         <attribute name="distributionType" attributeType="String" syncable="YES"/>
         <attribute name="label" attributeType="String" syncable="YES"/>

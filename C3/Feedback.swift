@@ -92,13 +92,13 @@ extension Feedback {
 	@NSManaged var depth: Int
 }
 extension Context {
-	func make(commandBuffer: CommandBuffer, cell: Cell, depth: Int) throws -> Feedback {
+	@nonobjc internal func make(commandBuffer: CommandBuffer, cell: Cell, depth: Int, adapters: (AdapterType, AdapterType)) throws -> Feedback {
 		let count: Int = cell.width * cell.width
 		let feedback: Feedback = try make()
 		feedback.cell = cell
 		feedback.depth = depth
+		feedback.locationType = adapters.0.rawValue
 		feedback.location = Data(count: count * MemoryLayout<Float>.size)
-		feedback.scale = Data(count: count * MemoryLayout<Float>.size)
 		feedback.location.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in
 			assert( MemoryLayout<Float>.size == 4 )
 			assert( MemoryLayout<UInt32>.size == 4 )
@@ -112,6 +112,8 @@ extension Context {
 			vDSP_vswap(ref.advanced(by: 1), 2, ref.advanced(by: count/2), 2, vDSP_Length(count/4))
 			vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
 		}
+		feedback.scaleType = adapters.1.rawValue
+		feedback.scale = Data(count: count * MemoryLayout<Float>.size)
 		feedback.scale.withUnsafeMutableBytes {
 			vDSP_vfill([1.0], $0, 1, vDSP_Length(count))
 		}
