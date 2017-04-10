@@ -502,36 +502,35 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
 	ushort4 seq = *(constant ushort4*)(seeds+4*t);
 	for ( int k = 4 * t, K = N, dk = 4 * T ; k < K ; k += dk ) {
-		float4 const m = *(device float4*)(u+k);
 		float4 const r = 1 / *(device float4*)(s+k);
-		float4 const x = m * r;
-//		float4 const y = step(float4(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
-		float4 const y = fma(erf(M_SQRT1_2_F * x), 0.5, 0.5);
-		float4 const gm = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F * exp( -0.5 * x * x ) * r;
-		float4 const gv = gm * -x;
+		float4 const x = *(device float4*)(u+k) * r;
+		float4 const y = step(float4(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
+//		float4 const y = fma(erf(M_SQRT1_2_F * x), 0.5, 0.5);
+		float4 const ju = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F * exp( -0.5 * x * x ) * r;
+		float4 const js = ju * -x;
 		seq ^= seq << xorshift16.x;
 		seq ^= seq >> xorshift16.y;
 		seq ^= seq << xorshift16.z;
 		switch(min(4, K-k)) {
 			case 4:
 				*(device float4*)(f+k) = y.xyzw;
-				*(device float4*)(gu+k) = gm.xyzw;
-				*(device float4*)(gs+k) = gv.xyzw;
+				*(device float4*)(gu+k) = ju.xyzw;
+				*(device float4*)(gs+k) = js.xyzw;
 				break;
 			case 3:
 				*(device float3*)(f+k) = y.xyz;
-				*(device float3*)(gu+k) = gm.xyz;
-				*(device float3*)(gs+k) = gv.xyz;
+				*(device float3*)(gu+k) = ju.xyz;
+				*(device float3*)(gs+k) = js.xyz;
 				break;
 			case 2:
 				*(device float2*)(f+k) = y.xy;
-				*(device float2*)(gu+k) = gm.xy;
-				*(device float2*)(gs+k) = gv.xy;
+				*(device float2*)(gu+k) = ju.xy;
+				*(device float2*)(gs+k) = js.xy;
 				break;
 			case 1:
 				*(device float *)(f+k) = y.x;
-				*(device float *)(gu+k) = gm.x;
-				*(device float *)(gs+k) = gv.x;
+				*(device float *)(gu+k) = ju.x;
+				*(device float *)(gs+k) = js.x;
 				break;
 		}
 	}
@@ -558,40 +557,38 @@ kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
 						   device float const * const s [[ buffer(4) ]],
 						   constant ushort const * const seeds [[ buffer(5) ]],
 						   constant uint const & N [[ buffer(6) ]],
-						   //uint const n [[ thread_position_in_grid ]]) {
 						   uint const t [[ thread_position_in_threadgroup ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
 	ushort4 seq = *(constant ushort4*)(seeds+4*t);
-//	seq = select(seq, ~0, seq == 0);
 	for ( int k = 4 * t, K = N, dk = 4 * T ; k < K ; k += dk ) {
 		float4 const x = float4(seq) / 65536.0;
 		float4 const n = sqrt(-2.0*log(x.xy)).xyxy * float4(cospi(2.0*x.zw), sinpi(2.0*x.zw));
 		float4 const y = fma(n, *(device float4*)(s+k), *(device float4*)(u+k));
-		float4 const gm = 1;
-		float4 const gv = n;
+		float4 const ju = 1;
+		float4 const js = n;
 		seq ^= seq << xorshift16.x;
 		seq ^= seq >> xorshift16.y;
 		seq ^= seq << xorshift16.z;
 		switch(min(4, K-k)) {
 			case 4:
 				*(device float4*)(f+k) = y.xyzw;
-				*(device float4*)(gu+k) = gm.xyzw;
-				*(device float4*)(gs+k) = gv.xyzw;
+				*(device float4*)(gu+k) = ju.xyzw;
+				*(device float4*)(gs+k) = js.xyzw;
 				break;
 			case 3:
 				*(device float3*)(f+k) = y.xyz;
-				*(device float3*)(gu+k) = gm.xyz;
-				*(device float3*)(gs+k) = gv.xyz;
+				*(device float3*)(gu+k) = ju.xyz;
+				*(device float3*)(gs+k) = js.xyz;
 				break;
 			case 2:
 				*(device float2*)(f+k) = y.xy;
-				*(device float2*)(gu+k) = gm.xy;
-				*(device float2*)(gs+k) = gv.xy;
+				*(device float2*)(gu+k) = ju.xy;
+				*(device float2*)(gs+k) = js.xy;
 				break;
 			case 1:
 				*(device float *)(f+k) = y.x;
-				*(device float *)(gu+k) = gm.x;
-				*(device float *)(gs+k) = gv.x;
+				*(device float *)(gu+k) = ju.x;
+				*(device float *)(gs+k) = js.x;
 				break;
 		}
 	}
@@ -609,7 +606,7 @@ kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 		float const e = du[idx];
 		float const v = s[idx];
 		du[idx] = e;
-		ds[idx] = v - 0.5 * e * e / v;
+		ds[idx] = v * v - 0.5 * e * e;
 	}
 }
 /*----------------------------------------------------------------*/

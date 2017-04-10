@@ -77,16 +77,16 @@ class C3Tests: XCTestCase {
 			do {
 				let context: Context = try Context(queue: queue, storage: storage)
 				let I: Cell = try context.make(label: "I", width: 4, distribution: .Degenerate, activation: .Binary)
-				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Binary, input: [I], decay: false, recurrent: [])
+				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Binary, input: [I], decay: false, recurrent: [-1])
 				let G: Cell = try context.make(label: "G", width: 256, distribution: .Gauss, activation: .Identity, input: [H], decay: true, recurrent: [])
-				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [])
+				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [-1])
 				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Identity, input: [F], decay: false, recurrent: [])
 				try context.save()
 			}
 			do {
 				let context: Context = try Context(queue: queue,
 				                                   storage: storage,
-				                                   optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-1)
+				                                   optimizer: SMORMS3.factory(L2: 1e-4, L1: 0, α: 1e-2)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
@@ -121,8 +121,8 @@ class C3Tests: XCTestCase {
 					//let x = O.source
 					print(k, OS[k], O.source.map(Int.init))//.map{ $0 == x.max() })
 				}
-				print("cpu")
 				/*
+				print("cpu")
 				let (HWμ, HWσ) = context.capture(output: H, input: I)
 				let (HCμ, HCσ) = context.capture(cell: H)
 				
