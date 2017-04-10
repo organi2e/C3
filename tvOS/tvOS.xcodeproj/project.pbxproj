@@ -78,6 +78,7 @@
 		87B847301E93BE1600844835 /* Optimizer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B846AF1E93AF8300844835 /* Optimizer.framework */; };
 		87C3C2781E94C87500A62C11 /* Logistic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C2771E94C87500A62C11 /* Logistic.swift */; };
 		87C3C27A1E94C88600A62C11 /* Logistic.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C2791E94C88600A62C11 /* Logistic.metal */; };
+		87D203F01E9A4FCC0054A34D /* Ground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203EF1E9A4FCC0054A34D /* Ground.swift */; };
 		87EEBCE81E9508220079BA43 /* Capture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87EEBCE61E9508220079BA43 /* Capture.swift */; };
 		87EEBCE91E9508220079BA43 /* Decay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87EEBCE71E9508220079BA43 /* Decay.swift */; };
 /* End PBXBuildFile section */
@@ -263,6 +264,7 @@
 		87B847201E93BD4B00844835 /* RingBuffer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RingBuffer.swift; path = ../../C3/RingBuffer.swift; sourceTree = "<group>"; };
 		87C3C2771E94C87500A62C11 /* Logistic.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Logistic.swift; path = ../../Adapter/Logistic.swift; sourceTree = "<group>"; };
 		87C3C2791E94C88600A62C11 /* Logistic.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Logistic.metal; path = ../../Adapter/Logistic.metal; sourceTree = "<group>"; };
+		87D203EF1E9A4FCC0054A34D /* Ground.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Ground.swift; path = ../../C3/Ground.swift; sourceTree = "<group>"; };
 		87EEBCE61E9508220079BA43 /* Capture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Capture.swift; path = ../../C3/Capture.swift; sourceTree = "<group>"; };
 		87EEBCE71E9508220079BA43 /* Decay.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Decay.swift; path = ../../C3/Decay.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -410,12 +412,13 @@
 		87B8465C1E93AF4800844835 /* C3 */ = {
 			isa = PBXGroup;
 			children = (
-				871361161E98C43B006C2A7D /* Feedback.swift */,
 				87B847191E93BD4B00844835 /* Arcane.swift */,
 				87B8471A1E93BD4B00844835 /* Bias.swift */,
 				87B8471D1E93BD4B00844835 /* Cell.swift */,
-				87B8471F1E93BD4B00844835 /* Edge.swift */,
 				87EEBCE71E9508220079BA43 /* Decay.swift */,
+				87B8471F1E93BD4B00844835 /* Edge.swift */,
+				871361161E98C43B006C2A7D /* Feedback.swift */,
+				87D203EF1E9A4FCC0054A34D /* Ground.swift */,
 				87B8471E1E93BD4B00844835 /* Context.swift */,
 				87EEBCE61E9508220079BA43 /* Capture.swift */,
 				87197B4B1E96393000D62866 /* Variable.swift */,
@@ -948,6 +951,7 @@
 				87EEBCE91E9508220079BA43 /* Decay.swift in Sources */,
 				871361171E98C43B006C2A7D /* Feedback.swift in Sources */,
 				87B847211E93BD4B00844835 /* Arcane.swift in Sources */,
+				87D203F01E9A4FCC0054A34D /* Ground.swift in Sources */,
 				87EEBCE81E9508220079BA43 /* Capture.swift in Sources */,
 				87B847251E93BD4C00844835 /* Context.swift in Sources */,
 				87B847271E93BD4C00844835 /* RingBuffer.swift in Sources */,

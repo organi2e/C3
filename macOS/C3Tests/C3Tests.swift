@@ -2,10 +2,10 @@
 //  C3Tests.swift
 //  C3Tests
 //
-//  Created by Kota Nakano on 2017/04/04.
+//  Created by Kota Nakano on 4/9/17.
 //
 //
-
+import Foundation
 import XCTest
 import Accelerate
 import Metal
@@ -13,16 +13,17 @@ import Optimizer
 import Adapter
 @testable import C3
 
-//let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
-let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3_A1.sqlite")
-//let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
-let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [1,0,0,0]]
-let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,2,0], [0,3,0,0], [0,0,4,0], [0,5,0,0], [6,0,0,0], [0,7,0,0], [0,0,0,0]]
+let file: String = UUID().uuidString
+let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(file).sqlite")
 
-//let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0]]
-//let OS: Array<Array<Float>> = [[0,0,0,10], [0,0,10,0], [0,10,0,0], [10,0,0,0]]
+let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [1,0,0,0]]
+let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,0,0]]
 
 class C3Tests: XCTestCase {
+	override func setUp() {
+		super.setUp()
+		print(storage.lastPathComponent)
+	}
 	/*
 	func testSaveLoad() {
 	let label: String = UUID().description
@@ -74,29 +75,29 @@ class C3Tests: XCTestCase {
 		do {
 			do {
 				let context: Context = try Context(storage: storage)
-				let I: Cell = try context.make(label: "I", width: 4, distribution: .Gauss, activation: .Identity)
-				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [-1])
-				let G: Cell = try context.make(label: "G", width: 256, distribution: .Gauss, activation: .Identity, input: [H], decay: true, recurrent: [])
-				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Binary, input: [G], decay: true, recurrent: [-1])
-				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Identity, input: [F], decay: true)
+				let I: Cell = try context.make(label: "I", width: 4, distribution: .Degenerate, activation: .Binary)
+				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Identity, input: [I], decay: true, recurrent: [])
+				let G: Cell = try context.make(label: "G", width: 256, distribution: .Gauss, activation: .Binary, input: [H], decay: true, recurrent: [])
+				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Binary, input: [G], decay: true, recurrent: [])
+				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Identity, input: [F], decay: false, recurrent: [])
 				try context.save()
 			}
 			do {
 				let context: Context = try Context(
 					storage: storage
 					//,optimizer: SGD.factory(η: 1e-3)
-//					,optimizer: Adam.factory(L2: 1e-6, L1: 0, α: 1e-1)
+					//					,optimizer: Adam.factory(L2: 1e-6, L1: 0, α: 1e-1)
 					,optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-1)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
 					print("try")
-					(0..<4096).forEach {
+					(0..<2048).forEach {
 						let ref: Int = ( $0 / 4 ) % 8
 						O.collect_refresh()
 						I.correct_refresh()
-						O.target = OS[ref]
+						O.target = OS[ref].map { $0 * Float( ref + 1 ) }
 						I.source = IS[ref]
 						O.collect()
 						I.correct()
@@ -116,12 +117,13 @@ class C3Tests: XCTestCase {
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				
 				print("gpu")
-				(0..<64).forEach {
+				(0..<256).forEach {
+					let k: Int = ( $0 / 4 ) % 8
 					O.collect_refresh()
-					I.source = IS[ ( $0 / 4 ) % 8 ]
+					I.source = IS[ k ]
 					O.collect()
 					//let x = O.source
-					print(O.source)//.map{ $0 == x.max() })
+					print(k, OS[k], O.source.map(Int.init))//.map{ $0 == x.max() })
 				}
 				print("cpu")
 				/*

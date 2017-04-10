@@ -490,7 +490,7 @@ kernel void GaussJacobianF(device float * const ju [[ buffer(0) ]],
 	}
 }
 /*----------------------------------------------------------------*/
-constant uint3 xorshift [[ function_constant(0) ]];
+constant uint3 xorshift16 [[ function_constant(0) ]];
 kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   device float * const gu [[ buffer(1) ]],
 						   device float * const gs [[ buffer(2) ]],
@@ -501,17 +501,17 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   uint const t [[ thread_position_in_threadgroup ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
 	ushort4 seq = *(constant ushort4*)(seeds+4*t);
-	seq = select(seq, ~0, seq == 0);
 	for ( int k = 4 * t, K = N, dk = 4 * T ; k < K ; k += dk ) {
 		float4 const m = *(device float4*)(u+k);
 		float4 const r = 1 / *(device float4*)(s+k);
 		float4 const x = m * r;
-		float4 const y = step(float4(seq), fma(erf(M_SQRT1_2_F*x), 32768, 32768));
+//		float4 const y = step(float4(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
+		float4 const y = fma(erf(M_SQRT1_2_F * x), 0.5, 0.5);
 		float4 const gm = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F * exp( -0.5 * x * x ) * r;
 		float4 const gv = gm * -x;
-		seq ^= seq << xorshift.x;
-		seq ^= seq >> xorshift.y;
-		seq ^= seq << xorshift.z;
+		seq ^= seq << xorshift16.x;
+		seq ^= seq >> xorshift16.y;
+		seq ^= seq << xorshift16.z;
 		switch(min(4, K-k)) {
 			case 4:
 				*(device float4*)(f+k) = y.xyzw;
@@ -562,16 +562,16 @@ kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
 						   uint const t [[ thread_position_in_threadgroup ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
 	ushort4 seq = *(constant ushort4*)(seeds+4*t);
-	seq = select(seq, ~0, seq == 0);
+//	seq = select(seq, ~0, seq == 0);
 	for ( int k = 4 * t, K = N, dk = 4 * T ; k < K ; k += dk ) {
 		float4 const x = float4(seq) / 65536.0;
 		float4 const n = sqrt(-2.0*log(x.xy)).xyxy * float4(cospi(2.0*x.zw), sinpi(2.0*x.zw));
 		float4 const y = fma(n, *(device float4*)(s+k), *(device float4*)(u+k));
-		float4 const gm = 1;//1 / *(device float4*)(u+k);
-		float4 const gv = n;//-gm * *(device float4*)(s+k) / *(device float4*)(u+k);
-		seq ^= seq << xorshift.x;
-		seq ^= seq >> xorshift.y;
-		seq ^= seq << xorshift.z;
+		float4 const gm = 1;
+		float4 const gv = n;
+		seq ^= seq << xorshift16.x;
+		seq ^= seq >> xorshift16.y;
+		seq ^= seq << xorshift16.z;
 		switch(min(4, K-k)) {
 			case 4:
 				*(device float4*)(f+k) = y.xyzw;

@@ -9,16 +9,14 @@ import Accelerate
 import Adapter
 import Distributor
 import Optimizer
-internal class Arcane: ManagedObject {
+internal class Arcane: Ground {
 	var μ: Variable?
 	var σ: Variable?
 }
 extension Arcane {
-	private static let lifetimekey: String = "lifetime"
 	private static let locationkey: String = "location"
 	private static let scalekey: String = "scale"
 	func change(commandBuffer: CommandBuffer, handler: ((μ: Buffer, σ: Buffer)) -> Void) {
-		willAccessValue(forKey: Arcane.lifetimekey)
 		guard let μ: Variable = μ, let σ: Variable = σ else { fatalError(String(describing: self)) }
 		func will(_: CommandBuffer) {
 			func block() {
@@ -45,11 +43,9 @@ extension Arcane {
 		
 		commandBuffer.addScheduledHandler(will)
 		commandBuffer.addCompletedHandler(done)
-		
-		didAccessValue(forKey: Arcane.lifetimekey)
 	}
 	func fixing(commandBuffer: CommandBuffer) {
-		willAccessValue(forKey: Arcane.lifetimekey)
+		
 		guard let μ: Variable = μ, let σ: Variable = σ else { fatalError(String(describing: self)) }
 		func will(_: CommandBuffer) {
 			func block() {
@@ -72,17 +68,12 @@ extension Arcane {
 		commandBuffer.addScheduledHandler(will)
 		commandBuffer.addCompletedHandler(done)
 		
-		didAccessValue(forKey: Arcane.lifetimekey)
 	}
 	func access(handler: ((μ: Buffer, σ: Buffer)) -> Void) {
-		willAccessValue(forKey: Arcane.lifetimekey)
 		guard let μ: Variable = μ, let σ: Variable = σ else { fatalError(String(describing: self)) }
 		handler((μ: μ.θ, σ: σ.θ))
-		didAccessValue(forKey: Arcane.lifetimekey)
 	}
 	func setup(commandBuffer: CommandBuffer, count: Int) {
-		
-		willAccessValue(forKey: Arcane.lifetimekey)
 		
 		assert( count * MemoryLayout<Float>.size <= location.count)
 		assert( count * MemoryLayout<Float>.size <= scale.count)
@@ -99,21 +90,18 @@ extension Arcane {
 		μ?.refresh(commandBuffer: commandBuffer)
 		σ?.refresh(commandBuffer: commandBuffer)
 		
-		didAccessValue(forKey: Arcane.lifetimekey)
 	}
 }
 extension Arcane {
 	override func awakeFromInsert() {
 		super.awakeFromInsert()
-		lifetime = true
-		locationType = AdapterType.Linear.rawValue
+		locationType = AdapterType.Regular.rawValue
 		location = Data()
-		scaleType = AdapterType.Linear.rawValue
+		scaleType = AdapterType.RegFloor.rawValue
 		scale = Data()
 	}
 }
 extension Arcane {
-	@NSManaged var lifetime: Bool
 	@NSManaged var location: Data
 	@NSManaged var locationType: String
 	@NSManaged var scale: Data

@@ -82,6 +82,7 @@ public class Context: NSManagedObjectContext {
 		} (device)
 		distributor = try {
 			var result: Dictionary<DistributionType, Distributor> = Dictionary<DistributionType, Distributor>()
+			result.updateValue(try DegenerateDistributor(device: $0), forKey: .Degenerate)
 			result.updateValue(try GaussDistributor(device: $0), forKey: .Gauss)
 			return result
 		} (device)
@@ -158,7 +159,7 @@ extension Context {
 	}
 }
 extension Context {
-	func make<T: ManagedObject>() throws -> T {
+	func make<T: Ground>() throws -> T {
 		let name: String = String(describing: T.self)
 		var cache: NSManagedObject?
 		func block() {
@@ -168,7 +169,7 @@ extension Context {
 		guard let entity: T = cache as? T else { throw ErrorCase.InvalidEntity(name: name) }
 		return entity
 	}
-	func fetch<T: ManagedObject>(predicate: NSPredicate) throws -> [T] {
+	func fetch<T: Ground>(predicate: NSPredicate) throws -> [T] {
 		let name: String = String(describing: T.self)
 		var cache: [T] = []
 		var e: Error?
@@ -188,7 +189,7 @@ extension Context {
 		}
 		return cache
 	}
-	func remove(object: ManagedObject) {
+	func remove(object: Ground) {
 		func block() {
 			delete(object)
 		}
@@ -231,13 +232,6 @@ extension Context {
 		commandBuffer.commit()
 	}
 	*/
-}
-public typealias ManagedObject = NSManagedObject
-internal extension ManagedObject {
-	var context: Context {
-		guard let context: Context = managedObjectContext as? Context else { fatalError(Context.ErrorCase.InvalidContext.description) }
-		return context
-	}
 }
 internal typealias Device = MTLDevice
 internal typealias Buffer = MTLBuffer
