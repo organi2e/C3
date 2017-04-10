@@ -111,6 +111,7 @@ extension Cell {
 			return (Δφ: Δφ, φ: cache[0].φ)
 		} else {
 			if let χ: Buffer = state {
+				let commandBuffer: CommandBuffer = context.make()
 				func corrector(corrector: Corrector) {
 					output.forEach {
 						$0.correct(corrector: corrector, state: χ, ignore: ignore.union([self]))
@@ -119,7 +120,6 @@ extension Cell {
 						corrector.correct(χ: χ, ϝ: ϝ)
 					}
 				}
-				let commandBuffer: CommandBuffer = context.make()
 				switch activation {
 				case .Binary:
 					distributor.activate(commandBuffer: commandBuffer, Δφ: cache[0].Δ, f: χ, g: cache[0].g, φ: cache[0].φ, count: width, corrector: corrector)

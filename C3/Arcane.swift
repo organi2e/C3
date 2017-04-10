@@ -43,6 +43,7 @@ extension Arcane {
 		
 		commandBuffer.addScheduledHandler(will)
 		commandBuffer.addCompletedHandler(done)
+		
 	}
 	func fixing(commandBuffer: CommandBuffer) {
 		
@@ -93,10 +94,10 @@ extension Arcane {
 	}
 }
 extension Arcane {
-	@NSManaged var location: Data
 	@NSManaged var locationType: String
-	@NSManaged var scale: Data
+	@NSManaged var location: Data
 	@NSManaged var scaleType: String
+	@NSManaged var scale: Data
 }
 private extension String {
 	var adapterType: AdapterType {
