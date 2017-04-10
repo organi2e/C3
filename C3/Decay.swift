@@ -46,7 +46,7 @@ extension Decay {
 	func correct(commandBuffer: CommandBuffer, Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
 		change(commandBuffer: commandBuffer) {
-			cell.distributor.derivate(commandBuffer: commandBuffer, Δv: $0.μ, j: cache[0].j, Δφ: Δφ, φ: φ, count: count) {(jacobian: Jacobian)in
+			cell.distributor.derivate(commandBuffer: commandBuffer, Δv: $0.μ, j: cache[0].j, Δφ: Δφ, φ: φ, count: count) { jacobian in
 				access {
 					jacobian.jacobian(d: $0.μ, φ: cell.cache[-1].φ)
 				}
@@ -69,8 +69,7 @@ extension Decay {
 	override func setup(commandBuffer: CommandBuffer, count: Int) {
 		super.setup(commandBuffer: commandBuffer, count: count)
 		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		let ref: Array<Void> = Array<Void>(repeating: (), count: cell.depth)
-		cache = RingBuffer<Cache>(buffer: ref.map {
+		cache = RingBuffer<Cache>(buffer: Array<Void>(repeating: (), count: cell.depth).map {
 			Cache(context: context, count: count, encoder: encoder)
 		}, offset: 0)
 		encoder.endEncoding()
@@ -92,8 +91,7 @@ extension Decay {
 	@NSManaged var cell: Cell
 }
 extension Context {
-	internal func make(commandBuffer: CommandBuffer, cell: Cell) throws -> Decay {
-		typealias T = Float
+	@nonobjc internal func make(commandBuffer: CommandBuffer, cell: Cell) throws -> Decay {
 		let count: Int = cell.width
 		let decay: Decay = try make()
 		decay.cell = cell

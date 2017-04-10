@@ -48,14 +48,6 @@ extension Edge {
 	func correct(corrector: Corrector, state: Buffer, ignore: Set<Cell>) {
 		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
 		let (Δφ, φ): (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = output.correct(ignore: ignore)
-		output.distributor.derivate(commandBuffer: corrector.order, Δx: corrector.Δ, j: cache[0].jx, Δφ: Δφ, φ: φ, count: count) { jacobian in
-			access {
-				jacobian.jacobian(x: state, a: $0)
-			}
-			output.jacobian(jacobian: jacobian) {
-				cache[$0].jx
-			}
-		}
 		change(commandBuffer: corrector.order) {
 			output.distributor.derivate(commandBuffer: corrector.order, Δθ: $0, j: cache[0].ja, Δφ: Δφ, φ: φ, count: count) { jacobian in
 				access {
@@ -64,6 +56,14 @@ extension Edge {
 				output.jacobian(jacobian: jacobian) {
 					cache[$0].ja
 				}
+			}
+		}
+		output.distributor.derivate(commandBuffer: corrector.order, Δx: corrector.Δ, j: cache[0].jx, Δφ: Δφ, φ: φ, count: count) { jacobian in
+			access {
+				jacobian.jacobian(x: state, a: $0)
+			}
+			output.jacobian(jacobian: jacobian) {
+				cache[$0].jx
 			}
 		}
 	}
@@ -96,13 +96,13 @@ extension Edge {
 	@NSManaged var output: Cell
 }
 extension Context {
-	internal func make(commandBuffer: CommandBuffer, output: Cell, input: Cell) throws -> Edge {
+	internal func make(commandBuffer: CommandBuffer, output: Cell, input: Cell, adapters: (AdapterType, AdapterType)) throws -> Edge {
 		let count: Int = output.width * input.width
 		let edge: Edge = try make()
 		edge.output = output
 		edge.input = input
+		edge.locationType = adapters.0.rawValue
 		edge.location = Data(count: count * MemoryLayout<Float>.size)
-		edge.scale = Data(count: count * MemoryLayout<Float>.size)
 		edge.location.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in
 			assert( MemoryLayout<Float>.size == 4 )
 			assert( MemoryLayout<UInt32>.size == 4 )
@@ -116,6 +116,8 @@ extension Context {
 			vDSP_vswap(ref.advanced(by: 1), 2, ref.advanced(by: count/2), 2, vDSP_Length(count/4))
 			vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
 		}
+		edge.scaleType = adapters.1.rawValue
+		edge.scale = Data(count: count * MemoryLayout<Float>.size)
 		edge.scale.withUnsafeMutableBytes {
 			vDSP_vfill([1.0], $0, 1, vDSP_Length(count))
 		}

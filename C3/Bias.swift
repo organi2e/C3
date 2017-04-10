@@ -82,15 +82,17 @@ extension Bias {
 	@NSManaged var cell: Cell
 }
 extension Context {
-	@nonobjc internal func make(commandBuffer: CommandBuffer, cell: Cell) throws -> Bias {
+	internal func make(commandBuffer: CommandBuffer, cell: Cell, adapters: (AdapterType, AdapterType)) throws -> Bias {
 		let count: Int = cell.width
 		let bias: Bias = try make()
 		bias.cell = cell
+		bias.locationType = adapters.0.rawValue
 		bias.location = Data(count: count * MemoryLayout<Float>.size)
-		bias.scale = Data(count: count * MemoryLayout<Float>.size)
 		bias.location.withUnsafeMutableBytes {
 			vDSP_vfill([0.0], $0, 1, vDSP_Length(count))
 		}
+		bias.scaleType = adapters.1.rawValue
+		bias.scale = Data(count: count * MemoryLayout<Float>.size)
 		bias.scale.withUnsafeMutableBytes {
 			vDSP_vfill([1.0], $0, 1, vDSP_Length(count))
 		}

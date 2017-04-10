@@ -6,7 +6,6 @@
 //
 //
 
-import Metal
 import Adapter
 import Optimizer
 internal struct Variable {

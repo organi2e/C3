@@ -17,7 +17,7 @@ let file: String = UUID().uuidString
 let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(file).sqlite")
 
 let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [1,0,0,0]]
-let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,0,0]]
+let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [0,0,0,0]]
 
 class C3Tests: XCTestCase {
 	override func setUp() {
@@ -73,27 +73,26 @@ class C3Tests: XCTestCase {
 	*/
 	func testChain() {
 		do {
+			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 			do {
-				let context: Context = try Context(storage: storage)
+				let context: Context = try Context(queue: queue, storage: storage)
 				let I: Cell = try context.make(label: "I", width: 4, distribution: .Degenerate, activation: .Binary)
-				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Identity, input: [I], decay: true, recurrent: [])
-				let G: Cell = try context.make(label: "G", width: 256, distribution: .Gauss, activation: .Binary, input: [H], decay: true, recurrent: [])
-				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Binary, input: [G], decay: true, recurrent: [])
+				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Binary, input: [I], decay: false, recurrent: [])
+				let G: Cell = try context.make(label: "G", width: 256, distribution: .Gauss, activation: .Identity, input: [H], decay: true, recurrent: [])
+				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [])
 				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Identity, input: [F], decay: false, recurrent: [])
 				try context.save()
 			}
 			do {
-				let context: Context = try Context(
-					storage: storage
-					//,optimizer: SGD.factory(η: 1e-3)
-					//					,optimizer: Adam.factory(L2: 1e-6, L1: 0, α: 1e-1)
-					,optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-1)
+				let context: Context = try Context(queue: queue,
+				                                   storage: storage,
+				                                   optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-1)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
 					print("try")
-					(0..<2048).forEach {
+					(0..<4096).forEach {
 						let ref: Int = ( $0 / 4 ) % 8
 						O.collect_refresh()
 						I.correct_refresh()
@@ -108,10 +107,7 @@ class C3Tests: XCTestCase {
 			}
 			
 			do {
-				let context: Context = try Context(
-					storage: storage
-					//,optimizer: SMORMS3.factory(α: 1e-1)
-				)
+				let context: Context = try Context(queue: queue, storage: storage)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				//guard let H: Cell = try context.fetch(label: "H").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
