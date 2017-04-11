@@ -22,19 +22,20 @@ internal class Manager {
 		cacheDir = try manager.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
 		try manager.createDirectory(at: cacheDir, withIntermediateDirectories: true, attributes: nil)
 	}
-	private func load(cache: String, fetch: String) throws -> Data {
+	private func load(cache: String, fetch: String) throws -> FileHandle {
 		let cacheURL: URL = cacheDir.appendingPathComponent(cache)
 		if !manager.fileExists(atPath: cacheURL.path) {
 			guard let fetchURL: URL = URL(string: fetch) else { throw ErrorCases.IncorrectFormat(value: fetch) }
 			try Data(contentsOf: fetchURL).write(to: cacheURL)
 		}
-		return try Data(contentsOf: cacheURL)
+		return try FileHandle(forReadingFrom: cacheURL)
 	}
 	internal func gunzip(cache: String, fetch: String) throws -> Data {
-		return try gunzip(data: try load(cache: cache, fetch: fetch))
+		return try gunzip(file: try load(cache: cache, fetch: fetch))
 	}
 	//reference: http://www.onicos.com/staff/iz/formats/gzip.html
-	private func gunzip(data: Data) throws -> Data {
+	private func gunzip(file: FileHandle) throws -> Data {
+		let data: Data = file.readDataToEndOfFile()
 		return try data.withUnsafeBytes { (head: UnsafePointer<UInt8>) -> Data in
 			
 			var pointer: UnsafePointer<UInt8> = head
@@ -119,6 +120,21 @@ internal class Manager {
 					}
 				}
 			}
+		}
+	}
+}
+private extension FileHandle {
+	func readString() -> String {
+		var array: Array<CChar> = Array<CChar>()
+		while let char: CChar = readElement(), char != 0 {
+			array.append(char)
+		}
+		seek(toFileOffset: offsetInFile + 1)
+		return String(cString: array)
+	}
+	func readElement<T>() -> T {
+		return readData(ofLength: MemoryLayout<T>.size).withUnsafeBytes {
+			$0.pointee
 		}
 	}
 }
