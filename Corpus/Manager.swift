@@ -35,63 +35,42 @@ internal class Manager {
 	}
 	//reference: http://www.onicos.com/staff/iz/formats/gzip.html
 	private func gunzip(file: FileHandle) throws -> Data {
+		
+		let magic: UInt16 = file.readElement()
+		guard magic == 35615 else { throw ErrorCases.IncorrectFormat(value: "magic") }
+		
+		let method: UInt8 = file.readElement()
+		guard method == 8 else { throw ErrorCases.IncorrectFormat(value: "not deflated file") }
+		
+		let flags: UInt8 = file.readElement()
+		guard flags & ( 1 << 1 ) == 0 else { throw ErrorCases.NotImplemented(feature: "multipart") }
+		
+		let time: UInt32 = file.readElement()
+		
+		let extra: UInt8 = file.readElement()
+		
+		let os: UInt8 = file.readElement()
+		
+		let field: Data = {
+			guard 0 < ( flags & ( 1 << 2 ) ) else { return Data() }
+			let bytes: UInt16 = file.readElement()
+			return file.readData(ofLength: Int(bytes))
+		}()
+		
+		let original: String = {
+			guard 0 < ( flags & ( 1 << 3 )) else { return "" }
+			return file.readString()
+		}()
+		
+		let comment: String = {
+			guard 0 < ( flags & ( 1 << 4 )) else { return "" }
+			return file.readString()
+		}()
+		
 		let data: Data = file.readDataToEndOfFile()
 		return try data.withUnsafeBytes { (head: UnsafePointer<UInt8>) -> Data in
 			
 			var pointer: UnsafePointer<UInt8> = head
-			
-			let magic: UInt16 = UnsafePointer(OpaquePointer(pointer)).pointee
-			guard magic == 35615 else { throw ErrorCases.IncorrectFormat(value: "magic") }
-			pointer = pointer.advanced(by: MemoryLayout.size(ofValue: magic))
-			
-			let method: UInt8 = UnsafePointer(OpaquePointer(pointer)).pointee
-			guard method == 8 else { throw ErrorCases.IncorrectFormat(value: "not deflated file") }
-			pointer = pointer.advanced(by: MemoryLayout.size(ofValue: method))
-			
-			let flags: UInt8 = UnsafePointer(OpaquePointer(pointer)).pointee
-			guard flags & ( 1 << 1 ) == 0 else { throw ErrorCases.NotImplemented(feature: "multipart") }
-			pointer = pointer.advanced(by: MemoryLayout.size(ofValue: flags))
-			
-			let time: UInt32 = UnsafePointer(OpaquePointer(pointer)).pointee
-			pointer = pointer.advanced(by: MemoryLayout.size(ofValue: time))
-			
-			let extra: UInt8 = UnsafePointer(OpaquePointer(pointer)).pointee
-			pointer = pointer.advanced(by: MemoryLayout.size(ofValue: extra))
-			
-			let os: UInt8 = UnsafePointer(OpaquePointer(pointer)).pointee
-			pointer = pointer.advanced(by: MemoryLayout.size(ofValue: os))
-			
-			let field: Data = {
-				guard 0 < ( flags & ( 1 << 2 ) ) else { return Data() }
-				let bytes: UInt16 = UnsafePointer(OpaquePointer(pointer)).pointee
-				pointer = pointer.advanced(by: MemoryLayout.size(ofValue: bytes))
-				defer {
-					pointer = pointer.advanced(by: Int(bytes))
-				}
-				return Data(bytes: pointer, count: Int(bytes))
-			}()
-			
-			let original: String = {
-				guard 0 < ( flags & ( 1 << 3 )) else { return "" }
-				var array: [UInt8] = []
-				while pointer.pointee != 0 {
-					array.append(pointer.pointee)
-					pointer = pointer.advanced(by: 1)
-				}
-				pointer = pointer.advanced(by: 1)
-				return String(cString: array)
-			}()
-			
-			let comment: String = {
-				guard 0 < ( flags & ( 1 << 4 )) else { return "" }
-				var array: [UInt8] = []
-				while pointer.pointee != 0 {
-					array.append(pointer.pointee)
-					pointer = pointer.advanced(by: 1)
-				}
-				pointer = pointer.advanced(by: 1)
-				return String(cString: array)
-			}()
 			
 			let bs: Int = compression_decode_scratch_buffer_size(COMPRESSION_ZLIB)
 			return try Data(capacity: bs + MemoryLayout<compression_stream>.size).withUnsafeBytes { (cache: UnsafePointer<UInt8>) -> Data in
@@ -114,7 +93,7 @@ internal class Manager {
 						result.append(buf, count: bs - ref.pointee.dst_size)
 						return result
 					case COMPRESSION_STATUS_ERROR:
-						throw ErrorCases.UnknownError(message: "gunzip")
+						throw ErrorCases.UnknownError(message: "gunzip parser")
 					default:
 						fatalError("Die")
 					}
@@ -125,12 +104,11 @@ internal class Manager {
 }
 private extension FileHandle {
 	func readString() -> String {
-		var array: Array<CChar> = Array<CChar>()
-		while let char: CChar = readElement(), char != 0 {
-			array.append(char)
+		func recursive(fileHandle: FileHandle) -> Array<CChar> {
+			let char: CChar = fileHandle.readElement()
+			return Array<CChar>(arrayLiteral: char) + ( char == 0 ? Array<CChar>() : recursive(fileHandle: fileHandle) )
 		}
-		seek(toFileOffset: offsetInFile + 1)
-		return String(cString: array)
+		return String(cString: recursive(fileHandle: self))
 	}
 	func readElement<T>() -> T {
 		return readData(ofLength: MemoryLayout<T>.size).withUnsafeBytes {
