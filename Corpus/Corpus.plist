@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>MNIST</key>
+	<dict>
+		<key>Directory</key>
+		<string>MNIST</string>
+		<key>train</key>
+		<dict>
+			<key>labels</key>
+			<dict>
+				<key>cache</key>
+				<string>train-labels-idx1-ubyte.gz</string>
+				<key>fetch</key>
+				<string>http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz</string>
+			</dict>
+			<key>images</key>
+			<dict>
+				<key>cache</key>
+				<string>train-images-idx3-ubyte.gz</string>
+				<key>fetch</key>
+				<string>http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz</string>
+			</dict>
+		</dict>
+		<key>t10k</key>
+		<dict>
+			<key>labels</key>
+			<dict>
+				<key>fetch</key>
+				<string>http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz</string>
+				<key>cache</key>
+				<string>t10k-labels-idx1-ubyte.gz</string>
+			</dict>
+			<key>images</key>
+			<dict>
+				<key>fetch</key>
+				<string>http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz</string>
+				<key>cache</key>
+				<string>t10k-images-idx3-ubyte.gz</string>
+			</dict>
+		</dict>
+	</dict>
+</dict>
+</plist>
