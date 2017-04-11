@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		872369001E9BEE8000EC739F /* DegenerateDistributor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 872368FE1E9BEE8000EC739F /* DegenerateDistributor.metal */; };
+		872369011E9BEE8000EC739F /* DegenerateDistributor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 872368FF1E9BEE8000EC739F /* DegenerateDistributor.swift */; };
 		87D202B31E99486F0054A34D /* C3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87D202AA1E99486F0054A34D /* C3.framework */; };
 		87D202B81E99486F0054A34D /* C3Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D202B71E99486F0054A34D /* C3Tests.swift */; };
 		87D202BA1E99486F0054A34D /* C3.h in Headers */ = {isa = PBXBuildFile; fileRef = 87D202AC1E99486F0054A34D /* C3.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -174,6 +176,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		872368FE1E9BEE8000EC739F /* DegenerateDistributor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = DegenerateDistributor.metal; path = ../../Distributor/DegenerateDistributor.metal; sourceTree = "<group>"; };
+		872368FF1E9BEE8000EC739F /* DegenerateDistributor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DegenerateDistributor.swift; path = ../../Distributor/DegenerateDistributor.swift; sourceTree = "<group>"; };
 		87D202AA1E99486F0054A34D /* C3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = C3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		87D202AC1E99486F0054A34D /* C3.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = C3.h; sourceTree = "<group>"; };
 		87D202AD1E99486F0054A34D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -473,6 +477,8 @@
 		87D202FF1E99488D0054A34D /* Distributor */ = {
 			isa = PBXGroup;
 			children = (
+				872368FF1E9BEE8000EC739F /* DegenerateDistributor.swift */,
+				872368FE1E9BEE8000EC739F /* DegenerateDistributor.metal */,
 				87D203171E9948CE0054A34D /* GaussDistributor.swift */,
 				87D203161E9948CE0054A34D /* GaussDistributor.metal */,
 				87D203151E9948CE0054A34D /* Distributior.swift */,
@@ -998,9 +1004,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				872369011E9BEE8000EC739F /* DegenerateDistributor.swift in Sources */,
 				87D203181E9948CE0054A34D /* Distributior.swift in Sources */,
 				87D2031A1E9948CE0054A34D /* GaussDistributor.swift in Sources */,
 				87D203191E9948CE0054A34D /* GaussDistributor.metal in Sources */,
+				872369001E9BEE8000EC739F /* DegenerateDistributor.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2293,6 +2301,7 @@
 				87D202BD1E99486F0054A34D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		87D202BE1E99486F0054A34D /* Build configuration list for PBXNativeTarget "C3Tests" */ = {
 			isa = XCConfigurationList;
@@ -2301,6 +2310,7 @@
 				87D202C01E99486F0054A34D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		87D202D71E99487C0054A34D /* Build configuration list for PBXNativeTarget "Optimizer" */ = {
 			isa = XCConfigurationList;
@@ -2309,6 +2319,7 @@
 				87D202D91E99487C0054A34D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		87D202DA1E99487C0054A34D /* Build configuration list for PBXNativeTarget "OptimizerTests" */ = {
 			isa = XCConfigurationList;
@@ -2317,6 +2328,7 @@
 				87D202DC1E99487C0054A34D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		87D202F31E9948840054A34D /* Build configuration list for PBXNativeTarget "Adapter" */ = {
 			isa = XCConfigurationList;
@@ -2325,6 +2337,7 @@
 				87D202F51E9948840054A34D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		87D202F61E9948840054A34D /* Build configuration list for PBXNativeTarget "AdapterTests" */ = {
 			isa = XCConfigurationList;
@@ -2333,6 +2346,7 @@
 				87D202F81E9948840054A34D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		87D2030F1E99488D0054A34D /* Build configuration list for PBXNativeTarget "Distributor" */ = {
 			isa = XCConfigurationList;
@@ -2341,6 +2355,7 @@
 				87D203111E99488D0054A34D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		87D203121E99488D0054A34D /* Build configuration list for PBXNativeTarget "DistributorTests" */ = {
 			isa = XCConfigurationList;
@@ -2349,6 +2364,7 @@
 				87D203141E99488D0054A34D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		87D203971E9949750054A34D /* Build configuration list for PBXNativeTarget "Stage" */ = {
 			isa = XCConfigurationList;
@@ -2357,6 +2373,7 @@
 				87D203991E9949750054A34D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		87D2039A1E9949750054A34D /* Build configuration list for PBXNativeTarget "StageUITests" */ = {
 			isa = XCConfigurationList;
@@ -2365,6 +2382,7 @@
 				87D2039C1E9949750054A34D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 
