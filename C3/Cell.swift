@@ -8,6 +8,7 @@
 import Accelerate
 import CoreData
 import Distributor
+
 public class Cell: Ground {
 	struct Cache {
 		let χ: Buffer
@@ -35,9 +36,6 @@ public class Cell: Ground {
 		}
 	}
 	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
-	var state: Buffer? = nil
-	var study: Buffer? = nil
-	var delta: (μ: Buffer, σ: Buffer)? = nil
 }
 extension Cell {
 	public func collect_refresh() {
@@ -99,7 +97,8 @@ extension Cell {
 			$0.correct_refresh()
 		}
 		decay?.correct_refresh()
-		delta = nil
+		deltau = nil
+		deltas = nil
 	}
 	public func correct() {
 		let _: (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = correct(ignore: [])
@@ -107,8 +106,8 @@ extension Cell {
 	internal func correct(ignore: Set<Cell>) -> (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) {
 		if ignore.contains(self) {
 			return (Δφ: cache[-1].Δ, φ: cache[-1].φ)
-		} else if let Δφ: (μ: Buffer, σ: Buffer) = delta {
-			return (Δφ: Δφ, φ: cache[0].φ)
+		} else if let μ: Buffer = deltau, let σ: Buffer = deltas {
+			return (Δφ: (μ: μ, σ: σ), φ: cache[0].φ)
 		} else {
 			if let χ: Buffer = state {
 				let commandBuffer: CommandBuffer = context.make()
@@ -133,7 +132,8 @@ extension Cell {
 				decay?.correct(commandBuffer: commandBuffer, Δφ: cache[0].Δ, φ: cache[0].φ)
 				commandBuffer.commit()
 			}
-			delta = cache[0].Δ
+			deltau = cache[0].Δ.μ
+			deltas = cache[0].Δ.σ
 			return (Δφ: cache[0].Δ, φ: cache[0].φ)
 		}
 	}
@@ -147,7 +147,7 @@ extension Cell {
 	}
 }
 extension Cell {
-	var source: Array<Float> {
+	public var source: Array<Float> {
 		get {
 			guard let source: Buffer = state else { return [] }
 			let target: Buffer = context.make(length: width * MemoryLayout<Float>.size, options: .storageModeShared)
@@ -164,7 +164,7 @@ extension Cell {
 			state = newValue.isEmpty ? nil : context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModePrivate)
 		}
 	}
-	var target: Array<Float> {
+	public var target: Array<Float> {
 		get {
 			guard let source: Buffer = study else { return [] }
 			let target: Buffer = context.make(length: width * MemoryLayout<Float>.size, options: .storageModeShared)
@@ -218,6 +218,10 @@ extension Cell {
 	}
 }
 extension Cell {
+	@NSManaged var state: Buffer?
+	@NSManaged var study: Buffer?
+	@NSManaged var deltau: Buffer?
+	@NSManaged var deltas: Buffer?
 	@NSManaged var label: String
 	@NSManaged var width: Int
 	@NSManaged var distributionType: String

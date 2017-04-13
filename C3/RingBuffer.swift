@@ -6,7 +6,7 @@
 //
 //
 
-struct RingBuffer<T> {
+internal struct RingBuffer<T> {
 	let buffer: Array<T>
 	var offset: Int
 	mutating func rotate() {

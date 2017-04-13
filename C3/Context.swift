@@ -97,6 +97,16 @@ public class Context: NSManagedObjectContext {
 	public required init?(coder aDecoder: NSCoder) {
 		fatalError("init(coder:) has not been implemented")
 	}
+	public override func awakeAfter(using aDecoder: NSCoder) -> Any? {
+		defer {
+			print("awake")
+		}
+		return super.awakeAfter(using: aDecoder)
+	}
+	public override func encode(with aCoder: NSCoder) {
+		super.encode(with: aCoder)
+		print("enc")
+	}
 }
 extension Context {
 	func make(data: Data, options: MTLResourceOptions = []) -> Buffer {
