@@ -10,69 +10,61 @@ import CoreData
 import Metal
 import Distributor
 internal class Feedback: Arcane {
-	struct Cache {
-		let j: (μ: Buffer, σ: Buffer)
-		init(context: Context, count: Int, encoder: BlitCommandEncoder) {
-			let length: Int = count * MemoryLayout<Float>.size
-			j = (
-				μ: context.make(length: length, options: .storageModePrivate),
-				σ: context.make(length: length, options: .storageModePrivate)
-			)
-			[j.μ, j.σ].forEach {
-				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
-			}
-		}
-	}
-	var cache: RingBuffer<Cache> = RingBuffer<Cache>(buffer: [], offset: 0)
+	
 }
 extension Feedback {
 	func collect_refresh(commandBuffer: CommandBuffer) {
-		guard cell.loop.contains(self) else { fatalError() }
 		fixing(commandBuffer: commandBuffer)
 	}
 	func collect(collector: Collector) {
-		guard cell.loop.contains(self) else { fatalError() }
 		access {
-			collector.collect(w: $0, x: cell.cache[depth].χ, count: cell.width)
+			collector.collect(w: $0, x: cell.χ(refer), count: cell.width)
 		}
 	}
 }
 extension Feedback {
 	func correct_refresh() {
-		guard cell.loop.contains(self) else { fatalError() }
-		cache.rotate()
+		custom = ( custom + 1 ) % cell.depth
 	}
 	func correct(commandBuffer: CommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer)) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: cell.width)
 		change(commandBuffer: commandBuffer) {
-			cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: cache[0].j, Δφ: Δφ, φ: φ, count: count) { jacobian in
+			cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: j(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
 				access {
-					jacobian.jacobian(a: $0, x: cell.cache[depth].χ)
+					jacobian.jacobian(a: $0, x: cell.χ(refer))
 				}
-				cell.jacobian(jacobian: jacobian) {
-					cache[$0].j
-				}
+				cell.jacobian(jacobian: jacobian, feed: j)
 			}
 		}
 	}
 }
 extension Feedback {
 	func jacobian(jacobian: Jacobian, feed: (Int) -> (μ: Buffer, σ: Buffer)) {
-		guard cell.loop.contains(self) else { fatalError() }
 		access {
-			jacobian.jacobian(b: $0, y: cell.cache[depth].χ, g: cell.cache[depth].g, j: feed(depth))
+			jacobian.jacobian(b: $0, y: cell.χ(refer), g: cell.g(refer), j: feed(refer))
 		}
 	}
 }
 extension Feedback {
 	override func setup(commandBuffer: CommandBuffer, count: Int) {
 		super.setup(commandBuffer: commandBuffer, count: count)
-		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		let ref: Array<Void> = Array<Void>(repeating: (), count: cell.depth)
-		cache = RingBuffer<Cache>(buffer: ref.map {
-			Cache(context: context, count: count, encoder: encoder)
-		}, offset: 0)
-		encoder.endEncoding()
+		do {
+			let length: Int = count * MemoryLayout<Float>.size
+			let ref: Array<Void> = Array<Void>(repeating: (), count: cell.depth)
+			ju = ref.map {
+				context.make(length: length, options: .storageModePrivate)
+			}
+			js = ref.map {
+				context.make(length: length, options: .storageModePrivate)
+			}
+		}
+		do {
+			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
+			(ju+js).forEach {
+				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
+			}
+			encoder.endEncoding()
+		}
 	}
 	override func awakeFromFetch() {
 		super.awakeFromFetch()
@@ -88,15 +80,25 @@ extension Feedback {
 	}
 }
 extension Feedback {
+	@NSManaged var ju: Array<Buffer>
+	@NSManaged var js: Array<Buffer>
+	func j(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+		assert( ju.count == cell.depth )
+		assert( js.count == cell.depth )
+		return (μ: ju[((offset+custom)%ju.count+ju.count)%ju.count],
+		        σ: js[((offset+custom)%js.count+js.count)%js.count])
+	}
+}
+extension Feedback {
 	@NSManaged var cell: Cell
-	@NSManaged var depth: Int
+	@NSManaged var refer: Int
 }
 extension Context {
-	@nonobjc internal func make(commandBuffer: CommandBuffer, cell: Cell, depth: Int, adapters: (AdapterType, AdapterType)) throws -> Feedback {
+	internal func make(commandBuffer: CommandBuffer, cell: Cell, refer: Int, adapters: (AdapterType, AdapterType)) throws -> Feedback {
 		let count: Int = cell.width * cell.width
 		let feedback: Feedback = try make()
 		feedback.cell = cell
-		feedback.depth = depth
+		feedback.refer = refer
 		feedback.locationType = adapters.0.rawValue
 		feedback.location = Data(count: count * MemoryLayout<Float>.size)
 		feedback.location.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in

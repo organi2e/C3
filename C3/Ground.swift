@@ -12,7 +12,7 @@ public class Ground: NSManagedObject {
 }
 extension Ground {
 	@NSManaged var access: Date
-	@NSManaged var lock: Int
+	@NSManaged var custom: Int
 }
 extension Ground {
 	var context: Context {
@@ -23,18 +23,17 @@ extension Ground {
 extension Ground {
 	public override func awakeFromInsert() {
 		super.awakeFromInsert()
-		setValue(Date(), forKey: "access")
 		access = Date()
-		lock = 1
+		custom = 0
 	}
 	public override func awakeFromFetch() {
 		super.awakeFromFetch()
 		access = Date()
-		lock = 1
+		custom = 0
 	}
 	public override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		access = Date()
-		lock = 1
+		custom = 0
 	}
 }
