@@ -72,7 +72,17 @@ extension Arcane {
 	}
 	func access(handler: ((μ: Buffer, σ: Buffer)) -> Void) {
 		guard let μ: Variable = μ, let σ: Variable = σ else { fatalError(String(describing: self)) }
+		func will() {
+			willAccessValue(forKey: Arcane.locationkey)
+			willAccessValue(forKey: Arcane.scalekey)
+		}
+		func done() {
+			didAccessValue(forKey: Arcane.locationkey)
+			didAccessValue(forKey: Arcane.scalekey)
+		}
+		context.performAndWait(will)
 		handler((μ: μ.θ, σ: σ.θ))
+		context.perform(done)
 	}
 	func setup(commandBuffer: CommandBuffer, count: Int) {
 		

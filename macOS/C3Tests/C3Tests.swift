@@ -77,9 +77,9 @@ class C3Tests: XCTestCase {
 			do {
 				let context: Context = try Context(queue: queue, storage: storage)
 				let I: Cell = try context.make(label: "I", width: 4, distribution: .Degenerate, activation: .Binary)
-				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Binary, input: [I], decay: false, recurrent: [-1])
-				let G: Cell = try context.make(label: "G", width: 256, distribution: .Gauss, activation: .Identity, input: [H], decay: true, recurrent: [])
-				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [-1])
+				let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: false, recurrent: [-1])
+				let G: Cell = try context.make(label: "G", width: 64, distribution: .Gauss, activation: .Identity, input: [H], decay: true, recurrent: [])
+				let F: Cell = try context.make(label: "F", width: 64, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [-1])
 				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Identity, input: [F], decay: false, recurrent: [])
 				try context.save()
 			}
@@ -92,7 +92,7 @@ class C3Tests: XCTestCase {
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
 					print("try")
-					(0..<4096).forEach {
+					(0..<1024).forEach {
 						let ref: Int = ( $0 / 4 ) % 8
 						O.collect_refresh()
 						I.correct_refresh()

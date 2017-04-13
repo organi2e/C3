@@ -1,0 +1,19 @@
+//
+//  Educator.h
+//  Educator
+//
+//  Created by Kota Nakano on 4/11/17.
+//
+//
+
+#import <UIKit/UIKit.h>
+
+//! Project version number for Educator.
+FOUNDATION_EXPORT double EducatorVersionNumber;
+
+//! Project version string for Educator.
+FOUNDATION_EXPORT const unsigned char EducatorVersionString[];
+
+// In this header, you should import all the public headers of your framework using statements like #import <Educator/PublicHeader.h>
+
+

@@ -545,9 +545,11 @@ kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
+		float const p = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32767.0/65536.0, 0.5);
 		float const e = sign(du[idx]);
-		du[idx] = e * gu[idx];
-		ds[idx] = e * gs[idx];;
+		float const r = e / p / ( 1 - p );
+		du[idx] = r * gu[idx];
+		ds[idx] = r * gs[idx];;
 	}
 }
 kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
@@ -606,7 +608,7 @@ kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 		float const e = du[idx];
 		float const v = s[idx];
 		du[idx] = e;
-		ds[idx] = v * v - 0.5 * e * e;
+		ds[idx] = v - 0.5 * e * e / v;
 	}
 }
 /*----------------------------------------------------------------*/

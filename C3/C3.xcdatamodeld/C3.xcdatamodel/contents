@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="12141" systemVersion="16E195" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
-    <entity name="Arcane" representedClassName=".Arcane" isAbstract="YES" parentEntity="Ground" syncable="YES">
+    <entity name="Arcane" representedClassName=".Arcane" parentEntity="Ground" syncable="YES">
         <attribute name="location" attributeType="Binary" allowsExternalBinaryDataStorage="YES" syncable="YES"/>
         <attribute name="locationType" attributeType="String" syncable="YES"/>
         <attribute name="scale" attributeType="Binary" allowsExternalBinaryDataStorage="YES" syncable="YES"/>
@@ -11,8 +11,12 @@
     </entity>
     <entity name="Cell" representedClassName=".Cell" parentEntity="Ground" syncable="YES">
         <attribute name="activationType" attributeType="String" syncable="YES"/>
+        <attribute name="deltas" optional="YES" transient="YES" customClassName="." syncable="YES"/>
+        <attribute name="deltau" optional="YES" transient="YES" customClassName="." syncable="YES"/>
         <attribute name="distributionType" attributeType="String" syncable="YES"/>
         <attribute name="label" attributeType="String" syncable="YES"/>
+        <attribute name="state" optional="YES" transient="YES" customClassName="." syncable="YES"/>
+        <attribute name="study" optional="YES" transient="YES" customClassName="." syncable="YES"/>
         <attribute name="width" attributeType="Integer 64" usesScalarValueType="YES" syncable="YES"/>
         <relationship name="bias" maxCount="1" deletionRule="Cascade" destinationEntity="Bias" inverseName="cell" inverseEntity="Bias" syncable="YES"/>
         <relationship name="decay" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="Decay" inverseName="cell" inverseEntity="Decay" syncable="YES"/>
@@ -31,16 +35,17 @@
         <attribute name="depth" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
         <relationship name="cell" maxCount="1" deletionRule="Deny" destinationEntity="Cell" inverseName="loop" inverseEntity="Cell" syncable="YES"/>
     </entity>
-    <entity name="Ground" representedClassName=".Ground" isAbstract="YES" syncable="YES">
-        <attribute name="access" attributeType="Date" usesScalarValueType="NO" syncable="YES"/>
+    <entity name="Ground" representedClassName=".Ground" syncable="YES">
+        <attribute name="access" attributeType="Date" usesScalarValueType="YES" syncable="YES"/>
+        <attribute name="lock" transient="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
     </entity>
     <elements>
         <element name="Arcane" positionX="-63" positionY="-18" width="128" height="105"/>
         <element name="Bias" positionX="-54" positionY="9" width="128" height="60"/>
-        <element name="Cell" positionX="-36" positionY="18" width="128" height="180"/>
+        <element name="Cell" positionX="-36" positionY="18" width="128" height="240"/>
         <element name="Decay" positionX="-36" positionY="45" width="128" height="60"/>
         <element name="Edge" positionX="-18" positionY="54" width="128" height="75"/>
         <element name="Feedback" positionX="-36" positionY="63" width="128" height="75"/>
-        <element name="Ground" positionX="-36" positionY="81" width="128" height="60"/>
+        <element name="Ground" positionX="-36" positionY="81" width="128" height="75"/>
     </elements>
 </model>
