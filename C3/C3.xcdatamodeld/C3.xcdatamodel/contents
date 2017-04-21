@@ -17,7 +17,7 @@
         <attribute name="activationType" attributeType="String" syncable="YES"/>
         <attribute name="cache" transient="YES" customClassName="." syncable="YES"/>
         <attribute name="delta" transient="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES" customClassName="." syncable="YES"/>
-        <attribute name="depth" attributeType="Integer 64" minValueString="2" defaultValueString="2" usesScalarValueType="YES" syncable="YES"/>
+        <attribute name="depth" attributeType="Integer 64" minValueString="2" usesScalarValueType="YES" syncable="YES"/>
         <attribute name="distributionType" attributeType="String" syncable="YES"/>
         <attribute name="index" transient="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
         <attribute name="label" attributeType="String" syncable="YES"/>
@@ -44,7 +44,7 @@
     <entity name="Feedback" representedClassName=".Feedback" parentEntity="Arcane" syncable="YES">
         <attribute name="cache" transient="YES" customClassName="." syncable="YES"/>
         <attribute name="index" transient="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
-        <attribute name="refer" optional="YES" attributeType="Integer 64" maxValueString="-1" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
+        <attribute name="refer" attributeType="Integer 64" usesScalarValueType="YES" syncable="YES"/>
         <relationship name="cell" maxCount="1" deletionRule="Deny" destinationEntity="Cell" inverseName="loop" inverseEntity="Cell" syncable="YES"/>
     </entity>
     <entity name="Ground" representedClassName=".Ground" isAbstract="YES" syncable="YES">
