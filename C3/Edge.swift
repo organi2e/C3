@@ -16,25 +16,27 @@ extension Edge {
 		input.collect_refresh(commandBuffer: commandBuffer)
 		fixing(commandBuffer: commandBuffer)
 	}
-	func collect(collector: Collector, ignore: Set<Cell>) {
+	func collect(collector: Collector, visit: Set<Cell>) {
+		let x: Buffer = input.collect(visit: visit)
 		access {
-			collector.collect(w: $0, x: input.collect(ignore: ignore), count: input.width)
+			collector.collect(w: $0, x: x, count: input.width)
 		}
 	}
 }
 extension Edge {
 	func correct_refresh() {
 		output.correct_refresh()
-		custom = ( custom + 1 ) % output.depth
+		rotate()
 	}
-	func correct(corrector: Corrector, state: Buffer, ignore: Set<Cell>) {
+	func correct(corrector: Corrector, fix: Set<Cell>, visit: Set<Cell>) {
 		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
-		let (Δφ, φ): (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = output.correct(ignore: ignore)
-		if output.pliable {
+		let Δφ: (μ: Buffer, σ: Buffer) = output.correct(fix: fix, visit: visit)
+		let φ: (μ: Buffer, σ: Buffer) = output.φ(0)
+		if !fix.contains(output) {
 			change(commandBuffer: corrector.order) {
 				output.distributor.derivate(commandBuffer: corrector.order, Δθ: $0, j: ja(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
 					access {
-						jacobian.jacobian(a: $0, x: state)
+						jacobian.jacobian(a: $0, x: input.χ(0))
 					}
 					output.jacobian(jacobian: jacobian, feed: ja)
 				}
@@ -42,7 +44,7 @@ extension Edge {
 		}
 		output.distributor.derivate(commandBuffer: corrector.order, Δx: corrector.Δ, j: jx(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
 			access {
-				jacobian.jacobian(x: state, a: $0)
+				jacobian.jacobian(x: input.χ(0), a: $0)
 			}
 			output.jacobian(jacobian: jacobian, feed: jx)
 		}
@@ -50,6 +52,7 @@ extension Edge {
 }
 extension Edge {
 	@NSManaged private var cache: Array<Cache>
+	@NSManaged private var index: Int
 	private class Cache: NSObject {
 		let ja: (μ: Buffer, σ: Buffer)
 		let jx: (μ: Buffer, σ: Buffer)
@@ -74,13 +77,16 @@ extension Edge {
 			encoder.endEncoding()
 		}
 	}
-	func ja(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+	internal func ja(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
 		let cycle: Int = cache.count
-		return cache[((offset+custom)%cycle+cycle)%cycle].ja
+		return cache[((offset+index)%cycle+cycle)%cycle].ja
 	}
-	func jx(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+	internal func jx(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
 		let cycle: Int = cache.count
-		return cache[((offset+custom)%cycle+cycle)%cycle].jx
+		return cache[((offset+index)%cycle+cycle)%cycle].jx
+	}
+	internal func rotate() {
+		index = ( index + 1 ) % cache.count
 	}
 	override internal func setup(commandBuffer: CommandBuffer, count: Int) {
 		cache = Array<Void>(repeating: (), count: output.depth).map {
@@ -89,6 +95,7 @@ extension Edge {
 		cache.forEach {
 			$0.reset(commandBuffer: commandBuffer)
 		}
+		index = 0
 		super.setup(commandBuffer: commandBuffer, count: count)
 	}
 }

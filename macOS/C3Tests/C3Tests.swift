@@ -24,53 +24,6 @@ class C3Tests: XCTestCase {
 		super.setUp()
 		print(storage.lastPathComponent)
 	}
-	/*
-	func testSaveLoad() {
-	let label: String = UUID().description
-	let width: Int = 1 + Int(arc4random_uniform(15))
-	do {
-	do {
-	let context: Context = try Context(storage: storage)
-	let _: Cell = try context.make(label: label, width: width)
-	try context.save()
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch()
-	print(XS)
-	XCTAssert(!XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: label)
-	XCTAssert(!XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(width: width)
-	XCTAssert(!XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: label, width: width)
-	XCTAssert(XS.count==1)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: UUID().description, width: width)
-	XCTAssert(XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: label, width: width+1)
-	XCTAssert(XS.isEmpty)
-	}
-	
-	} catch {
-	XCTFail(String(describing: error))
-	}
-	}
-	*/
 	func testChain() {
 		do {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
