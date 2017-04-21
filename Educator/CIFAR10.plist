@@ -7,7 +7,7 @@
 	<key>COLS</key>
 	<integer>32</integer>
 	<key>PATH</key>
-	<string>file:///Users/Kota/Downloads/cifar-10-binary.tar.gz</string>
+	<string>https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz</string>
 	<key>DATA BATCH 1</key>
 	<string>cifar-10-batches-bin/data_batch_1.bin</string>
 	<key>DATA BATCH 2</key>
