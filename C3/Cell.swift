@@ -32,7 +32,7 @@ extension Cell {
 		state = false
 	}
 	public func collect() {
-		let _: Buffer = collect(visit: [])
+		let _: Buffer = collect(visit: Set<Cell>())
 	}
 	internal func collect(visit: Set<Cell>) -> Buffer {
 		guard !visit.contains(self) else {
@@ -75,7 +75,7 @@ extension Cell {
 		study = false
 		delta = false
 	}
-	public func correct(fix: Set<Cell> = []) {
+	public func correct(fix: Set<Cell> = Set<Cell>()) {
 		let _: (μ: Buffer, σ: Buffer) = correct(fix: [self], visit: [])
 	}
 	internal func correct(fix: Set<Cell>, visit: Set<Cell>) -> (μ: Buffer, σ: Buffer) {
