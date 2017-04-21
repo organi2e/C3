@@ -219,9 +219,10 @@ extension DegenerateDistributor {
 			let threads: Int = activatorPipeline.GP.threadExecutionWidth
 			encoder.setComputePipelineState(activatorPipeline.GP)
 			encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
-			encoder.setBuffer(g.μ, offset: 0, at: 1)
-			encoder.setBuffer(φ.μ, offset: 0, at: 2)
-			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 3)
+			encoder.setBuffer(f, offset: 0, at: 1)
+			encoder.setBuffer(g.μ, offset: 0, at: 2)
+			encoder.setBuffer(φ.μ, offset: 0, at: 3)
+			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 4)
 			encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
 			encoder.endEncoding()
@@ -240,9 +241,10 @@ extension DegenerateDistributor {
 			let threads: Int = activatorPipeline.GV.threadExecutionWidth
 			encoder.setComputePipelineState(activatorPipeline.GV)
 			encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
-			encoder.setBuffer(g.μ, offset: 0, at: 1)
-			encoder.setBuffer(φ.μ, offset: 0, at: 2)
-			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 3)
+			encoder.setBuffer(v, offset: 0, at: 1)
+			encoder.setBuffer(g.μ, offset: 0, at: 2)
+			encoder.setBuffer(φ.μ, offset: 0, at: 3)
+			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 4)
 			encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
 			encoder.endEncoding()

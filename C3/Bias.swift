@@ -27,37 +27,54 @@ extension Bias {
 	}
 	func correct(commandBuffer: CommandBuffer, Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
-		change(commandBuffer: commandBuffer) {
-			cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: j(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
-				access {
-					jacobian.jacobian(c: $0)
+		if cell.pliable {
+			change(commandBuffer: commandBuffer) {
+				cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: j(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
+					access {
+						jacobian.jacobian(c: $0)
+					}
+					cell.jacobian(jacobian: jacobian, feed: j)
 				}
-				cell.jacobian(jacobian: jacobian, feed: j)
 			}
 		}
 	}
 }
 extension Bias {
-	override func setup(commandBuffer: CommandBuffer, count: Int) {
-		super.setup(commandBuffer: commandBuffer, count: count)
-		do {
+	@NSManaged private var cache: Array<Cache>
+	private class Cache: NSObject {
+		let j: (μ: Buffer, σ: Buffer)
+		init(context: Context, count: Int) {
 			let length: Int = count * MemoryLayout<Float>.size
-			let ref: Array<Void> = Array<Void>(repeating: (), count: cell.depth)
-			ju = ref.map {
-				context.make(length: length, options: .storageModePrivate)
-			}
-			js = ref.map {
-				context.make(length: length, options: .storageModePrivate)
-			}
+			let option: MTLResourceOptions = .storageModePrivate
+			j = (
+				μ: context.make(length: length, options: option),
+				σ: context.make(length: length, options: option)
+			)
+			super.init()
 		}
-		do {
+		func reset(commandBuffer: CommandBuffer) {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-			(ju+js).forEach {
+			[j.μ, j.σ].forEach {
 				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
 			}
 			encoder.endEncoding()
 		}
 	}
+	internal func j(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+		let cycle: Int = cache.count
+		return cache[((offset+custom)%cycle+cycle)%cycle].j
+	}
+	override internal func setup(commandBuffer: CommandBuffer, count: Int) {
+		cache = Array<Void>(repeating: (), count: cell.depth).map {
+			Cache(context: context, count: count)
+		}
+		cache.forEach {
+			$0.reset(commandBuffer: commandBuffer)
+		}
+		super.setup(commandBuffer: commandBuffer, count: count)
+	}
+}
+extension Bias {
 	override func awakeFromFetch() {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
@@ -72,16 +89,6 @@ extension Bias {
 	}
 }
 extension Bias {
-	@NSManaged var ju: Array<Buffer>
-	@NSManaged var js: Array<Buffer>
-	func j(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
-		assert( ju.count == cell.depth )
-		assert( js.count == cell.depth )
-		return (μ: ju[((offset+custom)%ju.count+ju.count)%ju.count],
-		        σ: js[((offset+custom)%js.count+js.count)%js.count])
-	}
-}
-extension Bias {
 	@NSManaged var cell: Cell
 }
 extension Context {
@@ -91,8 +98,18 @@ extension Context {
 		bias.cell = cell
 		bias.locationType = adapters.0.rawValue
 		bias.location = Data(count: count * MemoryLayout<Float>.size)
-		bias.location.withUnsafeMutableBytes {
-			vDSP_vfill([0.0], $0, 1, vDSP_Length(count))
+		bias.location.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in
+			assert( MemoryLayout<Float>.size == 4 )
+			assert( MemoryLayout<UInt32>.size == 4 )
+			arc4random_buf(ref, bias.location.count)
+			vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(count))
+			vDSP_vsmsa(ref, 1, [exp2f(-32)], [exp2f(-33)], ref, 1, vDSP_Length(count))
+			cblas_sscal(Int32(count/2), 2*Float.pi, ref.advanced(by: count/2), 1)
+			vvlogf(ref, ref, [Int32(count/2)])
+			cblas_sscal(Int32(count/2), -2, ref, 1)
+			vvsqrtf(ref, ref, [Int32(count/2)])
+			vDSP_vswap(ref.advanced(by: 1), 2, ref.advanced(by: count/2), 2, vDSP_Length(count/4))
+			vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
 		}
 		bias.scaleType = adapters.1.rawValue
 		bias.scale = Data(count: count * MemoryLayout<Float>.size)

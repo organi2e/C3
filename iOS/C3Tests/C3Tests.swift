@@ -13,7 +13,7 @@ import Optimizer
 import Adapter
 @testable import C3
 
-let file: String = UUID().uuidString
+let file: String = "C3Tests"//UUID().uuidString
 let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(file).sqlite")
 
 let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [1,0,0,0]]
@@ -74,36 +74,43 @@ class C3Tests: XCTestCase {
 	func testChain() {
 		do {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
+			/*
 			do {
 				let context: Context = try Context(queue: queue, storage: storage)
-				let I: Cell = try context.make(label: "I", width: 4, distribution: .Degenerate, activation: .Binary)
-				let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: false, recurrent: [])
-				let G: Cell = try context.make(label: "G", width: 64, distribution: .Gauss, activation: .Identity, input: [H], decay: true, recurrent: [])
-				let F: Cell = try context.make(label: "F", width: 64, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [])
-				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Identity, input: [F], decay: false, recurrent: [])
+				let I: Cell = try context.make(label: "I", width: 4, distribution: .Gauss, activation: .Binary)
+				let H: Cell = try context.make(label: "H", width: 512, distribution: .Gauss, activation: .Binary, adapters: (.Regular, .RegFloor), input: [I], decay: false, recurrent: [])
+				let G: Cell = try context.make(label: "G", width: 512, distribution: .Gauss, activation: .Identity, adapters: (.Regular, .RegFloor), input: [H], decay: true, recurrent: [])
+				let F: Cell = try context.make(label: "F", width: 512, distribution: .Gauss, activation: .Binary, adapters: (.Regular, .RegFloor), input: [G], decay: false, recurrent: [])
+				let E: Cell = try context.make(label: "G", width: 512, distribution: .Gauss, activation: .Identity, adapters: (.Regular, .RegFloor), input: [F], decay: true, recurrent: [])
+				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Binary, adapters: (.Regular, .RegFloor), input: [E], decay: false, recurrent: [])
 				try context.save()
 			}
+			*/
 			do {
 				let context: Context = try Context(queue: queue,
 				                                   storage: storage,
-				                                   optimizer: SMORMS3.factory(L2: 1e-4, L1: 0, α: 1e-2)
+				                                   optimizer: SMORMS3.factory(L2: 1e-4, L1: 0, α: 1e-1)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
 					print("try")
-					(0..<1024).forEach {
+					(0..<4096).forEach {
 						let ref: Int = ( $0 / 4 ) % 8
 						O.collect_refresh()
 						I.correct_refresh()
-						O.target = OS[ref].map { $0 * Float( ref + 1 ) }
+						O.target = OS[ref]
 						I.source = IS[ref]
 						O.collect()
 						I.correct()
 						//						print(O.source)
 					}
+					do {
+						try context.save()
+					} catch {
+						XCTFail(String(describing: error))
+					}
 				}
-				try context.save()
 			}
 			
 			do {
@@ -121,7 +128,6 @@ class C3Tests: XCTestCase {
 					//let x = O.source
 					print(k, OS[k], O.source.map(Int.init))//.map{ $0 == x.max() })
 				}
-				sleep(30)
 				/*
 				print("cpu")
 				let (HWμ, HWσ) = context.capture(output: H, input: I)

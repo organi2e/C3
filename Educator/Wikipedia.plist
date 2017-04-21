@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!--
-   Wikipedia.plist
-   tvOS
-
-   Created by Kota Nakano on 2017/04/12.
-   Copyright (c) 2017 __MyCompanyName__. All rights reserved.
--->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-    <dict>
-    
-    </dict>
+<dict>
+	<key>Abstract</key>
+	<string>https://dumps.wikimedia.org/jawiki/latest/jawiki-latest-abstract.xml</string>
+</dict>
 </plist>

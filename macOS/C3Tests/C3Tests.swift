@@ -77,8 +77,8 @@ class C3Tests: XCTestCase {
 			do {
 				let context: Context = try Context(queue: queue, storage: storage)
 				let I: Cell = try context.make(label: "I", width: 4, distribution: .Gauss, activation: .Binary)
-				let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: false, recurrent: [])
-				let G: Cell = try context.make(label: "G", width: 64, distribution: .Gauss, activation: .Identity, input: [H], decay: true, recurrent: [-1])
+				let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [])
+				let G: Cell = try context.make(label: "G", width: 64, distribution: .Gauss, activation: .Binary, input: [H], decay: true, recurrent: [])
 //				let F: Cell = try context.make(label: "F", width: 64, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [])
 				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [])
 				try context.save()

@@ -60,6 +60,10 @@ public class Context: NSManagedObjectContext {
 			}
 		}
 	}
+	public required init?(coder aDecoder: NSCoder) {
+		assertionFailure("init(coder:) has not been implemented")
+		return nil
+	}
 	public init(queue: MTLCommandQueue,
 	            storage: URL? = nil,
 	            optimizer: (MTLDevice) throws -> (Int) -> Optimizer = SGD.factory(),
@@ -90,22 +94,9 @@ public class Context: NSManagedObjectContext {
 		super.init(concurrencyType: concurrencyType)
 		guard let model: NSManagedObjectModel = NSManagedObjectModel.mergedModel(from: [Bundle(for: type(of: self))]) else { throw ErrorCase.NoModelFound }
 		let store: NSPersistentStoreCoordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
-		let storetype: String = storage == nil ? NSInMemoryStoreType : storage?.pathExtension == "sqlite" ? NSSQLiteStoreType : NSBinaryStoreType
+		let storetype: String = storage == nil ? NSInMemoryStoreType : ["sqlite", "db"].filter{$0==storage?.pathExtension}.isEmpty ? NSBinaryStoreType : NSSQLiteStoreType
 		try store.addPersistentStore(ofType: storetype, configurationName: nil, at: storage, options: nil)
 		persistentStoreCoordinator = store
-	}
-	public required init?(coder aDecoder: NSCoder) {
-		fatalError("init(coder:) has not been implemented")
-	}
-	public override func awakeAfter(using aDecoder: NSCoder) -> Any? {
-		defer {
-			print("awake")
-		}
-		return super.awakeAfter(using: aDecoder)
-	}
-	public override func encode(with aCoder: NSCoder) {
-		super.encode(with: aCoder)
-		print("enc")
 	}
 }
 extension Context {
@@ -137,24 +128,30 @@ extension Context {
 	public func connect(output: Cell, input: Cell, adapters: (AdapterType, AdapterType)) throws {
 		guard output.objectID != input.objectID && output.input.filter({$0.input.objectID==input.objectID}).isEmpty else { return }
 		let commandBuffer: CommandBuffer = make()
-		output.input.insert(try make(commandBuffer: commandBuffer, output: output, input: input, adapters: adapters))
+		try output.input.insert(make(commandBuffer: commandBuffer, output: output, input: input, adapters: adapters))
 		commandBuffer.commit()
 	}
 	public func disconnect(output: Cell, input: Cell) {
-		output.input.filter{$0.input.objectID == input.objectID}.forEach(remove)
+		output.input.filter{$0.input.objectID == input.objectID}.forEach(delete)
 	}
 }
 extension Context {
 	func make<T: Ground>() throws -> T {
 		let name: String = String(describing: T.self)
-		var cache: NSManagedObject?
-		func block() {
-			cache = NSEntityDescription.insertNewObject(forEntityName: name, into: self)
+		guard let entity: T = NSEntityDescription.insertNewObject(forEntityName: name, into: self) as? T else {
+			throw ErrorCase.InvalidEntity(name: name)
 		}
-		performAndWait(block)
-		guard let entity: T = cache as? T else { throw ErrorCase.InvalidEntity(name: name) }
 		return entity
 	}
+	/*
+	func count<T: Ground>(predicate: NSPredicate) throws -> Int {
+		let name: String = String(describing: T.self)
+		let request: NSFetchRequest<T> = NSFetchRequest<T>(entityName: name)
+		request.predicate = predicate
+		return try count(for: request)
+	}
+	*/
+	/*
 	func fetch<T: Ground>(predicate: NSPredicate) throws -> [T] {
 		let name: String = String(describing: T.self)
 		var cache: [T] = []
@@ -181,17 +178,15 @@ extension Context {
 		}
 		perform(block)
 	}
+	*/
 	public override func save() throws {
 		var encounter: Error?
 		func done(_: CommandBuffer) {
-			func block() {
-				do {
-					try super.save()
-				} catch {
-					encounter = error
-				}
+			do {
+				try super.save()
+			} catch {
+				encounter = error
 			}
-			performAndWait(block)
 		}
 		let commandBuffer: CommandBuffer = make()
 		commandBuffer.addCompletedHandler(done)

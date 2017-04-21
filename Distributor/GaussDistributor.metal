@@ -537,19 +537,21 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 }
 kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   device float * const ds [[ buffer(1) ]],
-						   device float const * const gu [[ buffer(2) ]],
-						   device float const * const gs [[ buffer(3) ]],
-						   device float const * const u [[ buffer(4) ]],
-						   device float const * const s [[ buffer(5) ]],
-						   constant uint const & N [[ buffer(6) ]],
+						   device float const * const f [[ buffer(2) ]],
+						   device float const * const gu [[ buffer(3) ]],
+						   device float const * const gs [[ buffer(4) ]],
+						   device float const * const u [[ buffer(5) ]],
+						   device float const * const s [[ buffer(6) ]],
+						   constant uint const & N [[ buffer(7) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const p = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32767.0/65536.0, 0.5);
 		float const e = sign(du[idx]);
-		float const r = e / p / ( 1 - p );
-		du[idx] = r * gu[idx];
-		ds[idx] = r * gs[idx];;
+//		float const e = saturate(sign(du[idx]) - f[idx]) + f[idx];
+		float const p = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32767.0/65536.0, 0.5);
+		float const g = e / p / ( 1 - p );
+		du[idx] = g * gu[idx];
+		ds[idx] = g * gs[idx];
 	}
 }
 kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
@@ -597,11 +599,12 @@ kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
 }
 kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 						   device float * const ds [[ buffer(1) ]],
-						   device float const * const gu [[ buffer(2) ]],
-						   device float const * const gs [[ buffer(3) ]],
-						   device float const * const u [[ buffer(4) ]],
-						   device float const * const s [[ buffer(5) ]],
-						   constant uint const & N [[ buffer(6) ]],
+						   device float const * const f [[ buffer(2) ]],
+						   device float const * const gu [[ buffer(3) ]],
+						   device float const * const gs [[ buffer(4) ]],
+						   device float const * const u [[ buffer(5) ]],
+						   device float const * const s [[ buffer(6) ]],
+						   constant uint const & N [[ buffer(7) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;

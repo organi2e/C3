@@ -290,9 +290,10 @@ kernel void DegenerateActivateP(device float * const f [[ buffer(0) ]],
 	}
 }
 kernel void DegenerateDerivateP(device float * const d [[ buffer(0) ]],
-								device float const * const g [[ buffer(1) ]],
-								device float const * const v [[ buffer(2) ]],
-								constant uint const & N [[ buffer(3) ]],
+								device float const * const f [[ buffer(1) ]],
+								device float const * const g [[ buffer(2) ]],
+								device float const * const v [[ buffer(3) ]],
+								constant uint const & N [[ buffer(4) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
@@ -311,9 +312,10 @@ kernel void DegenerateActivateV(device float * const f [[ buffer(0) ]],
 	}
 }
 kernel void DegenerateDerivateV(device float * const d [[ buffer(0) ]],
-								device float const * const g [[ buffer(1) ]],
-								device float const * const u [[ buffer(2) ]],
-								constant uint const & N [[ buffer(3) ]],
+								device float const * const f [[ buffer(1) ]],
+								device float const * const g [[ buffer(2) ]],
+								device float const * const u [[ buffer(3) ]],
+								constant uint const & N [[ buffer(4) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		

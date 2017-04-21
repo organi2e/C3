@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="12141" systemVersion="16E195" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Corpus" representedClassName=".Corpus" syncable="YES">
+        <attribute name="body" attributeType="String" syncable="YES"/>
+        <attribute name="title" attributeType="String" indexed="YES" syncable="YES"/>
+    </entity>
+    <entity name="Group" representedClassName=".Group" isAbstract="YES" syncable="YES">
+        <attribute name="domain" attributeType="String" syncable="YES"/>
+        <attribute name="family" attributeType="String" syncable="YES"/>
+        <attribute name="handle" attributeType="String" syncable="YES"/>
+        <attribute name="option" attributeType="Transformable" syncable="YES"/>
+    </entity>
+    <entity name="Image" representedClassName=".Image" parentEntity="Group" syncable="YES">
+        <attribute name="data" attributeType="Binary" syncable="YES"/>
+        <attribute name="format" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
+        <attribute name="height" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
+        <attribute name="rowBytes" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
+        <attribute name="width" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
+    </entity>
+    <elements>
+        <element name="Group" positionX="-63" positionY="27" width="128" height="105"/>
+        <element name="Image" positionX="-63" positionY="-18" width="128" height="120"/>
+        <element name="Corpus" positionX="-63" positionY="36" width="128" height="75"/>
+    </elements>
+</model>
