@@ -17,9 +17,8 @@ extension Edge {
 		fixing(commandBuffer: commandBuffer)
 	}
 	func collect(collector: Collector, ignore: Set<Cell>) {
-		let count: Int = input.width
 		access {
-			collector.collect(w: $0, x: input.collect(ignore: ignore), count: count)
+			collector.collect(w: $0, x: input.collect(ignore: ignore), count: input.width)
 		}
 	}
 }
@@ -31,12 +30,14 @@ extension Edge {
 	func correct(corrector: Corrector, state: Buffer, ignore: Set<Cell>) {
 		let count: (rows: Int, cols: Int) = (rows: output.width, cols: input.width)
 		let (Δφ, φ): (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = output.correct(ignore: ignore)
-		change(commandBuffer: corrector.order) {
-			output.distributor.derivate(commandBuffer: corrector.order, Δθ: $0, j: ja(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
-				access {
-					jacobian.jacobian(a: $0, x: state)
+		if output.pliable {
+			change(commandBuffer: corrector.order) {
+				output.distributor.derivate(commandBuffer: corrector.order, Δθ: $0, j: ja(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
+					access {
+						jacobian.jacobian(a: $0, x: state)
+					}
+					output.jacobian(jacobian: jacobian, feed: ja)
 				}
-				output.jacobian(jacobian: jacobian, feed: ja)
 			}
 		}
 		output.distributor.derivate(commandBuffer: corrector.order, Δx: corrector.Δ, j: jx(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
@@ -48,32 +49,50 @@ extension Edge {
 	}
 }
 extension Edge {
-	override func setup(commandBuffer: CommandBuffer, count: Int) {
-		super.setup(commandBuffer: commandBuffer, count: count)
-		do {
+	@NSManaged private var cache: Array<Cache>
+	private class Cache: NSObject {
+		let ja: (μ: Buffer, σ: Buffer)
+		let jx: (μ: Buffer, σ: Buffer)
+		init(context: Context, count: Int) {
 			let length: Int = count * MemoryLayout<Float>.size
-			let ref: Array<Void> = Array<Void>(repeating: (), count: output.depth)
-			jau = ref.map {
-				context.make(length: length, options: .storageModePrivate)
-			}
-			jas = ref.map {
-				context.make(length: length, options: .storageModePrivate)
-			}
-			jxu = ref.map {
-				context.make(length: length, options: .storageModePrivate)
-			}
-			jxs = ref.map {
-				context.make(length: length, options: .storageModePrivate)
-			}
+			let option: MTLResourceOptions = .storageModePrivate
+			ja = (
+				μ: context.make(length: length, options: option),
+				σ: context.make(length: length, options: option)
+			)
+			jx = (
+				μ: context.make(length: length, options: option),
+				σ: context.make(length: length, options: option)
+			)
+			super.init()
 		}
-		do {
+		func reset(commandBuffer: CommandBuffer) {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-			(jau+jau+jxu+jxs).forEach {
+			[ja.μ, ja.σ, jx.μ, jx.σ].forEach {
 				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
 			}
 			encoder.endEncoding()
 		}
 	}
+	func ja(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+		let cycle: Int = cache.count
+		return cache[((offset+custom)%cycle+cycle)%cycle].ja
+	}
+	func jx(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+		let cycle: Int = cache.count
+		return cache[((offset+custom)%cycle+cycle)%cycle].jx
+	}
+	override internal func setup(commandBuffer: CommandBuffer, count: Int) {
+		cache = Array<Void>(repeating: (), count: output.depth).map {
+			Cache(context: context, count: count)
+		}
+		cache.forEach {
+			$0.reset(commandBuffer: commandBuffer)
+		}
+		super.setup(commandBuffer: commandBuffer, count: count)
+	}
+}
+extension Edge {
 	override func awakeFromFetch() {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
@@ -85,24 +104,6 @@ extension Edge {
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: output.width * input.width)
 		commandBuffer.commit()
-	}
-}
-extension Edge {
-	@NSManaged var jxu: Array<Buffer>
-	@NSManaged var jxs: Array<Buffer>
-	@NSManaged var jau: Array<Buffer>
-	@NSManaged var jas: Array<Buffer>
-	func ja(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
-		assert( jau.count == output.depth )
-		assert( jas.count == output.depth )
-		return (μ: jau[((offset+custom)%jau.count+jau.count)%jau.count],
-		        σ: jas[((offset+custom)%jas.count+jas.count)%jas.count])
-	}
-	func jx(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
-		assert( jxu.count == output.depth )
-		assert( jxs.count == output.depth )
-		return (μ: jxu[((offset+custom)%jxu.count+jxu.count)%jxu.count],
-		        σ: jxs[((offset+custom)%jxs.count+jxs.count)%jxs.count])
 	}
 }
 extension Edge {

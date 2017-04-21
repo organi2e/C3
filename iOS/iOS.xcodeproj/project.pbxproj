@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8709F3D51EA9B490007DCB96 /* Educator.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 8709F3D31EA9B490007DCB96 /* Educator.xcdatamodeld */; };
 		872369001E9BEE8000EC739F /* DegenerateDistributor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 872368FE1E9BEE8000EC739F /* DegenerateDistributor.metal */; };
 		872369011E9BEE8000EC739F /* DegenerateDistributor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 872368FF1E9BEE8000EC739F /* DegenerateDistributor.swift */; };
 		874068591E9D22680049B4EC /* Educator.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 874068501E9D22680049B4EC /* Educator.framework */; };
@@ -17,10 +18,10 @@
 		874068741E9D23ED0049B4EC /* MNIST.swift in Sources */ = {isa = PBXBuildFile; fileRef = 874068701E9D23ED0049B4EC /* MNIST.swift */; };
 		875BA1E21E9DEAD30076A39C /* Educator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875BA1DA1E9DEAD30076A39C /* Educator.swift */; };
 		875BA1E31E9DEAD30076A39C /* MNIST.plist in Resources */ = {isa = PBXBuildFile; fileRef = 875BA1DB1E9DEAD30076A39C /* MNIST.plist */; };
-		875BA1E41E9DEAD30076A39C /* MNIST.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 875BA1DC1E9DEAD30076A39C /* MNIST.xcdatamodeld */; };
 		875BA1E51E9DEAD30076A39C /* Wikipedia.plist in Resources */ = {isa = PBXBuildFile; fileRef = 875BA1DE1E9DEAD30076A39C /* Wikipedia.plist */; };
 		875BA1E61E9DEAD30076A39C /* Wikipedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875BA1DF1E9DEAD30076A39C /* Wikipedia.swift */; };
-		875BA1E71E9DEAD30076A39C /* Wikipedia.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 875BA1E01E9DEAD30076A39C /* Wikipedia.xcdatamodeld */; };
+		87A79E911EA25EF6007C3E92 /* Adamax.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A79E901EA25EF6007C3E92 /* Adamax.swift */; };
+		87A79E931EA25F08007C3E92 /* Adamax.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87A79E921EA25F08007C3E92 /* Adamax.metal */; };
 		87D202B31E99486F0054A34D /* C3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87D202AA1E99486F0054A34D /* C3.framework */; };
 		87D202B81E99486F0054A34D /* C3Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D202B71E99486F0054A34D /* C3Tests.swift */; };
 		87D202BA1E99486F0054A34D /* C3.h in Headers */ = {isa = PBXBuildFile; fileRef = 87D202AC1E99486F0054A34D /* C3.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -81,8 +82,6 @@
 		87D203AF1E995E840054A34D /* Decay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203A41E995E840054A34D /* Decay.swift */; };
 		87D203B01E995E840054A34D /* Edge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203A51E995E840054A34D /* Edge.swift */; };
 		87D203B11E995E840054A34D /* Feedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203A61E995E840054A34D /* Feedback.swift */; };
-		87D203B21E995E840054A34D /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203A71E995E840054A34D /* RingBuffer.swift */; };
-		87D203B31E995E840054A34D /* Variable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203A81E995E840054A34D /* Variable.swift */; };
 		87D203B61E995ED60054A34D /* Adapter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87D202E21E9948840054A34D /* Adapter.framework */; };
 		87D203B71E995ED60054A34D /* Distributor.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87D202FE1E99488D0054A34D /* Distributor.framework */; };
 		87D203B81E995ED60054A34D /* Optimizer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87D202C61E99487C0054A34D /* Optimizer.framework */; };
@@ -217,6 +216,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		8709F3D41EA9B490007DCB96 /* Educator.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Educator.xcdatamodel; sourceTree = "<group>"; };
 		872368FE1E9BEE8000EC739F /* DegenerateDistributor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = DegenerateDistributor.metal; path = ../../Distributor/DegenerateDistributor.metal; sourceTree = "<group>"; };
 		872368FF1E9BEE8000EC739F /* DegenerateDistributor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DegenerateDistributor.swift; path = ../../Distributor/DegenerateDistributor.swift; sourceTree = "<group>"; };
 		874068501E9D22680049B4EC /* Educator.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Educator.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -228,10 +228,10 @@
 		874068701E9D23ED0049B4EC /* MNIST.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MNIST.swift; path = ../../Educator/MNIST.swift; sourceTree = "<group>"; };
 		875BA1DA1E9DEAD30076A39C /* Educator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Educator.swift; path = ../../Educator/Educator.swift; sourceTree = "<group>"; };
 		875BA1DB1E9DEAD30076A39C /* MNIST.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = MNIST.plist; path = ../../Educator/MNIST.plist; sourceTree = "<group>"; };
-		875BA1DD1E9DEAD30076A39C /* MNIST.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MNIST.xcdatamodel; sourceTree = "<group>"; };
 		875BA1DE1E9DEAD30076A39C /* Wikipedia.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Wikipedia.plist; path = ../../Educator/Wikipedia.plist; sourceTree = "<group>"; };
 		875BA1DF1E9DEAD30076A39C /* Wikipedia.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Wikipedia.swift; path = ../../Educator/Wikipedia.swift; sourceTree = "<group>"; };
-		875BA1E11E9DEAD30076A39C /* Wikipedia.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Wikipedia.xcdatamodel; sourceTree = "<group>"; };
+		87A79E901EA25EF6007C3E92 /* Adamax.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Adamax.swift; path = ../../Optimizer/Adamax.swift; sourceTree = "<group>"; };
+		87A79E921EA25F08007C3E92 /* Adamax.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Adamax.metal; path = ../../Optimizer/Adamax.metal; sourceTree = "<group>"; };
 		87D202AA1E99486F0054A34D /* C3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = C3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		87D202AC1E99486F0054A34D /* C3.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = C3.h; sourceTree = "<group>"; };
 		87D202AD1E99486F0054A34D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -308,8 +308,6 @@
 		87D203A41E995E840054A34D /* Decay.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Decay.swift; path = ../../C3/Decay.swift; sourceTree = "<group>"; };
 		87D203A51E995E840054A34D /* Edge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Edge.swift; path = ../../C3/Edge.swift; sourceTree = "<group>"; };
 		87D203A61E995E840054A34D /* Feedback.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Feedback.swift; path = ../../C3/Feedback.swift; sourceTree = "<group>"; };
-		87D203A71E995E840054A34D /* RingBuffer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RingBuffer.swift; path = ../../C3/RingBuffer.swift; sourceTree = "<group>"; };
-		87D203A81E995E840054A34D /* Variable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Variable.swift; path = ../../C3/Variable.swift; sourceTree = "<group>"; };
 		87D203ED1E9A353F0054A34D /* Ground.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Ground.swift; path = ../../C3/Ground.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -418,12 +416,11 @@
 			isa = PBXGroup;
 			children = (
 				875BA1DF1E9DEAD30076A39C /* Wikipedia.swift */,
-				875BA1E01E9DEAD30076A39C /* Wikipedia.xcdatamodeld */,
 				875BA1DE1E9DEAD30076A39C /* Wikipedia.plist */,
 				874068701E9D23ED0049B4EC /* MNIST.swift */,
-				875BA1DC1E9DEAD30076A39C /* MNIST.xcdatamodeld */,
 				875BA1DB1E9DEAD30076A39C /* MNIST.plist */,
 				875BA1DA1E9DEAD30076A39C /* Educator.swift */,
+				8709F3D31EA9B490007DCB96 /* Educator.xcdatamodeld */,
 				874068521E9D22680049B4EC /* Educator.h */,
 				874068531E9D22680049B4EC /* Info.plist */,
 			);
@@ -442,6 +439,8 @@
 		87D202791E9948220054A34D = {
 			isa = PBXGroup;
 			children = (
+				87D2037E1E9949750054A34D /* Stage */,
+				87D203931E9949750054A34D /* StageUITests */,
 				87D202AB1E99486F0054A34D /* C3 */,
 				87D202B61E99486F0054A34D /* C3Tests */,
 				87D202C71E99487C0054A34D /* Optimizer */,
@@ -450,8 +449,6 @@
 				87D202EE1E9948840054A34D /* AdapterTests */,
 				87D202FF1E99488D0054A34D /* Distributor */,
 				87D2030A1E99488D0054A34D /* DistributorTests */,
-				87D2037E1E9949750054A34D /* Stage */,
-				87D203931E9949750054A34D /* StageUITests */,
 				874068511E9D22680049B4EC /* Educator */,
 				8740685E1E9D22680049B4EC /* EducatorTests */,
 				87D202851E99485D0054A34D /* Products */,
@@ -489,8 +486,6 @@
 				87D203A51E995E840054A34D /* Edge.swift */,
 				87D203A61E995E840054A34D /* Feedback.swift */,
 				87D203ED1E9A353F0054A34D /* Ground.swift */,
-				87D203A71E995E840054A34D /* RingBuffer.swift */,
-				87D203A81E995E840054A34D /* Variable.swift */,
 				87D2039F1E995E840054A34D /* C3.xcdatamodeld */,
 				87D202AC1E99486F0054A34D /* C3.h */,
 				87D202AD1E99486F0054A34D /* Info.plist */,
@@ -514,6 +509,8 @@
 				87D2035F1E9949160054A34D /* AdaDelta.metal */,
 				87D203621E9949160054A34D /* Adam.swift */,
 				87D203611E9949160054A34D /* Adam.metal */,
+				87A79E901EA25EF6007C3E92 /* Adamax.swift */,
+				87A79E921EA25F08007C3E92 /* Adamax.metal */,
 				87D203641E9949160054A34D /* Momentum.swift */,
 				87D203631E9949160054A34D /* Momentum.metal */,
 				87D203661E9949160054A34D /* MomentumAdaDelta.swift */,
@@ -536,7 +533,7 @@
 				87D202D51E99487C0054A34D /* Info.plist */,
 			);
 			path = OptimizerTests;
-			sourceTree = "<group>";
+			sourceTree = SOURCE_ROOT;
 		};
 		87D202E31E9948840054A34D /* Adapter */ = {
 			isa = PBXGroup;
@@ -1093,8 +1090,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				875BA1E71E9DEAD30076A39C /* Wikipedia.xcdatamodeld in Sources */,
-				875BA1E41E9DEAD30076A39C /* MNIST.xcdatamodeld in Sources */,
+				8709F3D51EA9B490007DCB96 /* Educator.xcdatamodeld in Sources */,
 				875BA1E61E9DEAD30076A39C /* Wikipedia.swift in Sources */,
 				875BA1E21E9DEAD30076A39C /* Educator.swift in Sources */,
 				874068741E9D23ED0049B4EC /* MNIST.swift in Sources */,
@@ -1114,10 +1110,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				87D203AC1E995E840054A34D /* Capture.swift in Sources */,
-				87D203B21E995E840054A34D /* RingBuffer.swift in Sources */,
 				87D203AA1E995E840054A34D /* Bias.swift in Sources */,
 				87D203B11E995E840054A34D /* Feedback.swift in Sources */,
-				87D203B31E995E840054A34D /* Variable.swift in Sources */,
 				87D203B01E995E840054A34D /* Edge.swift in Sources */,
 				87D203EE1E9A353F0054A34D /* Ground.swift in Sources */,
 				87D203AF1E995E840054A34D /* Decay.swift in Sources */,
@@ -1145,8 +1139,10 @@
 				87D203711E9949160054A34D /* Momentum.swift in Sources */,
 				87D2036E1E9949160054A34D /* Adam.metal in Sources */,
 				87D203731E9949160054A34D /* MomentumAdaDelta.swift in Sources */,
+				87A79E931EA25F08007C3E92 /* Adamax.metal in Sources */,
 				87D2036C1E9949160054A34D /* AdaDelta.metal in Sources */,
 				87D203761E9949160054A34D /* SMORMS3.swift in Sources */,
+				87A79E911EA25EF6007C3E92 /* Adamax.swift in Sources */,
 				87D203751E9949160054A34D /* SMORMS3.metal in Sources */,
 				87D203701E9949160054A34D /* Momentum.metal in Sources */,
 				87D203771E9949160054A34D /* StochasticGradientDescent.metal in Sources */,
@@ -2569,7 +2565,7 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 3.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Debug;
 		};
@@ -2620,7 +2616,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				SWIFT_VERSION = 3.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 2;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -2857,25 +2853,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCVersionGroup section */
-		875BA1DC1E9DEAD30076A39C /* MNIST.xcdatamodeld */ = {
+		8709F3D31EA9B490007DCB96 /* Educator.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
-				875BA1DD1E9DEAD30076A39C /* MNIST.xcdatamodel */,
+				8709F3D41EA9B490007DCB96 /* Educator.xcdatamodel */,
 			);
-			currentVersion = 875BA1DD1E9DEAD30076A39C /* MNIST.xcdatamodel */;
-			name = MNIST.xcdatamodeld;
-			path = ../../Educator/MNIST.xcdatamodeld;
-			sourceTree = "<group>";
-			versionGroupType = wrapper.xcdatamodel;
-		};
-		875BA1E01E9DEAD30076A39C /* Wikipedia.xcdatamodeld */ = {
-			isa = XCVersionGroup;
-			children = (
-				875BA1E11E9DEAD30076A39C /* Wikipedia.xcdatamodel */,
-			);
-			currentVersion = 875BA1E11E9DEAD30076A39C /* Wikipedia.xcdatamodel */;
-			name = Wikipedia.xcdatamodeld;
-			path = ../../Educator/Wikipedia.xcdatamodeld;
+			currentVersion = 8709F3D41EA9B490007DCB96 /* Educator.xcdatamodel */;
+			name = Educator.xcdatamodeld;
+			path = ../../Educator/Educator.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
 		};

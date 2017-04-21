@@ -29,12 +29,14 @@ extension Decay {
 	}
 	func correct(commandBuffer: CommandBuffer, Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
-		change(commandBuffer: commandBuffer) {
-			cell.distributor.derivate(commandBuffer: commandBuffer, Δv: $0.μ, j: j(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
-				access {
-					jacobian.jacobian(d: $0.μ, φ: cell.φ(-1))
+		if cell.pliable {
+			change(commandBuffer: commandBuffer) {
+				cell.distributor.derivate(commandBuffer: commandBuffer, Δv: $0.μ, j: j(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
+					access {
+						jacobian.jacobian(d: $0.μ, φ: cell.φ(-1))
+					}
+					cell.jacobian(jacobian: jacobian, feed: j)
 				}
-				cell.jacobian(jacobian: jacobian, feed: j)
 			}
 		}
 	}
@@ -47,26 +49,41 @@ extension Decay {
 	}
 }
 extension Decay {
-	override func setup(commandBuffer: CommandBuffer, count: Int) {
-		super.setup(commandBuffer: commandBuffer, count: count)
-		do {
+	@NSManaged private var cache: Array<Cache>
+	private class Cache: NSObject {
+		let j: (μ: Buffer, σ: Buffer)
+		init(context: Context, count: Int) {
 			let length: Int = count * MemoryLayout<Float>.size
-			let ref: Array<Void> = Array<Void>(repeating: (), count: cell.depth)
-			ju = ref.map {
-				context.make(length: length, options: .storageModePrivate)
-			}
-			js = ref.map {
-				context.make(length: length, options: .storageModePrivate)
-			}
+			let option: MTLResourceOptions = .storageModePrivate
+			j = (
+				μ: context.make(length: length, options: option),
+				σ: context.make(length: length, options: option)
+			)
+			super.init()
 		}
-		do {
+		func reset(commandBuffer: CommandBuffer) {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-			(ju+js).forEach {
+			[j.μ, j.σ].forEach {
 				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
 			}
 			encoder.endEncoding()
 		}
 	}
+	internal func j(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+		let cycle: Int = cache.count
+		return cache[((offset+custom)%cycle+cycle)%cycle].j
+	}
+	override internal func setup(commandBuffer: CommandBuffer, count: Int) {
+		cache = Array<Void>(repeating: (), count: cell.depth).map {
+			Cache(context: context, count: count)
+		}
+		cache.forEach {
+			$0.reset(commandBuffer: commandBuffer)
+		}
+		super.setup(commandBuffer: commandBuffer, count: count)
+	}
+}
+extension Decay {
 	override func awakeFromFetch() {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
@@ -78,16 +95,6 @@ extension Decay {
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: cell.width)
 		commandBuffer.commit()
-	}
-}
-extension Decay {
-	@NSManaged var ju: Array<Buffer>
-	@NSManaged var js: Array<Buffer>
-	func j(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
-		assert( ju.count == cell.depth )
-		assert( js.count == cell.depth )
-		return (μ: ju[((offset+custom)%ju.count+ju.count)%ju.count],
-		        σ: js[((offset+custom)%js.count+js.count)%js.count])
 	}
 }
 extension Decay {

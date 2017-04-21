@@ -68,7 +68,7 @@ class OptimizerTests: XCTestCase {
 			let reset: MTLCommandBuffer = queue.makeCommandBuffer()
 			optimizer.reset(commandBuffer: reset)
 			reset.commit()
-			(0..<1024).forEach { (_) in
+			(0..<4096).forEach { (_) in
 				do {
 					let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
 					if drand48() < 0.5 {
@@ -97,19 +97,22 @@ class OptimizerTests: XCTestCase {
 		optimizerTests(factory: MomentumAdaDelta.factory())
 	}
 	func testAdaDelta() {
-		optimizerTests(factory: AdaDelta.factory(ρ: 0.9, ε: 1e-6))
+		optimizerTests(factory: AdaDelta.factory())
 	}
 	func testAdam() {
-		optimizerTests(factory: Adam.factory(α: 1))
+		optimizerTests(factory: Adam.factory(α: 1e-2))
+	}
+	func testAdamax() {
+		optimizerTests(factory: Adamax.factory(α: 1e-2))
 	}
 	func testMomentum() {
-		optimizerTests(factory: Momentum.factory(η: 1e-5, γ: 0.9))
+		optimizerTests(factory: Momentum.factory())
 	}
 	func testSMORMS3() {
-		optimizerTests(factory: SMORMS3.factory())
+		optimizerTests(factory: SMORMS3.factory(α: 1e-2))
 	}
 	func testStochasticGradientDescent() {
-		optimizerTests(factory: StochasticGradientDescent.factory(η: 1e-6))
+		optimizerTests(factory: StochasticGradientDescent.factory())
 	}
 }
 extension MTLBuffer {

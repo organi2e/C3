@@ -73,6 +73,7 @@ extension Cell {
 			$0.correct_refresh()
 		}
 		decay?.correct_refresh()
+		study = nil
 		gradu = nil
 		grads = nil
 	}
@@ -85,27 +86,35 @@ extension Cell {
 		} else if let μ: Buffer = gradu, let σ: Buffer = grads {
 			return (Δφ: (μ: μ, σ: σ), φ: φ(0))
 		} else {
-			if let χ: Buffer = state {
-				let commandBuffer: CommandBuffer = context.make()
+			if let state: Buffer = state {
 				func corrector(corrector: Corrector) {
 					output.forEach {
-						$0.correct(corrector: corrector, state: χ, ignore: ignore.union([self]))
+						$0.correct(corrector: corrector, state: state, ignore: ignore.union([self]))
 					}
-					if let ϝ: Buffer = study {
-						corrector.correct(χ: χ, ϝ: ϝ)
+					if let study: Buffer = study {
+						corrector.correct(χ: state, ϝ: study)
 					}
 				}
+				let commandBuffer: CommandBuffer = context.make()
 				switch activation {
 				case .Binary:
-					distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), f: χ, g: g(0), φ: φ(0), count: width, corrector: corrector)
+					distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), f: state, g: g(0), φ: φ(0), count: width, corrector: corrector)
 				case .Identity:
-					distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), v: χ, g: g(0), φ: φ(0), count: width, corrector: corrector)
+					distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), v: state, g: g(0), φ: φ(0), count: width, corrector: corrector)
 				}
 				bias.correct(commandBuffer: commandBuffer, Δφ: Δ(0), φ: φ(0))
 				loop.forEach {
 					$0.correct(commandBuffer: commandBuffer, Δφ: Δ(0), φ: φ(0))
 				}
 				decay?.correct(commandBuffer: commandBuffer, Δφ: Δ(0), φ: φ(0))
+				commandBuffer.commit()
+			} else {
+				let commandBuffer: CommandBuffer = context.make()
+				let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
+				[Δ(0).μ, Δ(0).σ].forEach {
+					encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
+				}
+				encoder.endEncoding()
 				commandBuffer.commit()
 			}
 			gradu = Δ(0).μ
@@ -125,7 +134,7 @@ extension Cell {
 extension Cell {
 	public var source: Array<Float> {
 		get {
-			guard let source: Buffer = state else { return [] }
+			guard let source: Buffer = state else { return Array<Float>() }
 			let target: Buffer = context.make(length: width * MemoryLayout<Float>.size, options: .storageModeShared)
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
@@ -138,12 +147,12 @@ extension Cell {
 		}
 		set {
 			state = newValue.isEmpty ? nil :
-				context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModePrivate)
+				context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModeShared)
 		}
 	}
 	public var target: Array<Float> {
 		get {
-			guard let source: Buffer = study else { return [] }
+			guard let source: Buffer = study else { return Array<Float>() }
 			let target: Buffer = context.make(length: width * MemoryLayout<Float>.size, options: .storageModeShared)
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
@@ -156,31 +165,70 @@ extension Cell {
 		}
 		set {
 			study = newValue.isEmpty ? nil :
-				context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModePrivate)
+				context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModeShared)
 		}
 	}
 }
 extension Cell {
-	internal func setup(commandBuffer: CommandBuffer) {
-		do {
-			let length: Int = width * MemoryLayout<Float>.size
-			let ref: Array<Void> = Array<Void>(repeating: (), count: depth)
-			fs = ref.map { context.make(length: length, options: .storageModePrivate) }
-			vu = ref.map { context.make(length: length, options: .storageModePrivate) }
-			vs = ref.map { context.make(length: length, options: .storageModePrivate) }
-			gu = ref.map { context.make(length: length, options: .storageModePrivate) }
-			gs = ref.map { context.make(length: length, options: .storageModePrivate) }
-			du = ref.map { context.make(length: length, options: .storageModePrivate) }
-			ds = ref.map { context.make(length: length, options: .storageModePrivate) }
+	@NSManaged private var cache: Array<Cache>
+	private class Cache: NSObject {
+		let χ: Buffer
+		let φ: (μ: Buffer, σ: Buffer)
+		let g: (μ: Buffer, σ: Buffer)
+		let Δ: (μ: Buffer, σ: Buffer)
+		init(context: Context, count: Int) {
+			let length: Int = count * MemoryLayout<Float>.size
+			let option: MTLResourceOptions = .storageModePrivate
+			χ = context.make(length: length, options: option)
+			φ = (
+				μ: context.make(length: length, options: option),
+				σ: context.make(length: length, options: option)
+			)
+			g = (
+				μ: context.make(length: length, options: option),
+				σ: context.make(length: length, options: option)
+			)
+			Δ = (
+				μ: context.make(length: length, options: option),
+				σ: context.make(length: length, options: option)
+			)
+			super.init()
 		}
-		do {
+		func reset(commandBuffer: CommandBuffer) {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-			(fs+vu+vs+gu+gs+du+ds).forEach {
+			[χ, φ.μ, φ.σ, g.μ, g.σ, Δ.μ, Δ.σ].forEach {
 				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
 			}
 			encoder.endEncoding()
 		}
 	}
+	internal func χ(_ offset: Int) -> Buffer {
+		let cycle: Int = cache.count
+		return cache[((offset+custom)%cycle+cycle)%cycle].χ
+	}
+	internal func φ(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+		let cycle: Int = cache.count
+		return cache[((offset+custom)%cycle+cycle)%cycle].φ
+	}
+	internal func g(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+		let cycle: Int = cache.count
+		return cache[((offset+custom)%cycle+cycle)%cycle].g
+		
+	}
+	internal func Δ(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+		let cycle: Int = cache.count
+		return cache[((offset+custom)%cycle+cycle)%cycle].Δ
+	}
+	internal func setup(commandBuffer: CommandBuffer) {
+		cache = Array<Void>(repeating: (), count: depth).map {
+			Cache(context: context, count: width)
+		}
+		cache.forEach {
+			$0.reset(commandBuffer: commandBuffer)
+		}
+	}
+}
+extension Cell {
 	public override func awakeFromFetch() {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
@@ -192,32 +240,6 @@ extension Cell {
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer)
 		commandBuffer.commit()
-	}
-}
-extension Cell {
-	func χ(_ offset: Int) -> Buffer {
-		assert( fs.count == depth )
-		return fs[((offset+fs.count)%fs.count)%fs.count]
-	}
-	func φ(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
-		assert( vu.count == depth )
-		assert( vs.count == depth )
-		return (μ: vu[((custom+offset)%vu.count+du.count)%vs.count],
-		        σ: vs[((custom+offset)%vs.count+ds.count)%vu.count])
-	}
-	func g(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
-		assert( gu.count == depth )
-		assert( gs.count == depth )
-		return (μ: gu[((custom+offset)%gu.count+gu.count)%gs.count],
-		        σ: gs[((custom+offset)%gs.count+gs.count)%gu.count])
-		
-	}
-	func Δ(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
-		assert( du.count == depth )
-		assert( ds.count == depth )
-		return (μ: du[((custom+offset)%du.count+du.count)%ds.count],
-		        σ: ds[((custom+offset)%ds.count+ds.count)%du.count])
-		
 	}
 }
 extension Cell {
@@ -238,15 +260,6 @@ extension Cell {
 	@NSManaged var grads: Buffer?
 }
 extension Cell {
-	@NSManaged var fs: Array<Buffer>
-	@NSManaged var vu: Array<Buffer>
-	@NSManaged var vs: Array<Buffer>
-	@NSManaged var gu: Array<Buffer>
-	@NSManaged var gs: Array<Buffer>
-	@NSManaged var du: Array<Buffer>
-	@NSManaged var ds: Array<Buffer>
-}
-extension Cell {
 	@NSManaged var label: String
 	@NSManaged var width: Int
 	@NSManaged var depth: Int
@@ -257,6 +270,7 @@ extension Cell {
 	@NSManaged var loop: Set<Feedback>
 	@NSManaged var bias: Bias
 	@NSManaged var decay: Decay?
+	@NSManaged public var pliable: Bool
 }
 extension Context {
 	public func make(label: String,
@@ -277,28 +291,35 @@ extension Context {
 		cell.depth = recurrent.map{-$0}.reduce(2, max)
 		cell.distributionType = distribution.rawValue
 		cell.activationType = activation.rawValue
-		cell.output = Set<Edge>(try output.map{try make(commandBuffer: commandBuffer, output: $0, input: cell, adapters: adapters)})
-		cell.input = Set<Edge>(try input.map{try make(commandBuffer: commandBuffer, output: cell, input: $0, adapters: adapters)})
+		cell.output = try Set<Edge>(output.map{try make(commandBuffer: commandBuffer, output: $0, input: cell, adapters: adapters)})
+		cell.input = try Set<Edge>(input.map{try make(commandBuffer: commandBuffer, output: cell, input: $0, adapters: adapters)})
 		cell.bias = try make(commandBuffer: commandBuffer, cell: cell, adapters: adapters)
-		cell.loop = Set<Feedback>(try recurrent.map{try make(commandBuffer: commandBuffer, cell: cell, refer: $0, adapters: adapters)})
-		cell.decay = !decay ? nil : try make(commandBuffer: commandBuffer, cell: cell)
+		cell.loop = try Set<Feedback>(recurrent.map{try make(commandBuffer: commandBuffer, cell: cell, refer: $0, adapters: adapters)})
+		cell.decay = try !decay ? nil : make(commandBuffer: commandBuffer, cell: cell)
 		cell.setup(commandBuffer: commandBuffer)
 		commandBuffer.commit()
 		return cell
 	}
 }
 extension Context {
-	public func fetch(label: String? = nil, width: Int? = nil) throws -> [Cell] {
-		func bind(format: String, value: Any?) -> [(String, Any)] {
-			guard let value: Any = value else { return [] }
-			return [(format, value)]
-		}
-		let formats: [(String, Any)] = bind(format: "label = %@", value: label) + bind(format: "width = %@", value: width)
-		let predicate: NSPredicate = NSPredicate(
-			format: formats.map{$0.0}.joined(separator: " and "),
-			argumentArray: formats.map{$0.1}
+	private func make<T: NSManagedObject>(label: String? = nil, width: Int? = nil) -> NSFetchRequest<T> {
+		let formats: Array<(String, Any)> = Array<(String, Any?)>(arrayLiteral: ("label = %@", label), ("width = %@", width)).map {
+			guard let value: Any = $1 else { return Array<(String, Any)>() }
+			return Array<(String, Any)>(arrayLiteral: ($0, value))
+		}.reduce(Array<(String, Any)>(), +)
+		let request: NSFetchRequest<T> = NSFetchRequest<T>(entityName: String(describing: T.self))
+		request.predicate = NSPredicate(format: formats.map{$0.0}.joined(separator: " and "),
+		                                argumentArray: formats.map{$0.1}
 		)
-		return try fetch(predicate: predicate)
+		return request
+	}
+	public func count(label: String? = nil, width: Int? = nil) throws -> Int {
+		let request: NSFetchRequest<Cell> = make(label: label, width: width)
+		return try count(for: request)
+	}
+	public func fetch(label: String? = nil, width: Int? = nil) throws -> [Cell] {
+		let request: NSFetchRequest<Cell> = make(label: label, width: width)
+		return try fetch(request)
 	}
 }
 private extension String {

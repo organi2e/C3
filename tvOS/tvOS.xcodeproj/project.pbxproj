@@ -8,14 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		871361171E98C43B006C2A7D /* Feedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 871361161E98C43B006C2A7D /* Feedback.swift */; };
-		87197B4C1E96393000D62866 /* Variable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87197B4B1E96393000D62866 /* Variable.swift */; };
 		87263D431E97E9DB00A4B75B /* RegFloor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87263D421E97E9DB00A4B75B /* RegFloor.swift */; };
 		87263D451E97E9EC00A4B75B /* RegFloor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87263D441E97E9EC00A4B75B /* RegFloor.metal */; };
 		875BA1D11E9DE84F0076A39C /* Educator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875BA1CF1E9DE84F0076A39C /* Educator.swift */; };
 		875BA1D21E9DE84F0076A39C /* MNIST.plist in Resources */ = {isa = PBXBuildFile; fileRef = 875BA1D01E9DE84F0076A39C /* MNIST.plist */; };
 		875BA1D41E9DE9CB0076A39C /* Wikipedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875BA1D31E9DE9CB0076A39C /* Wikipedia.swift */; };
-		875BA1D71E9DE9DD0076A39C /* Wikipedia.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 875BA1D51E9DE9DD0076A39C /* Wikipedia.xcdatamodeld */; };
 		875BA1D91E9DE9F00076A39C /* Wikipedia.plist in Resources */ = {isa = PBXBuildFile; fileRef = 875BA1D81E9DE9F00076A39C /* Wikipedia.plist */; };
+		877E108F1EA46497003D54CB /* Adapter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B846931E93AF5F00844835 /* Adapter.framework */; };
+		877E10901EA46497003D54CB /* C3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B8465B1E93AF4800844835 /* C3.framework */; };
+		877E10911EA46497003D54CB /* Optimizer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B846AF1E93AF8300844835 /* Optimizer.framework */; };
+		877E10941EA46C2C003D54CB /* Educator.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 877E10921EA46C2C003D54CB /* Educator.xcdatamodeld */; };
 		87B8463C1E93AF3A00844835 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8463B1E93AF3A00844835 /* AppDelegate.swift */; };
 		87B8463E1E93AF3A00844835 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8463D1E93AF3A00844835 /* ViewController.swift */; };
 		87B846411E93AF3A00844835 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 87B8463F1E93AF3A00844835 /* Main.storyboard */; };
@@ -75,7 +77,6 @@
 		87B847241E93BD4C00844835 /* Cell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8471D1E93BD4B00844835 /* Cell.swift */; };
 		87B847251E93BD4C00844835 /* Context.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8471E1E93BD4B00844835 /* Context.swift */; };
 		87B847261E93BD4C00844835 /* Edge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8471F1E93BD4B00844835 /* Edge.swift */; };
-		87B847271E93BD4C00844835 /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B847201E93BD4B00844835 /* RingBuffer.swift */; };
 		87B847281E93BDA500844835 /* C3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B8465B1E93AF4800844835 /* C3.framework */; };
 		87B847291E93BDA500844835 /* C3.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 87B8465B1E93AF4800844835 /* C3.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		87B8472E1E93BE1600844835 /* Adapter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87B846931E93AF5F00844835 /* Adapter.framework */; };
@@ -90,11 +91,12 @@
 		87E74B0E1E9DC1B1006D513A /* Educator.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87E74AF91E9DC1B1006D513A /* Educator.framework */; };
 		87E74B0F1E9DC1B1006D513A /* Educator.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 87E74AF91E9DC1B1006D513A /* Educator.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		87E74B1D1E9DC1E0006D513A /* MNIST.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E74B191E9DC1E0006D513A /* MNIST.swift */; };
-		87E74B201E9DC27F006D513A /* MNIST.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 87E74B1E1E9DC27F006D513A /* MNIST.xcdatamodeld */; };
 		87E74B231E9DC2F5006D513A /* DegenerateDistributor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87E74B211E9DC2F5006D513A /* DegenerateDistributor.metal */; };
 		87E74B241E9DC2F5006D513A /* DegenerateDistributor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E74B221E9DC2F5006D513A /* DegenerateDistributor.swift */; };
 		87EEBCE81E9508220079BA43 /* Capture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87EEBCE61E9508220079BA43 /* Capture.swift */; };
 		87EEBCE91E9508220079BA43 /* Decay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87EEBCE71E9508220079BA43 /* Decay.swift */; };
+		87F1F1751EA7572E00717C13 /* Adamax.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87F1F1731EA7572E00717C13 /* Adamax.metal */; };
+		87F1F1761EA7572E00717C13 /* Adamax.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F1F1741EA7572E00717C13 /* Adamax.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -225,14 +227,13 @@
 
 /* Begin PBXFileReference section */
 		871361161E98C43B006C2A7D /* Feedback.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Feedback.swift; path = ../../C3/Feedback.swift; sourceTree = "<group>"; };
-		87197B4B1E96393000D62866 /* Variable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Variable.swift; path = ../../C3/Variable.swift; sourceTree = "<group>"; };
 		87263D421E97E9DB00A4B75B /* RegFloor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RegFloor.swift; path = ../../Adapter/RegFloor.swift; sourceTree = "<group>"; };
 		87263D441E97E9EC00A4B75B /* RegFloor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = RegFloor.metal; path = ../../Adapter/RegFloor.metal; sourceTree = "<group>"; };
 		875BA1CF1E9DE84F0076A39C /* Educator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Educator.swift; path = ../../Educator/Educator.swift; sourceTree = "<group>"; };
 		875BA1D01E9DE84F0076A39C /* MNIST.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = MNIST.plist; path = ../../Educator/MNIST.plist; sourceTree = "<group>"; };
 		875BA1D31E9DE9CB0076A39C /* Wikipedia.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Wikipedia.swift; path = ../../Educator/Wikipedia.swift; sourceTree = "<group>"; };
-		875BA1D61E9DE9DD0076A39C /* Wikipedia.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Wikipedia.xcdatamodel; sourceTree = "<group>"; };
 		875BA1D81E9DE9F00076A39C /* Wikipedia.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Wikipedia.plist; path = ../../Educator/Wikipedia.plist; sourceTree = "<group>"; };
+		877E10931EA46C2C003D54CB /* Educator.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Educator.xcdatamodel; sourceTree = "<group>"; };
 		87B846381E93AF3A00844835 /* Stage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Stage.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		87B8463B1E93AF3A00844835 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		87B8463D1E93AF3A00844835 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -302,7 +303,6 @@
 		87B8471D1E93BD4B00844835 /* Cell.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Cell.swift; path = ../../C3/Cell.swift; sourceTree = "<group>"; };
 		87B8471E1E93BD4B00844835 /* Context.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Context.swift; path = ../../C3/Context.swift; sourceTree = "<group>"; };
 		87B8471F1E93BD4B00844835 /* Edge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Edge.swift; path = ../../C3/Edge.swift; sourceTree = "<group>"; };
-		87B847201E93BD4B00844835 /* RingBuffer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RingBuffer.swift; path = ../../C3/RingBuffer.swift; sourceTree = "<group>"; };
 		87C3C2771E94C87500A62C11 /* Logistic.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Logistic.swift; path = ../../Adapter/Logistic.swift; sourceTree = "<group>"; };
 		87C3C2791E94C88600A62C11 /* Logistic.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Logistic.metal; path = ../../Adapter/Logistic.metal; sourceTree = "<group>"; };
 		87D203EF1E9A4FCC0054A34D /* Ground.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Ground.swift; path = ../../C3/Ground.swift; sourceTree = "<group>"; };
@@ -313,11 +313,12 @@
 		87E74B081E9DC1B1006D513A /* EducatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EducatorTests.swift; sourceTree = "<group>"; };
 		87E74B0A1E9DC1B1006D513A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		87E74B191E9DC1E0006D513A /* MNIST.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MNIST.swift; path = ../../Educator/MNIST.swift; sourceTree = "<group>"; };
-		87E74B1F1E9DC27F006D513A /* MNIST.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MNIST.xcdatamodel; sourceTree = "<group>"; };
 		87E74B211E9DC2F5006D513A /* DegenerateDistributor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = DegenerateDistributor.metal; path = ../../Distributor/DegenerateDistributor.metal; sourceTree = "<group>"; };
 		87E74B221E9DC2F5006D513A /* DegenerateDistributor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = DegenerateDistributor.swift; path = ../../Distributor/DegenerateDistributor.swift; sourceTree = "<group>"; };
 		87EEBCE61E9508220079BA43 /* Capture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Capture.swift; path = ../../C3/Capture.swift; sourceTree = "<group>"; };
 		87EEBCE71E9508220079BA43 /* Decay.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Decay.swift; path = ../../C3/Decay.swift; sourceTree = "<group>"; };
+		87F1F1731EA7572E00717C13 /* Adamax.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Adamax.metal; path = ../../Optimizer/Adamax.metal; sourceTree = "<group>"; };
+		87F1F1741EA7572E00717C13 /* Adamax.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Adamax.swift; path = ../../Optimizer/Adamax.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -414,6 +415,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				877E108F1EA46497003D54CB /* Adapter.framework in Frameworks */,
+				877E10901EA46497003D54CB /* C3.framework in Frameworks */,
+				877E10911EA46497003D54CB /* Optimizer.framework in Frameworks */,
 				87E74B021E9DC1B1006D513A /* Educator.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -492,8 +496,6 @@
 				87D203EF1E9A4FCC0054A34D /* Ground.swift */,
 				87B8471E1E93BD4B00844835 /* Context.swift */,
 				87EEBCE61E9508220079BA43 /* Capture.swift */,
-				87197B4B1E96393000D62866 /* Variable.swift */,
-				87B847201E93BD4B00844835 /* RingBuffer.swift */,
 				87B8471B1E93BD4B00844835 /* C3.xcdatamodeld */,
 				87B8465D1E93AF4800844835 /* C3.h */,
 				87B8465E1E93AF4800844835 /* Info.plist */,
@@ -571,6 +573,8 @@
 		87B846B01E93AF8300844835 /* Optimizer */ = {
 			isa = PBXGroup;
 			children = (
+				87F1F1741EA7572E00717C13 /* Adamax.swift */,
+				87F1F1731EA7572E00717C13 /* Adamax.metal */,
 				87B846C71E93AF9400844835 /* AdaDelta.swift */,
 				87B846C61E93AF9400844835 /* AdaDelta.metal */,
 				87B846C91E93AF9400844835 /* Adam.swift */,
@@ -604,12 +608,11 @@
 			isa = PBXGroup;
 			children = (
 				875BA1D31E9DE9CB0076A39C /* Wikipedia.swift */,
-				875BA1D51E9DE9DD0076A39C /* Wikipedia.xcdatamodeld */,
 				875BA1D81E9DE9F00076A39C /* Wikipedia.plist */,
 				87E74B191E9DC1E0006D513A /* MNIST.swift */,
-				87E74B1E1E9DC27F006D513A /* MNIST.xcdatamodeld */,
 				875BA1D01E9DE84F0076A39C /* MNIST.plist */,
 				875BA1CF1E9DE84F0076A39C /* Educator.swift */,
+				877E10921EA46C2C003D54CB /* Educator.xcdatamodeld */,
 				87E74AFB1E9DC1B1006D513A /* Educator.h */,
 				87E74AFC1E9DC1B1006D513A /* Info.plist */,
 			);
@@ -909,6 +912,11 @@
 						CreatedOnToolsVersion = 8.3;
 						DevelopmentTeam = 49QMLWEE5Z;
 						ProvisioningStyle = Automatic;
+						SystemCapabilities = {
+							com.apple.BackgroundModes.appletvos = {
+								enabled = 0;
+							};
+						};
 					};
 					87B846481E93AF3A00844835 = {
 						CreatedOnToolsVersion = 8.3;
@@ -1128,9 +1136,7 @@
 				87D203F01E9A4FCC0054A34D /* Ground.swift in Sources */,
 				87EEBCE81E9508220079BA43 /* Capture.swift in Sources */,
 				87B847251E93BD4C00844835 /* Context.swift in Sources */,
-				87B847271E93BD4C00844835 /* RingBuffer.swift in Sources */,
 				87B847231E93BD4C00844835 /* C3.xcdatamodeld in Sources */,
-				87197B4C1E96393000D62866 /* Variable.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1199,10 +1205,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				87B846D61E93AF9400844835 /* Adam.swift in Sources */,
+				87F1F1761EA7572E00717C13 /* Adamax.swift in Sources */,
 				87B846DB1E93AF9400844835 /* Optimizer.swift in Sources */,
 				87B846D81E93AF9400844835 /* Momentum.swift in Sources */,
 				87B846D51E93AF9400844835 /* Adam.metal in Sources */,
 				87B846DA1E93AF9400844835 /* MomentumAdaDelta.swift in Sources */,
+				87F1F1751EA7572E00717C13 /* Adamax.metal in Sources */,
 				87B846D31E93AF9400844835 /* AdaDelta.metal in Sources */,
 				87B846DD1E93AF9400844835 /* SMORMS3.swift in Sources */,
 				87B846DC1E93AF9400844835 /* SMORMS3.metal in Sources */,
@@ -1227,11 +1235,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				875BA1D71E9DE9DD0076A39C /* Wikipedia.xcdatamodeld in Sources */,
 				875BA1D41E9DE9CB0076A39C /* Wikipedia.swift in Sources */,
 				875BA1D11E9DE84F0076A39C /* Educator.swift in Sources */,
-				87E74B201E9DC27F006D513A /* MNIST.xcdatamodeld in Sources */,
 				87E74B1D1E9DC1E0006D513A /* MNIST.swift in Sources */,
+				877E10941EA46C2C003D54CB /* Educator.xcdatamodeld in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2818,14 +2825,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCVersionGroup section */
-		875BA1D51E9DE9DD0076A39C /* Wikipedia.xcdatamodeld */ = {
+		877E10921EA46C2C003D54CB /* Educator.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
-				875BA1D61E9DE9DD0076A39C /* Wikipedia.xcdatamodel */,
+				877E10931EA46C2C003D54CB /* Educator.xcdatamodel */,
 			);
-			currentVersion = 875BA1D61E9DE9DD0076A39C /* Wikipedia.xcdatamodel */;
-			name = Wikipedia.xcdatamodeld;
-			path = ../../Educator/Wikipedia.xcdatamodeld;
+			currentVersion = 877E10931EA46C2C003D54CB /* Educator.xcdatamodel */;
+			name = Educator.xcdatamodeld;
+			path = ../../Educator/Educator.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
 		};
@@ -2837,17 +2844,6 @@
 			currentVersion = 87B8471C1E93BD4B00844835 /* C3.xcdatamodel */;
 			name = C3.xcdatamodeld;
 			path = ../../C3/C3.xcdatamodeld;
-			sourceTree = "<group>";
-			versionGroupType = wrapper.xcdatamodel;
-		};
-		87E74B1E1E9DC27F006D513A /* MNIST.xcdatamodeld */ = {
-			isa = XCVersionGroup;
-			children = (
-				87E74B1F1E9DC27F006D513A /* MNIST.xcdatamodel */,
-			);
-			currentVersion = 87E74B1F1E9DC27F006D513A /* MNIST.xcdatamodel */;
-			name = MNIST.xcdatamodeld;
-			path = ../../Educator/MNIST.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
 		};
