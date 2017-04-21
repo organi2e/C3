@@ -24,13 +24,13 @@ extension Feedback {
 }
 extension Feedback {
 	func correct_refresh() {
-		custom = ( custom + 1 ) % cell.depth
+		rotate()
 	}
-	func correct(commandBuffer: CommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer)) {
+	func correct(commandBuffer: CommandBuffer, fix: Set<Cell>, Δφ: (μ: MTLBuffer, σ: MTLBuffer)) {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: cell.width)
-		if cell.pliable {
+		if !fix.contains(cell) {
 			change(commandBuffer: commandBuffer) {
-				cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: j(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
+				cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: j(0), Δφ: Δφ, φ: cell.φ(0), count: count) { jacobian in
 					access {
 						jacobian.jacobian(a: $0, x: cell.χ(refer))
 					}
@@ -49,6 +49,7 @@ extension Feedback {
 }
 extension Feedback {
 	@NSManaged private var cache: Array<Cache>
+	@NSManaged private var index: Int
 	private class Cache: NSObject {
 		let j: (μ: Buffer, σ: Buffer)
 		init(context: Context, count: Int) {
@@ -68,9 +69,12 @@ extension Feedback {
 			encoder.endEncoding()
 		}
 	}
-	func j(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
+	internal func j(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
 		let cycle: Int = cache.count
-		return cache[((offset+custom)%cycle+cycle)%cycle].j
+		return cache[((offset+index)%cycle+cycle)%cycle].j
+	}
+	internal func rotate() {
+		index = ( index + 1 ) % cache.count
 	}
 	override internal func setup(commandBuffer: CommandBuffer, count: Int) {
 		cache = Array<Void>(repeating: (), count: cell.depth).map {
@@ -79,6 +83,7 @@ extension Feedback {
 		cache.forEach {
 			$0.reset(commandBuffer: commandBuffer)
 		}
+		index = 0
 		super.setup(commandBuffer: commandBuffer, count: count)
 	}
 }

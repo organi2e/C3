@@ -28,21 +28,20 @@ extension Cell {
 			$0.collect_refresh(commandBuffer: commandBuffer)
 		}
 		decay?.collect_refresh(commandBuffer: commandBuffer)
-		custom = ( custom + 1 ) % depth
-		state = nil
+		rotate()
+		state = false
 	}
 	public func collect() {
-		let _: Buffer = collect(ignore: [])
+		let _: Buffer = collect(visit: [])
 	}
-	internal func collect(ignore: Set<Cell>) -> Buffer {
-		if ignore.contains(self) {
+	internal func collect(visit: Set<Cell>) -> Buffer {
+		guard !visit.contains(self) else {
 			return χ(-1)
-		} else if let state: Buffer = state {
-			return state
-		} else {
+		}
+		if !state {
 			func collector(collector: Collector) {
 				input.forEach {
-					$0.collect(collector: collector, ignore: ignore.union([self]))
+					$0.collect(collector: collector, visit: visit.union([self]))
 				}
 				bias.collect(collector: collector)
 				loop.forEach {
@@ -58,9 +57,9 @@ extension Cell {
 				distributor.activate(commandBuffer: commandBuffer, v: χ(0), g: g(0), φ: φ(0), count: width, collector: collector)
 			}
 			commandBuffer.commit()
-			state = χ(0)
-			return χ(0)
+			state = true
 		}
+		return χ(0)
 	}
 }
 extension Cell {
@@ -73,54 +72,41 @@ extension Cell {
 			$0.correct_refresh()
 		}
 		decay?.correct_refresh()
-		study = nil
-		gradu = nil
-		grads = nil
+		study = false
+		delta = false
 	}
-	public func correct() {
-		let _: (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) = correct(ignore: [])
+	public func correct(fix: Set<Cell> = []) {
+		let _: (μ: Buffer, σ: Buffer) = correct(fix: [self], visit: [])
 	}
-	internal func correct(ignore: Set<Cell>) -> (Δφ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer)) {
-		if ignore.contains(self) {
-			return (Δφ: Δ(-1), φ: φ(-1))
-		} else if let μ: Buffer = gradu, let σ: Buffer = grads {
-			return (Δφ: (μ: μ, σ: σ), φ: φ(0))
-		} else {
-			if let state: Buffer = state {
-				func corrector(corrector: Corrector) {
-					output.forEach {
-						$0.correct(corrector: corrector, state: state, ignore: ignore.union([self]))
-					}
-					if let study: Buffer = study {
-						corrector.correct(χ: state, ϝ: study)
-					}
-				}
-				let commandBuffer: CommandBuffer = context.make()
-				switch activation {
-				case .Binary:
-					distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), f: state, g: g(0), φ: φ(0), count: width, corrector: corrector)
-				case .Identity:
-					distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), v: state, g: g(0), φ: φ(0), count: width, corrector: corrector)
-				}
-				bias.correct(commandBuffer: commandBuffer, Δφ: Δ(0), φ: φ(0))
-				loop.forEach {
-					$0.correct(commandBuffer: commandBuffer, Δφ: Δ(0), φ: φ(0))
-				}
-				decay?.correct(commandBuffer: commandBuffer, Δφ: Δ(0), φ: φ(0))
-				commandBuffer.commit()
-			} else {
-				let commandBuffer: CommandBuffer = context.make()
-				let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-				[Δ(0).μ, Δ(0).σ].forEach {
-					encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
-				}
-				encoder.endEncoding()
-				commandBuffer.commit()
-			}
-			gradu = Δ(0).μ
-			grads = Δ(0).σ
-			return (Δφ: Δ(0), φ: φ(0))
+	internal func correct(fix: Set<Cell>, visit: Set<Cell>) -> (μ: Buffer, σ: Buffer) {
+		guard !visit.contains(self) else {
+			return Δ(-1)
 		}
+		if !delta {
+			func corrector(corrector: Corrector) {
+				output.forEach {
+					$0.correct(corrector: corrector, fix: fix, visit: visit.union([self]))
+				}
+				if study {
+					corrector.correct(χ: χ(0), ϝ: ϝ(0))
+				}
+			}
+			let commandBuffer: CommandBuffer = context.make()
+			switch activation {
+			case .Binary:
+				distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), f: χ(0), g: g(0), φ: φ(0), count: width, corrector: corrector)
+			case .Identity:
+				distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), v: χ(0), g: g(0), φ: φ(0), count: width, corrector: corrector)
+			}
+			bias.correct(commandBuffer: commandBuffer, fix: fix, Δφ: Δ(0))
+			loop.forEach {
+				$0.correct(commandBuffer: commandBuffer, fix: fix, Δφ: Δ(0))
+			}
+			decay?.correct(commandBuffer: commandBuffer, fix: fix, Δφ: Δ(0))
+			commandBuffer.commit()
+			delta = true
+		}
+		return Δ(0)
 	}
 }
 extension Cell {
@@ -134,45 +120,75 @@ extension Cell {
 extension Cell {
 	public var source: Array<Float> {
 		get {
-			guard let source: Buffer = state else { return Array<Float>() }
+			guard state else { return Array<Float>() }
 			let target: Buffer = context.make(length: width * MemoryLayout<Float>.size, options: .storageModeShared)
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-			encoder.copy(from: source, sourceOffset: 0, to: target, destinationOffset: 0, size: min(source.length, target.length))
+			encoder.copy(from: χ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(χ(0).length, target.length))
 			encoder.endEncoding()
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
-			defer { target.setPurgeableState(.empty) }
-			return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(target.contents())), count: width))
+			defer {
+				target.setPurgeableState(.empty)
+			}
+			return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(target.contents())),
+			                                               count: width)
+			)
 		}
 		set {
-			state = newValue.isEmpty ? nil :
-				context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModeShared)
+			let source: Buffer = context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)),
+			                                  options: .storageModeShared)
+			let command: CommandBuffer = context.make()
+			let encoder: BlitCommandEncoder = command.makeBlitCommandEncoder()
+			encoder.copy(from: source, sourceOffset: 0,
+			             to: χ(0), destinationOffset: 0, size: min(source.length, χ(0).length))
+			encoder.endEncoding()
+			command.addCompletedHandler { (_) in
+				source.setPurgeableState(.empty)
+			}
+			command.commit()
+			state = !newValue.isEmpty
 		}
 	}
 	public var target: Array<Float> {
 		get {
-			guard let source: Buffer = study else { return Array<Float>() }
+			guard study else { return Array<Float>() }
 			let target: Buffer = context.make(length: width * MemoryLayout<Float>.size, options: .storageModeShared)
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-			encoder.copy(from: source, sourceOffset: 0, to: target, destinationOffset: 0, size: min(source.length, target.length))
+			encoder.copy(from: ϝ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(ϝ(0).length, target.length))
 			encoder.endEncoding()
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
-			defer { target.setPurgeableState(.empty) }
-			return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(target.contents())), count: width))
+			defer {
+				target.setPurgeableState(.empty)
+			}
+			return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(target.contents())),
+			                                               count: width)
+			)
 		}
 		set {
-			study = newValue.isEmpty ? nil :
-				context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)), options: .storageModeShared)
+			let source: Buffer = context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)),
+			                                  options: .storageModeShared)
+			let command: CommandBuffer = context.make()
+			let encoder: BlitCommandEncoder = command.makeBlitCommandEncoder()
+			encoder.copy(from: source, sourceOffset: 0,
+			             to: ϝ(0), destinationOffset: 0, size: min(source.length, ϝ(0).length))
+			encoder.endEncoding()
+			command.addCompletedHandler { (_) in
+				source.setPurgeableState(.empty)
+			}
+			command.commit()
+			study = !newValue.isEmpty
 		}
 	}
 }
 extension Cell {
 	@NSManaged private var cache: Array<Cache>
+	@NSManaged private var index: Int
 	private class Cache: NSObject {
 		let χ: Buffer
+		let ϝ: Buffer
 		let φ: (μ: Buffer, σ: Buffer)
 		let g: (μ: Buffer, σ: Buffer)
 		let Δ: (μ: Buffer, σ: Buffer)
@@ -180,6 +196,7 @@ extension Cell {
 			let length: Int = count * MemoryLayout<Float>.size
 			let option: MTLResourceOptions = .storageModePrivate
 			χ = context.make(length: length, options: option)
+			ϝ = context.make(length: length, options: option)
 			φ = (
 				μ: context.make(length: length, options: option),
 				σ: context.make(length: length, options: option)
@@ -196,7 +213,7 @@ extension Cell {
 		}
 		func reset(commandBuffer: CommandBuffer) {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-			[χ, φ.μ, φ.σ, g.μ, g.σ, Δ.μ, Δ.σ].forEach {
+			[χ, ϝ, φ.μ, φ.σ, g.μ, g.σ, Δ.μ, Δ.σ].forEach {
 				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
 			}
 			encoder.endEncoding()
@@ -204,20 +221,26 @@ extension Cell {
 	}
 	internal func χ(_ offset: Int) -> Buffer {
 		let cycle: Int = cache.count
-		return cache[((offset+custom)%cycle+cycle)%cycle].χ
+		return cache[((offset+index)%cycle+cycle)%cycle].χ
+	}
+	internal func ϝ(_ offset: Int) -> Buffer {
+		let cycle: Int = cache.count
+		return cache[((offset+index)%cycle+cycle)%cycle].ϝ
 	}
 	internal func φ(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
 		let cycle: Int = cache.count
-		return cache[((offset+custom)%cycle+cycle)%cycle].φ
+		return cache[((offset+index)%cycle+cycle)%cycle].φ
 	}
 	internal func g(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
 		let cycle: Int = cache.count
-		return cache[((offset+custom)%cycle+cycle)%cycle].g
-		
+		return cache[((offset+index)%cycle+cycle)%cycle].g
 	}
 	internal func Δ(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
 		let cycle: Int = cache.count
-		return cache[((offset+custom)%cycle+cycle)%cycle].Δ
+		return cache[((offset+index)%cycle+cycle)%cycle].Δ
+	}
+	internal func rotate() {
+		index = ( index + 1 ) % cache.count
 	}
 	internal func setup(commandBuffer: CommandBuffer) {
 		cache = Array<Void>(repeating: (), count: depth).map {
@@ -226,6 +249,7 @@ extension Cell {
 		cache.forEach {
 			$0.reset(commandBuffer: commandBuffer)
 		}
+		index = 0
 	}
 }
 extension Cell {
@@ -254,10 +278,9 @@ extension Cell {
 	}
 }
 extension Cell {
-	@NSManaged var state: Buffer?
-	@NSManaged var study: Buffer?
-	@NSManaged var gradu: Buffer?
-	@NSManaged var grads: Buffer?
+	@NSManaged var state: Bool
+	@NSManaged var delta: Bool
+	@NSManaged var study: Bool
 }
 extension Cell {
 	@NSManaged var label: String
@@ -270,7 +293,6 @@ extension Cell {
 	@NSManaged var loop: Set<Feedback>
 	@NSManaged var bias: Bias
 	@NSManaged var decay: Decay?
-	@NSManaged public var pliable: Bool
 }
 extension Context {
 	public func make(label: String,
