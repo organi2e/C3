@@ -128,6 +128,33 @@ extension Educator {
 	}
 }
 internal extension Educator {
+	internal func untar(data: Data, handle: (String, Data) throws -> ()) rethrows {
+		guard let ascii: UInt32 = "0".unicodeScalars.first?.value else {
+			assertionFailure()
+			return
+		}
+		var cursor: Int = 0
+		while cursor < data.count {
+			try autoreleasepool {
+				let head: Data = data.subdata(in: cursor..<cursor + 512)
+				cursor = cursor + 512
+				
+				let name: String = head.getString()
+				let type: UInt8 = head.advanced(by: 156).get()
+				switch type {
+				case 48:
+					let array: Array<UInt8> = head.subdata(in: 124..<135).toArray()
+					let size: Int = array.reduce(0) {
+						$0.0 * 8 + Int($0.1) - Int(ascii)
+					}
+					try handle(name, data.subdata(in: cursor..<cursor + size))
+					cursor = cursor + 512 * ( ( size + 511 ) / 512 )
+				default:
+					break
+				}
+			}
+		}
+	}
 	internal func gunzip(data: Data) throws -> Data {
 		//reference: http://www.onicos.com/staff/iz/formats/gzip.html
 		
@@ -219,6 +246,16 @@ private extension Data {
 		assert( MemoryLayout<T>.size <= count )
 		return withUnsafeBytes {
 			$0.pointee
+		}
+	}
+	func getString() -> String {
+		return withUnsafeBytes {
+			String(cString: UnsafePointer<UInt8>($0))
+		}
+	}
+	func toArray<T>() -> Array<T> {
+		return withUnsafeBytes {
+			Array<T>(UnsafeBufferPointer<T>(start: $0, count: count / MemoryLayout<T>.size))
 		}
 	}
 }

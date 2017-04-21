@@ -12,6 +12,21 @@ let suffix: String = "v3.9"
 let trainer: URL = FileManager.default.temporaryDirectory.appendingPathComponent("trainer.sqlite")
 let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("MNISTv2.sqlite")
 class EducatorTests: XCTestCase {
+	func testCIFAR10() {
+		do {
+			let educator: Educator = try Educator(storage: trainer)
+//			if try 0 == educator.count(family: .databatch1) {
+				try educator.build(family: [.databatch1, .databatch2, .databatch3])
+				try educator.save()
+//			}
+			try educator.fetch(family: .databatch1, limit: 10).enumerated().forEach {
+				try CIContext().writeJPEGRepresentation(of: $0.element.ciimage, to: URL(fileURLWithPath: "/tmp/\($0.offset)\($0.element.handle).jpeg"), colorSpace: CGColorSpaceCreateDeviceRGB(), options: [:])
+			}
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
+	/*
 	func testMNIST() {
 		do {
 			guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
@@ -236,6 +251,7 @@ class EducatorTests: XCTestCase {
 			XCTFail(String(describing: error))
 		}
 	}
+*/
 }
 private extension MTLBuffer {
 	var ref: UnsafeMutablePointer<Float> {

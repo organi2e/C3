@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ROWS</key>
+	<integer>32</integer>
+	<key>COLS</key>
+	<integer>32</integer>
+	<key>PATH</key>
+	<string>file:///Users/Kota/Downloads/cifar-10-binary.tar.gz</string>
+	<key>DATA BATCH 1</key>
+	<string>cifar-10-batches-bin/data_batch_1.bin</string>
+	<key>DATA BATCH 2</key>
+	<string>cifar-10-batches-bin/data_batch_2.bin</string>
+	<key>DATA BATCH 3</key>
+	<string>cifar-10-batches-bin/data_batch_3.bin</string>
+	<key>DATA BATCH 4</key>
+	<string>cifar-10-batches-bin/data_batch_4.bin</string>
+	<key>DATA BATCH 5</key>
+	<string>cifar-10-batches-bin/data_batch_5.bin</string>
+	<key>DATA BATCH 6</key>
+	<string>cifar-10-batches-bin/data_batch_6.bin</string>
+	<key>TEST BATCH</key>
+	<string>cifar-10-batches-bin/test_batch.bin</string>
+	<key>META</key>
+	<string>cifar-10-batches-bin/batches.meta.txt</string>
+</dict>
+</plist>
