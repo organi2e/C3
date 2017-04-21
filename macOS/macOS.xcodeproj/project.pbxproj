@@ -15,6 +15,10 @@
 		8709F3CC1EA8D501007DCB96 /* Adapter.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 8754F8A11E8B9F0E006B088A /* Adapter.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		8709F3CF1EA8D501007DCB96 /* C3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87497DC91E9257080013C12C /* C3.framework */; };
 		8709F3D01EA8D501007DCB96 /* C3.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 87497DC91E9257080013C12C /* C3.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		8709F3EA1EA9FF81007DCB96 /* PTB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8709F3E91EA9FF81007DCB96 /* PTB.swift */; };
+		8709F3EC1EA9FF92007DCB96 /* PTB.plist in Resources */ = {isa = PBXBuildFile; fileRef = 8709F3EB1EA9FF92007DCB96 /* PTB.plist */; };
+		8709F3EE1EAA0008007DCB96 /* CIFAR10.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8709F3ED1EAA0008007DCB96 /* CIFAR10.swift */; };
+		8709F3F01EAA0018007DCB96 /* CIFAR10.plist in Resources */ = {isa = PBXBuildFile; fileRef = 8709F3EF1EAA0018007DCB96 /* CIFAR10.plist */; };
 		87263D481E97EAC900A4B75B /* RegFloor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87263D461E97EAC900A4B75B /* RegFloor.metal */; };
 		87263D491E97EAC900A4B75B /* RegFloor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87263D471E97EAC900A4B75B /* RegFloor.swift */; };
 		87263D4B1E97F27500A4B75B /* Feedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87263D4A1E97F27500A4B75B /* Feedback.swift */; };
@@ -232,6 +236,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		8709F3E91EA9FF81007DCB96 /* PTB.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PTB.swift; path = ../../Educator/PTB.swift; sourceTree = "<group>"; };
+		8709F3EB1EA9FF92007DCB96 /* PTB.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PTB.plist; path = ../../Educator/PTB.plist; sourceTree = "<group>"; };
+		8709F3ED1EAA0008007DCB96 /* CIFAR10.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = CIFAR10.swift; path = ../../Educator/CIFAR10.swift; sourceTree = "<group>"; };
+		8709F3EF1EAA0018007DCB96 /* CIFAR10.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = CIFAR10.plist; path = ../../Educator/CIFAR10.plist; sourceTree = "<group>"; };
 		87263D461E97EAC900A4B75B /* RegFloor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = RegFloor.metal; path = ../../Adapter/RegFloor.metal; sourceTree = "<group>"; };
 		87263D471E97EAC900A4B75B /* RegFloor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RegFloor.swift; path = ../../Adapter/RegFloor.swift; sourceTree = "<group>"; };
 		87263D4A1E97F27500A4B75B /* Feedback.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Feedback.swift; path = ../../C3/Feedback.swift; sourceTree = "<group>"; };
@@ -633,6 +641,10 @@
 		87E74B2B1E9DC4BB006D513A /* Educator */ = {
 			isa = PBXGroup;
 			children = (
+				8709F3ED1EAA0008007DCB96 /* CIFAR10.swift */,
+				8709F3EF1EAA0018007DCB96 /* CIFAR10.plist */,
+				8709F3E91EA9FF81007DCB96 /* PTB.swift */,
+				8709F3EB1EA9FF92007DCB96 /* PTB.plist */,
 				875BA1E91E9DEBBF0076A39C /* Wikipedia.swift */,
 				875BA1E81E9DEBBF0076A39C /* Wikipedia.plist */,
 				87E74B471E9DC4CF006D513A /* MNIST.swift */,
@@ -1110,7 +1122,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				875BA1EC1E9DEBBF0076A39C /* Wikipedia.plist in Resources */,
+				8709F3EC1EA9FF92007DCB96 /* PTB.plist in Resources */,
 				87E74B531E9DCA86006D513A /* MNIST.plist in Resources */,
+				8709F3F01EAA0018007DCB96 /* CIFAR10.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1272,8 +1286,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				87E74B4A1E9DC4CF006D513A /* MNIST.swift in Sources */,
+				8709F3EA1EA9FF81007DCB96 /* PTB.swift in Sources */,
 				875BA1ED1E9DEBBF0076A39C /* Wikipedia.swift in Sources */,
 				875BA1CE1E9DE5040076A39C /* Educator.swift in Sources */,
+				8709F3EE1EAA0008007DCB96 /* CIFAR10.swift in Sources */,
 				87A79E9A1EA26FBA007C3E92 /* Educator.xcdatamodeld in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

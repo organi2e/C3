@@ -76,7 +76,7 @@ extension Cell {
 		delta = false
 	}
 	public func correct(fix: Set<Cell> = Set<Cell>()) {
-		let _: (μ: Buffer, σ: Buffer) = correct(fix: [self], visit: [])
+		let _: (μ: Buffer, σ: Buffer) = correct(fix: fix.union(Set<Cell>(arrayLiteral: self)), visit: [])
 	}
 	internal func correct(fix: Set<Cell>, visit: Set<Cell>) -> (μ: Buffer, σ: Buffer) {
 		guard !visit.contains(self) else {
