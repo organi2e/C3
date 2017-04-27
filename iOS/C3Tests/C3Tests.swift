@@ -13,7 +13,7 @@ import Optimizer
 import Adapter
 @testable import C3
 
-let file: String = "C3Tests"//UUID().uuidString
+let file: String = UUID().uuidString
 let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(file).sqlite")
 
 let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [1,0,0,0]]
@@ -24,78 +24,106 @@ class C3Tests: XCTestCase {
 		super.setUp()
 		print(storage.lastPathComponent)
 	}
-	/*
-	func testSaveLoad() {
-	let label: String = UUID().description
-	let width: Int = 1 + Int(arc4random_uniform(15))
-	do {
-	do {
-	let context: Context = try Context(storage: storage)
-	let _: Cell = try context.make(label: label, width: width)
-	try context.save()
+	func testReinforce() {
+		let source: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0]]
+		let answer: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
+		guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
+		do {
+			let context: Context = try Context(queue: queue, optimizer: SMORMS3.factory(L2: 1e-6, α: 1e-3))
+			let I: Cell = try context.make(label: "I", width:  4, distribution: .Gauss, activation: .Binary)
+			let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: false)
+			let G: Cell = try context.make(label: "G", width:  4, distribution: .Gauss, activation: .Binary, input: [H], decay: false)
+			let F: Cell = try context.make(label: "F", width: 64, distribution: .Gauss, activation: .Binary, input: [G], decay: false)
+			let O: Cell = try context.make(label: "O", width:  5, distribution: .Gauss, activation: .Binary, input: [F], decay: false)
+			
+			(0..<1024).forEach {
+				print($0)
+				zip(source, answer).forEach {
+					/*
+					var x: Array<Float> = Array<Void>(repeating: (), count: 4096).map {
+						Float(arc4random())/Float(UInt32.max)
+					}
+					var y: Array<Float> = Array<Void>(repeating: (), count: 4096).map {
+						Float(arc4random())/Float(UInt32.max)
+					}
+					var z: Array<Float> = Array<Void>(repeating: (), count: 4096).map {
+						Float(arc4random())/Float(UInt32.max)
+					}
+					let X: la_object_t = la_matrix_from_float_buffer_nocopy(&x, 64, 64, 64, la_hint_t(LA_NO_HINT), nil, la_attribute_t(LA_ATTRIBUTE_ENABLE_LOGGING))
+					let Y: la_object_t = la_matrix_from_float_buffer_nocopy(&y, 64, 64, 64, la_hint_t(LA_NO_HINT), nil, la_attribute_t(LA_ATTRIBUTE_ENABLE_LOGGING))
+					let Z: la_object_t = la_matrix_product(X, Y)
+					la_matrix_to_float_buffer(&z, 64, Z)
+					*/
+					
+					O.collect_refresh()
+					G.source = $0.0
+					O.collect()
+					
+					G.correct_refresh()
+					O.target = $0.1 + [0]
+					G.correct()
+					
+					O.collect_refresh()
+					I.source = $0.1
+					O.collect()
+					
+					G.correct_refresh()
+					O.target = $0.1 + [1]
+					G.correct()
+					
+					I.correct_refresh()
+					O.target = $0.1 + [0]
+					I.correct(fix: [O, F])
+
+					/*
+					I.correct_refresh()
+					O.collect_refresh()
+					I.source = $0.0
+					O.target = $0.1
+					O.collect()
+					I.correct()
+					*/
+				}
+			}
+			(source).forEach {
+				O.collect_refresh()
+				I.source = $0
+				O.collect()
+				print(O.source)
+			}
+			(answer).forEach {
+				G.collect_refresh()
+				I.source = $0
+				G.collect()
+				print(G.source)
+			}
+		} catch {
+			XCTFail(String(describing: error))
+		}
 	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch()
-	print(XS)
-	XCTAssert(!XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: label)
-	XCTAssert(!XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(width: width)
-	XCTAssert(!XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: label, width: width)
-	XCTAssert(XS.count==1)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: UUID().description, width: width)
-	XCTAssert(XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: label, width: width+1)
-	XCTAssert(XS.isEmpty)
-	}
-	
-	} catch {
-	XCTFail(String(describing: error))
-	}
-	}
-	*/
 	func testChain() {
+		return
 		do {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
-			/*
 			do {
 				let context: Context = try Context(queue: queue, storage: storage)
 				let I: Cell = try context.make(label: "I", width: 4, distribution: .Gauss, activation: .Binary)
-				let H: Cell = try context.make(label: "H", width: 512, distribution: .Gauss, activation: .Binary, adapters: (.Regular, .RegFloor), input: [I], decay: false, recurrent: [])
-				let G: Cell = try context.make(label: "G", width: 512, distribution: .Gauss, activation: .Identity, adapters: (.Regular, .RegFloor), input: [H], decay: true, recurrent: [])
-				let F: Cell = try context.make(label: "F", width: 512, distribution: .Gauss, activation: .Binary, adapters: (.Regular, .RegFloor), input: [G], decay: false, recurrent: [])
-				let E: Cell = try context.make(label: "G", width: 512, distribution: .Gauss, activation: .Identity, adapters: (.Regular, .RegFloor), input: [F], decay: true, recurrent: [])
-				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Binary, adapters: (.Regular, .RegFloor), input: [E], decay: false, recurrent: [])
+				let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [])
+				let G: Cell = try context.make(label: "G", width: 64, distribution: .Gauss, activation: .Binary, input: [H], decay: true, recurrent: [])
+				//				let F: Cell = try context.make(label: "F", width: 64, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [])
+				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [])
 				try context.save()
 			}
-			*/
 			do {
 				let context: Context = try Context(queue: queue,
 				                                   storage: storage,
-				                                   optimizer: SMORMS3.factory(L2: 1e-4, L1: 0, α: 1e-1)
+				                                   optimizer: SMORMS3.factory(L2: 1e-8, L1: 0, α: 1e-3)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
 					print("try")
-					(0..<4096).forEach {
+					(0..<1024).forEach {
 						let ref: Int = ( $0 / 4 ) % 8
 						O.collect_refresh()
 						I.correct_refresh()
@@ -105,12 +133,8 @@ class C3Tests: XCTestCase {
 						I.correct()
 						//						print(O.source)
 					}
-					do {
-						try context.save()
-					} catch {
-						XCTFail(String(describing: error))
-					}
 				}
+				try context.save()
 			}
 			
 			do {

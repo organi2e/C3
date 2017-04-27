@@ -162,6 +162,27 @@ kernel void DegenerateCorrectN(device float * const dx [[ buffer(0) ]],
 		dx[idx] += 2 * x[idx] - 1;
 	}
 }
+kernel void DegenerateCorrectP(device float * const dx [[ buffer(0) ]],
+							   device float const * const x [[ buffer(1) ]],
+							   device float const * const d [[ buffer(2) ]],
+							   constant uint const & N [[ buffer(3) ]],
+							   uint const n [[ thread_position_in_grid ]]) {
+	if ( n < N ) {
+		int const idx = n;
+		float const p = fma(tanh(0.5*x[idx]), 32767.0/65536.0, 0.5);//Avoid flowing
+		dx[idx] += ( p - d[idx] ) / p / ( 1 - p );
+	}
+}
+kernel void DegenerateCorrectV(device float * const dx [[ buffer(0) ]],
+							   device float const * const x [[ buffer(1) ]],
+							   device float const * const d [[ buffer(2) ]],
+							   constant uint const & N [[ buffer(3) ]],
+							   uint const n [[ thread_position_in_grid ]]) {
+	if ( n < N ) {
+		int const idx = n;
+		dx[idx] += x[idx] - d[idx];
+	}
+}
 /*----------------------------------------------------------------*/
 kernel void DegenerateJacobianX(device float * const j [[ buffer(0) ]],
 								device float const * const x [[ buffer(1) ]],
@@ -284,8 +305,8 @@ kernel void DegenerateActivateP(device float * const f [[ buffer(0) ]],
 	if ( n < N ) {
 		int const idx = n;
 		float const x = v[idx];
-		float const p = 1 / ( 1 + exp(-x) );
-		f[idx] = step(0, x);
+		float const p = fma(tanh(0.5*x), 32767.0/65536.0, 0.5);//Avoid flowing
+		f[idx] = p;//step(0, x);
 		g[idx] = p * ( 1 - p );
 	}
 }
@@ -297,7 +318,10 @@ kernel void DegenerateDerivateP(device float * const d [[ buffer(0) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		d[idx] = sign(d[idx]);
+//		float const x = v[idx];
+//		float const p = fma(tanh(0.5*x), 32767.0/65536.0, 0.5);
+//		d[idx] = sign(d[idx]);// / p / ( 1 - p );
+		d[idx] = d[idx] * g[idx];
 	}
 }
 kernel void DegenerateActivateV(device float * const f [[ buffer(0) ]],

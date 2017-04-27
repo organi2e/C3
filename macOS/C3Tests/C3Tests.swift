@@ -24,7 +24,71 @@ class C3Tests: XCTestCase {
 		super.setUp()
 		print(storage.lastPathComponent)
 	}
+	func testReinforce() {
+		let source: Array<Array<Float>> = [[1,1,1,1], [1,1,1,0], [1,1,0,0], [1,0,0,0]]
+		let answer: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
+		guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
+		do {
+			let context: Context = try Context(queue: queue, optimizer: SMORMS3.factory(L2: 1e-6, α: 1e-3))
+			let I: Cell = try context.make(label: "I", width:   4, distribution: .Gauss, activation: .Binary)
+			let H1: Cell = try context.make(label: "H1", width: 256, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [I], decay: false)
+			let H2: Cell = try context.make(label: "H2", width: 256, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [H1], decay: false)
+			let G: Cell = try context.make(label: "G", width:   4, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [H2], decay: false)
+			let F1: Cell = try context.make(label: "F1", width: 256, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [G], decay: false)
+			let F2: Cell = try context.make(label: "F2", width: 256, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [F1], decay: false)
+			let O: Cell = try context.make(label: "O", width:   5, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [F2], decay: false)
+			
+			(0..<4096).forEach {
+				print($0)
+				zip(source, answer).forEach {
+					
+					O.collect_refresh()
+					G.correct_refresh()
+					O.target = $0.1 + [0]
+					G.source = $0.0
+					O.collect()
+					G.correct()
+					
+					O.collect_refresh()
+					I.source = $0.1
+					O.collect()
+					
+					I.correct_refresh()
+					O.target = $0.1 + [0]
+					I.correct(fix: [O, F1, F2])
+					
+					G.correct_refresh()
+					O.target = $0.1 + [1]
+					G.correct()
+					
+					/*
+					O.collect_refresh()
+					I.correct_refresh()
+					O.target = $0.1
+					I.source = $0.1
+					O.collect()
+					I.correct()
+					*/
+				}
+			}
+			(source).forEach {
+				O.collect_refresh()
+				G.source = $0
+				O.collect()
+				print(O.source)
+			}
+			(answer).forEach {
+				O.collect_refresh()
+				I.source = $0
+				O.collect()
+				print(O.source, G.source)
+			}
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
 	func testChain() {
+		return
 		do {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 			do {
@@ -39,7 +103,7 @@ class C3Tests: XCTestCase {
 			do {
 				let context: Context = try Context(queue: queue,
 				                                   storage: storage,
-				                                   optimizer: SMORMS3.factory(L2: 1e-4, L1: 0, α: 1e-1)
+				                                   optimizer: SMORMS3.factory(L2: 1e-8, L1: 0, α: 1e-3)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }

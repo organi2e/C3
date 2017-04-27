@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5B6BD1F61EB04F6800B69DA2 /* MNIST.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B6BD1F51EB04F6800B69DA2 /* MNIST.swift */; };
 		8709F3C31EA8D501007DCB96 /* Distributor.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8754F8461E8B96AB006B088A /* Distributor.framework */; };
 		8709F3C41EA8D501007DCB96 /* Distributor.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 8754F8461E8B96AB006B088A /* Distributor.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		8709F3C71EA8D501007DCB96 /* Optimizer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8754F8691E8B970E006B088A /* Optimizer.framework */; };
@@ -89,6 +90,8 @@
 		87B8462F1E93985500844835 /* Tanh.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B8462E1E93985500844835 /* Tanh.metal */; };
 		87B846311E93A48500844835 /* Floor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B846301E93A48500844835 /* Floor.swift */; };
 		87B846331E93A49000844835 /* Floor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B846321E93A49000844835 /* Floor.metal */; };
+		87BFC3A11EB0607B002F382F /* CauchyDistribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87BFC3A01EB0607B002F382F /* CauchyDistribution.swift */; };
+		87BFC3A31EB06086002F382F /* CauchyDistribution.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87BFC3A21EB06086002F382F /* CauchyDistribution.metal */; };
 		87C3C2741E94C58C00A62C11 /* Decay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C2731E94C58C00A62C11 /* Decay.swift */; };
 		87C3C27D1E94C90100A62C11 /* Logistic.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C27B1E94C90100A62C11 /* Logistic.metal */; };
 		87C3C27E1E94C90100A62C11 /* Logistic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C27C1E94C90100A62C11 /* Logistic.swift */; };
@@ -107,6 +110,7 @@
 		87E74B401E9DC4BB006D513A /* Educator.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 87E74B2A1E9DC4BB006D513A /* Educator.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		87E74B4A1E9DC4CF006D513A /* MNIST.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E74B471E9DC4CF006D513A /* MNIST.swift */; };
 		87E74B531E9DCA86006D513A /* MNIST.plist in Resources */ = {isa = PBXBuildFile; fileRef = 87E74B521E9DCA86006D513A /* MNIST.plist */; };
+		87E9AB231EAE0514002D8252 /* PTB.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E9AB221EAE0514002D8252 /* PTB.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -201,13 +205,6 @@
 			remoteGlobalIDString = 87E74B291E9DC4BA006D513A;
 			remoteInfo = Educator;
 		};
-		87E74B361E9DC4BB006D513A /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 8754F8341E8B9679006B088A /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 87D203CD1E99EF3E0054A34D;
-			remoteInfo = Stage;
-		};
 		87E74B3D1E9DC4BB006D513A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8754F8341E8B9679006B088A /* Project object */;
@@ -236,6 +233,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5B6BD1F51EB04F6800B69DA2 /* MNIST.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MNIST.swift; sourceTree = "<group>"; };
 		8709F3E91EA9FF81007DCB96 /* PTB.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PTB.swift; path = ../../Educator/PTB.swift; sourceTree = "<group>"; };
 		8709F3EB1EA9FF92007DCB96 /* PTB.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PTB.plist; path = ../../Educator/PTB.plist; sourceTree = "<group>"; };
 		8709F3ED1EAA0008007DCB96 /* CIFAR10.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = CIFAR10.swift; path = ../../Educator/CIFAR10.swift; sourceTree = "<group>"; };
@@ -314,6 +312,8 @@
 		87B8462E1E93985500844835 /* Tanh.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Tanh.metal; path = ../../Adapter/Tanh.metal; sourceTree = "<group>"; };
 		87B846301E93A48500844835 /* Floor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Floor.swift; path = ../../Adapter/Floor.swift; sourceTree = "<group>"; };
 		87B846321E93A49000844835 /* Floor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Floor.metal; path = ../../Adapter/Floor.metal; sourceTree = "<group>"; };
+		87BFC3A01EB0607B002F382F /* CauchyDistribution.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = CauchyDistribution.swift; path = ../../Distributor/CauchyDistribution.swift; sourceTree = "<group>"; };
+		87BFC3A21EB06086002F382F /* CauchyDistribution.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = CauchyDistribution.metal; path = ../../Distributor/CauchyDistribution.metal; sourceTree = "<group>"; };
 		87C3C2731E94C58C00A62C11 /* Decay.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Decay.swift; path = ../../C3/Decay.swift; sourceTree = "<group>"; };
 		87C3C27B1E94C90100A62C11 /* Logistic.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Logistic.metal; path = ../../Adapter/Logistic.metal; sourceTree = "<group>"; };
 		87C3C27C1E94C90100A62C11 /* Logistic.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Logistic.swift; path = ../../Adapter/Logistic.swift; sourceTree = "<group>"; };
@@ -337,6 +337,7 @@
 		87E74B3B1E9DC4BB006D513A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		87E74B471E9DC4CF006D513A /* MNIST.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = MNIST.swift; path = ../../Educator/MNIST.swift; sourceTree = "<group>"; };
 		87E74B521E9DCA86006D513A /* MNIST.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = MNIST.plist; path = ../../Educator/MNIST.plist; sourceTree = "<group>"; };
+		87E9AB221EAE0514002D8252 /* PTB.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PTB.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -519,6 +520,8 @@
 			children = (
 				875CC7761E9B401200E08CA6 /* DegenerateDistributor.swift */,
 				875CC7781E9B402900E08CA6 /* DegenerateDistributor.metal */,
+				87BFC3A01EB0607B002F382F /* CauchyDistribution.swift */,
+				87BFC3A21EB06086002F382F /* CauchyDistribution.metal */,
 				8754F8601E8B96DA006B088A /* GaussDistributor.swift */,
 				8754F85F1E8B96DA006B088A /* GaussDistributor.metal */,
 				8754F85E1E8B96DA006B088A /* Distributior.swift */,
@@ -622,6 +625,8 @@
 			children = (
 				87D203D01E99EF3E0054A34D /* AppDelegate.swift */,
 				87D203D21E99EF3E0054A34D /* ViewController.swift */,
+				5B6BD1F51EB04F6800B69DA2 /* MNIST.swift */,
+				87E9AB221EAE0514002D8252 /* PTB.swift */,
 				87D203D41E99EF3E0054A34D /* Assets.xcassets */,
 				87D203D61E99EF3E0054A34D /* Main.storyboard */,
 				87D203D91E99EF3E0054A34D /* Info.plist */,
@@ -931,7 +936,6 @@
 			);
 			dependencies = (
 				87E74B351E9DC4BB006D513A /* PBXTargetDependency */,
-				87E74B371E9DC4BB006D513A /* PBXTargetDependency */,
 			);
 			name = EducatorTests;
 			productName = EducatorTests;
@@ -1184,7 +1188,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				875CC7791E9B402900E08CA6 /* DegenerateDistributor.metal in Sources */,
+				87BFC3A31EB06086002F382F /* CauchyDistribution.metal in Sources */,
 				8754F8611E8B96DA006B088A /* Distributior.swift in Sources */,
+				87BFC3A11EB0607B002F382F /* CauchyDistribution.swift in Sources */,
 				8754F8631E8B96DA006B088A /* GaussDistributor.swift in Sources */,
 				8754F8621E8B96DA006B088A /* GaussDistributor.metal in Sources */,
 				875CC7771E9B401200E08CA6 /* DegenerateDistributor.swift in Sources */,
@@ -1269,6 +1275,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				87D203D31E99EF3E0054A34D /* ViewController.swift in Sources */,
+				5B6BD1F61EB04F6800B69DA2 /* MNIST.swift in Sources */,
+				87E9AB231EAE0514002D8252 /* PTB.swift in Sources */,
 				87D203D11E99EF3E0054A34D /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1369,11 +1377,6 @@
 			isa = PBXTargetDependency;
 			target = 87E74B291E9DC4BA006D513A /* Educator */;
 			targetProxy = 87E74B341E9DC4BB006D513A /* PBXContainerItemProxy */;
-		};
-		87E74B371E9DC4BB006D513A /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 87D203CD1E99EF3E0054A34D /* Stage */;
-			targetProxy = 87E74B361E9DC4BB006D513A /* PBXContainerItemProxy */;
 		};
 		87E74B3E1E9DC4BB006D513A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

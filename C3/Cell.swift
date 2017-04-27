@@ -20,16 +20,18 @@ extension Cell {
 		commandBuffer.commit()
 	}
 	internal func collect_refresh(commandBuffer: CommandBuffer) {
-		input.forEach {
-			$0.collect_refresh(commandBuffer: commandBuffer)
+		if state {
+			input.forEach {
+				$0.collect_refresh(commandBuffer: commandBuffer)
+			}
+			bias.collect_refresh(commandBuffer: commandBuffer)
+			loop.forEach {
+				$0.collect_refresh(commandBuffer: commandBuffer)
+			}
+			decay?.collect_refresh(commandBuffer: commandBuffer)
+			rotate()
+			state = false
 		}
-		bias.collect_refresh(commandBuffer: commandBuffer)
-		loop.forEach {
-			$0.collect_refresh(commandBuffer: commandBuffer)
-		}
-		decay?.collect_refresh(commandBuffer: commandBuffer)
-		rotate()
-		state = false
 	}
 	public func collect() {
 		let _: Buffer = collect(visit: Set<Cell>())
@@ -64,38 +66,50 @@ extension Cell {
 }
 extension Cell {
 	public func correct_refresh() {
-		output.forEach {
-			$0.correct_refresh()
+		if delta {
+			output.forEach {
+				$0.correct_refresh()
+			}
+			bias.correct_refresh()
+			loop.forEach {
+				$0.correct_refresh()
+			}
+			decay?.correct_refresh()
+			delta = false
 		}
-		bias.correct_refresh()
-		loop.forEach {
-			$0.correct_refresh()
+		if study {
+			study = false
 		}
-		decay?.correct_refresh()
-		study = false
-		delta = false
 	}
 	public func correct(fix: Set<Cell> = Set<Cell>()) {
-		let _: (μ: Buffer, σ: Buffer) = correct(fix: fix.union(Set<Cell>(arrayLiteral: self)), visit: [])
+		let _: (μ: Buffer, σ: Buffer) = correct(fix: fix.union([self]), visit: [])
 	}
 	internal func correct(fix: Set<Cell>, visit: Set<Cell>) -> (μ: Buffer, σ: Buffer) {
 		guard !visit.contains(self) else {
 			return Δ(-1)
 		}
 		if !delta {
-			func corrector(corrector: Corrector) {
-				output.forEach {
-					$0.correct(corrector: corrector, fix: fix, visit: visit.union([self]))
-				}
-				if study {
-					corrector.correct(χ: χ(0), ϝ: ϝ(0))
-				}
-			}
 			let commandBuffer: CommandBuffer = context.make()
 			switch activation {
 			case .Binary:
+				func corrector(corrector: Corrector) {
+					output.forEach {
+						$0.correct(corrector: corrector, fix: fix, visit: visit.union([self]))
+					}
+					if study {
+						corrector.correct(φ: φ(0), f: ϝ(0))
+					}
+				}
 				distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), f: χ(0), g: g(0), φ: φ(0), count: width, corrector: corrector)
 			case .Identity:
+				func corrector(corrector: Corrector) {
+					output.forEach {
+						$0.correct(corrector: corrector, fix: fix, visit: visit.union([self]))
+					}
+					if study {
+						corrector.correct(φ: φ(0), v: ϝ(0))
+					}
+				}
 				distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), v: χ(0), g: g(0), φ: φ(0), count: width, corrector: corrector)
 			}
 			bias.correct(commandBuffer: commandBuffer, fix: fix, Δφ: Δ(0))

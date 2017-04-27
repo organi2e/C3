@@ -4,21 +4,118 @@ import XCTest
 import Accelerate
 import Optimizer
 import CoreImage
-@testable import C3
+import C3
 @testable import Educator
 //let prefix: String = "DegenerateAE-"
-let prefix: String = "GAE"
-let suffix: String = "v3.9"
+let prefix: String = "ASCIImod"
+let suffix: String = "v0.3"
 let trainer: URL = FileManager.default.temporaryDirectory.appendingPathComponent("trainer.sqlite")
-let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("MNISTv2.sqlite")
+let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("storage.sqlite")
 class EducatorTests: XCTestCase {
+	func testOnehot() {
+		let string: String = UUID().uuidString
+		let array: ContiguousArray<CChar> = string.utf8CString
+		let encode: Array<Array<Float>> = array.map {
+			$0.onehot
+		}
+		let decode: Array<CChar> = encode.map {
+			$0.asOnehot
+		}
+		XCTAssert( string == String(cString: decode) )
+	}
+	/*
+	func testPTB() {
+		do {
+			guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
+			let educator: Educator = try Educator(storage: trainer)
+			if try 0 == educator.count(ptb: .test) {
+				try educator.build(ptb: .test)
+				try educator.save()
+				print("build")
+			}
+			guard let string: ContiguousArray<CChar> = try educator.fetch(ptb: .test).first?.body.components(separatedBy: CharacterSet.whitespacesAndNewlines).joined(separator: " ").utf8CString else {
+				XCTFail()
+				return
+			}
+			educator.reset()
+			let queue: MTLCommandQueue = device.makeCommandQueue()
+			let context: Context = try Context(queue: queue,
+			                                   storage: storage,
+			                                   optimizer: SMORMS3.factory(L2: 1e-6, α: 1e-3))
+			if try 0 == context.count(label: "\(prefix)I\(suffix)") {
+				print("insert")
+				try autoreleasepool {
+					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 256, distribution: .Gauss, activation: .Binary,
+					                               adapters: (.Linear, .Softplus))
+					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 256, distribution: .Gauss, activation: .Binary,
+					                               adapters: (.Linear, .Softplus), input: [I], decay: true, recurrent: [-1])
+					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 256, distribution: .Gauss, activation: .Binary,
+					                               adapters: (.Linear, .Softplus), input: [H], decay: true, recurrent: [-1])
+					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 256, distribution: .Gauss, activation: .Binary,
+					                               adapters: (.Linear, .Softplus), input: [G], decay: true, recurrent: [-1])
+					let _: Cell = try context.make(label: "\(prefix)O\(suffix)", width: 256, distribution: .Gauss, activation: .Binary,
+					                               adapters: (.Linear, .Softplus), input: [F], decay: true, recurrent: [-1])
+					try context.save()
+					context.reset()
+				}
+			}
+			try autoreleasepool {
+				guard let I: Cell = try context.fetch(label: "\(prefix)I\(suffix)").first else { XCTFail(); return }
+				guard let O: Cell = try context.fetch(label: "\(prefix)O\(suffix)").first else { XCTFail(); return }
+				try Array<Void>(repeating: (), count: 1).forEach {
+					let batch: Int = 4096
+					let limit: Int = 16384
+					try stride(from: 1, to: limit, by: batch).forEach {
+						let beg = string.index(string.startIndex, offsetBy: $0)
+						let end = string.index(beg, offsetBy: batch)
+						try autoreleasepool {
+							(beg..<end).forEach {
+								O.collect_refresh()
+								I.correct_refresh()
+								O.target = string[$0-0].onehot
+								I.source = string[$0-1].onehot
+								O.collect()
+								I.correct()
+								if $0 % 4096 == 0 {
+									print(Date(), $0)
+								}
+							}
+							try context.save()
+						}
+					}
+				}
+				context.reset()
+			}
+			try autoreleasepool {
+				guard let I: Cell = try context.fetch(label: "\(prefix)I\(suffix)").first else { XCTFail(); return }
+				guard let O: Cell = try context.fetch(label: "\(prefix)O\(suffix)").first else { XCTFail(); return }
+				"I am your father".utf8CString.forEach {
+					O.collect_refresh()
+					I.source = $0.onehot
+					O.collect()
+				}
+				let result: Array<CChar> = Array<Void>(repeating: (), count: 4096).map {
+					let last: Array<Float> = O.source
+					O.collect_refresh()
+					I.source = last
+					O.collect()
+					return last.asOnehot
+				}
+				print(String(cString: result))
+			}
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
+*/
+	/*
 	func testCIFAR10() {
 		do {
 			let educator: Educator = try Educator(storage: trainer)
-//			if try 0 == educator.count(family: .databatch1) {
-				try educator.build(family: [.databatch1, .databatch2, .databatch3])
+			if try 0 == educator.count(family: .databatch1) {
+				try educator.build(family: .databatch1)
 				try educator.save()
-//			}
+			}
 			try educator.fetch(family: .databatch1, limit: 10).enumerated().forEach {
 				try CIContext().writeJPEGRepresentation(of: $0.element.ciimage, to: URL(fileURLWithPath: "/tmp/\($0.offset)\($0.element.handle).jpeg"), colorSpace: CGColorSpaceCreateDeviceRGB(), options: [:])
 			}
@@ -26,6 +123,7 @@ class EducatorTests: XCTestCase {
 			XCTFail(String(describing: error))
 		}
 	}
+	*/
 	/*
 	func testMNIST() {
 		do {

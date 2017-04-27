@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="12141" systemVersion="16E195" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
-    <entity name="Corpus" representedClassName=".Corpus" syncable="YES">
+    <entity name="Corpus" representedClassName=".Corpus" parentEntity="Group" syncable="YES">
         <attribute name="body" attributeType="String" syncable="YES"/>
         <attribute name="title" attributeType="String" indexed="YES" syncable="YES"/>
     </entity>
@@ -18,8 +18,8 @@
         <attribute name="width" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES" syncable="YES"/>
     </entity>
     <elements>
+        <element name="Corpus" positionX="-63" positionY="36" width="128" height="75"/>
         <element name="Group" positionX="-63" positionY="27" width="128" height="105"/>
         <element name="Image" positionX="-63" positionY="-18" width="128" height="120"/>
-        <element name="Corpus" positionX="-63" positionY="36" width="128" height="75"/>
     </elements>
 </model>

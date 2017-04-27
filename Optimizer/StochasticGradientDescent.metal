@@ -17,6 +17,6 @@ kernel void StochasticGradientDescentOptimize(device float * const theta [[ buff
 	if ( n < N ) {
 		int const idx = n;
 		float const t = theta[idx];
-		theta[idx] -= dot(eta, float3(delta[idx], t, sign(t)));
+		theta[idx] -= dot(eta, float3(t, sign(t), delta[idx]));
 	}
 }

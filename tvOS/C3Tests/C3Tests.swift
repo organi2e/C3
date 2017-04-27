@@ -70,28 +70,30 @@ class C3Tests: XCTestCase {
 	}
 	*/
 	func testChain() {
+		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else {
+			XCTFail()
+			return
+		}
 		do {
+			let context: Context = try Context(queue: device.makeCommandQueue(),
+			                                   storage: storage,
+			                                   optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-3)
+			)
 			do {
-				let context: Context = try Context(storage: storage)
 				let I: Cell = try context.make(label: "I", width: 4, distribution: .Gauss, activation: .Identity)
-				let H: Cell = try context.make(label: "H", width: 256, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [-1])
-				let G: Cell = try context.make(label: "G", width: 256, distribution: .Gauss, activation: .Identity, input: [H], decay: true, recurrent: [])
-				let F: Cell = try context.make(label: "F", width: 256, distribution: .Gauss, activation: .Binary, input: [G], decay: true, recurrent: [-1])
-				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Identity, input: [F], decay: true)
+				let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [])
+				let G: Cell = try context.make(label: "G", width: 64, distribution: .Gauss, activation: .Binary, input: [H], decay: true, recurrent: [])
+//				let F: Cell = try context.make(label: "F", width: 64, distribution: .Gauss, activation: .Binary, input: [G], decay: true, recurrent: [])
+				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Binary, input: [G], decay: false)
 				try context.save()
+				context.reset()
 			}
 			do {
-				let context: Context = try Context(
-					storage: storage
-					//,optimizer: SGD.factory(η: 1e-3)
-//					,optimizer: Adam.factory(L2: 1e-6, L1: 0, α: 1e-1)
-					,optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-1)
-				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
-				measure {
+				measure {//124 sec w/o loop, 
 					print("try")
-					(0..<1024).forEach {
+					(0..<256).forEach {
 						let ref: Int = ( $0 / 4 ) % 8
 						O.collect_refresh()
 						I.correct_refresh()
@@ -99,17 +101,14 @@ class C3Tests: XCTestCase {
 						I.source = IS[ref]
 						O.collect()
 						I.correct()
-						//						print(O.source)
+						//print(O.source)
 					}
 				}
 				try context.save()
+				context.reset()
 			}
 			
 			do {
-				let context: Context = try Context(
-					storage: storage
-					//,optimizer: SMORMS3.factory(α: 1e-1)
-				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				//guard let H: Cell = try context.fetch(label: "H").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
@@ -122,37 +121,6 @@ class C3Tests: XCTestCase {
 					//let x = O.source
 					print(O.source)//.map{ $0 == x.max() })
 				}
-				print("cpu")
-				/*
-				let (HWμ, HWσ) = context.capture(output: H, input: I)
-				let (HCμ, HCσ) = context.capture(cell: H)
-				
-				let (OWμ, OWσ) = context.capture(output: O, input: H)
-				let (OCμ, OCσ) = context.capture(cell: O)
-				
-				(0..<4).forEach {
-				let Xp: LaObjet = make(array: IS[$0], rows: 4, cols: 1)
-				
-				let Hμ: LaObjet = matrix_product(HWμ, Xp) + HCμ
-				let Hv: LaObjet = matrix_product(HWσ*HWσ, Xp*Xp) + HCσ*HCσ
-				let Hp: LaObjet = 0.5 + 0.5 * erf(Hμ*rsqrt(2*Hv))
-				
-				let Oμ: LaObjet = matrix_product(OWμ, Hp) + OCμ
-				let Ov: LaObjet = matrix_product(OWσ*OWσ, Hp*Hp) + OCσ*OCσ
-				let Op: LaObjet = 0.5 + 0.5 * erf(Oμ*rsqrt(2*Ov))
-				
-				print(Op.array)
-				}
-				
-				try HWμ.write(to: URL(fileURLWithPath: "/tmp/HWu.raw"))
-				try HWσ.write(to: URL(fileURLWithPath: "/tmp/HWs.raw"))
-				try HCμ.write(to: URL(fileURLWithPath: "/tmp/HCu.raw"))
-				try HCσ.write(to: URL(fileURLWithPath: "/tmp/HCs.raw"))
-				try OWμ.write(to: URL(fileURLWithPath: "/tmp/OWu.raw"))
-				try OWσ.write(to: URL(fileURLWithPath: "/tmp/OWs.raw"))
-				try OCμ.write(to: URL(fileURLWithPath: "/tmp/OCu.raw"))
-				try OCσ.write(to: URL(fileURLWithPath: "/tmp/OCs.raw"))
-				*/
 			}
 		} catch {
 			XCTFail(String(describing: error))
