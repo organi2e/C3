@@ -94,6 +94,7 @@
 		87D203C51E99B49C0054A34D /* Distributor.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87D202FE1E99488D0054A34D /* Distributor.framework */; };
 		87D203C61E99B49C0054A34D /* Distributor.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 87D202FE1E99488D0054A34D /* Distributor.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		87D203EE1E9A353F0054A34D /* Ground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203ED1E9A353F0054A34D /* Ground.swift */; };
+		87FD13D01EB0EC38008C242F /* MNIST.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87FD13CF1EB0EC38008C242F /* MNIST.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -309,6 +310,7 @@
 		87D203A51E995E840054A34D /* Edge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Edge.swift; path = ../../C3/Edge.swift; sourceTree = "<group>"; };
 		87D203A61E995E840054A34D /* Feedback.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Feedback.swift; path = ../../C3/Feedback.swift; sourceTree = "<group>"; };
 		87D203ED1E9A353F0054A34D /* Ground.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Ground.swift; path = ../../C3/Ground.swift; sourceTree = "<group>"; };
+		87FD13CF1EB0EC38008C242F /* MNIST.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MNIST.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -598,6 +600,7 @@
 			children = (
 				87D2037F1E9949750054A34D /* AppDelegate.swift */,
 				87D203811E9949750054A34D /* ViewController.swift */,
+				87FD13CF1EB0EC38008C242F /* MNIST.swift */,
 				87D203831E9949750054A34D /* Main.storyboard */,
 				87D203861E9949750054A34D /* Assets.xcassets */,
 				87D203881E9949750054A34D /* LaunchScreen.storyboard */,
@@ -1217,6 +1220,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				87D203821E9949750054A34D /* ViewController.swift in Sources */,
+				87FD13D01EB0EC38008C242F /* MNIST.swift in Sources */,
 				87D203801E9949750054A34D /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

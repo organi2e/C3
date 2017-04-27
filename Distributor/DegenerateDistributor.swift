@@ -6,7 +6,9 @@
 //
 //
 
+import Accelerate
 import Metal
+
 public class DegenerateDistributor {
 	let collectorPipeline: CollectorPipeline
 	let correctorPipeline: CorrectorPipeline
@@ -25,7 +27,9 @@ public class DegenerateDistributor {
 		correctorPipeline = CorrectorPipeline(
 			J: try library.make(name: "DegenerateCorrectJ"),
 			G: try library.make(name: "DegenerateCorrectG"),
-			N: try library.make(name: "DegenerateCorrectN")
+			N: try library.make(name: "DegenerateCorrectN"),
+			P: try library.make(name: "DegenerateCorrectP"),
+			V: try library.make(name: "DegenerateCorrectV")
 		)
 		jacobianPipeline = JacobianPipeline(
 			X: try library.make(name: "DegenerateJacobianX"),
@@ -192,6 +196,42 @@ extension DegenerateDistributor {
 			encoder.setBuffer(Δ, offset: 0, at: 0)
 			encoder.setBuffer(χ, offset: 0, at: 1)
 			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 2)
+			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
+			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.endEncoding()
+		}
+		public func correct(φ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer) {
+			assert( order.device === state.G.device )
+			assert( order.device === Δ.device && width * MemoryLayout<Float>.size <= Δ.length )
+			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.size <= φ.μ.length )
+			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.size <= φ.σ.length )
+			assert( order.device === f.device && width * MemoryLayout<Float>.size <= f.length )
+			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
+			let threads: Int = state.G.threadExecutionWidth
+			encoder.setComputePipelineState(state.P)
+			encoder.setBuffer(Δ, offset: 0, at: 0)
+			encoder.setBuffer(φ.μ, offset: 0, at: 1)
+			encoder.setBuffer(φ.σ, offset: 0, at: 2)
+			encoder.setBuffer(f, offset: 0, at: 3)
+			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 4)
+			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
+			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.endEncoding()
+		}
+		public func correct(φ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer) {
+			assert( order.device === state.G.device )
+			assert( order.device === Δ.device && width * MemoryLayout<Float>.size <= Δ.length )
+			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.size <= φ.μ.length )
+			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.size <= φ.σ.length )
+			assert( order.device === v.device && width * MemoryLayout<Float>.size <= v.length )
+			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
+			let threads: Int = state.G.threadExecutionWidth
+			encoder.setComputePipelineState(state.P)
+			encoder.setBuffer(Δ, offset: 0, at: 0)
+			encoder.setBuffer(φ.μ, offset: 0, at: 1)
+			encoder.setBuffer(φ.σ, offset: 0, at: 2)
+			encoder.setBuffer(v, offset: 0, at: 3)
+			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 4)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
 			encoder.endEncoding()

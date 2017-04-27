@@ -11,43 +11,44 @@ import CoreData
 import Foundation
 
 extension Educator {
-	private static let MNIST: String = "MNIST"
+	private static let name: String = "MNIST"
 	private static let label: String = "label"
 	private static let image: String = "image"
-	public enum MNISTFamily: String {
+	private static let plist: String = "plist"
+	public enum MNIST: String {
 		case train = "train"
 		case t10k = "t10k"
 	}
-	public func count(family: MNISTFamily, label: IntegerLiteralType? = nil, offset: Int = 0, limit: Int = 0) throws -> Int {
+	public func count(mnist: MNIST, label: IntegerLiteralType? = nil, offset: Int = 0, limit: Int = 0) throws -> Int {
 		let handle: String = {
 			guard let handle: IntegerLiteralType = $0 else { return "" }
 			return String(describing: handle)
 		} ( label )
-		return try count(domain: type(of: self).MNIST, family: family.rawValue, option: [:], handle: handle, offset: offset, limit: limit)
+		return try count(domain: type(of: self).name, family: mnist.rawValue, option: [:], handle: handle, offset: offset, limit: limit)
 	}
-	public func fetch(family: MNISTFamily, label: IntegerLiteralType? = nil, offset: Int = 0, limit: Int = 0) throws -> Array<Image> {
+	public func fetch(mnist: MNIST, label: IntegerLiteralType? = nil, offset: Int = 0, limit: Int = 0) throws -> Array<Image> {
 		let handle: String = {
 			guard let handle: IntegerLiteralType = $0 else { return "" }
 			return String(describing: handle)
 		} ( label )
-		return try fetch(domain: type(of: self).MNIST, family: family.rawValue, option: [:], handle: handle, offset: offset, limit: limit)
+		return try fetch(domain: type(of: self).name, family: mnist.rawValue, option: [:], handle: handle, offset: offset, limit: limit)
 	}
-	public func build(family: MNISTFamily) throws {
-		let name: String = String(describing: type(of: self).MNIST)
-		guard let plist: URL = Bundle(for: type(of: self)).url(forResource: name, withExtension: "plist") else {
-			throw ErrorCases.NoResourceFound(name: name, extension: "plist")
+	public func build(mnist: MNIST) throws {
+		let name: String = String(describing: type(of: self).name)
+		guard let plist: URL = Bundle(for: type(of: self)).url(forResource: name, withExtension: type(of: self).plist) else {
+			throw ErrorCases.NoResourceFound(name: name, extension: type(of: self).plist)
 		}
 		guard let dictionary: Dictionary<String, Dictionary<String, String>> = try PropertyListSerialization.propertyList(from: try Data(contentsOf: plist), options: [], format: nil) as? Dictionary<String, Dictionary<String, String>> else {
 			throw ErrorCases.NoPlistFound(name: name)
 		}
-		guard let labelString: String = dictionary[family.rawValue]?[type(of: self).label] else {
-			throw ErrorCases.NoRecourdFound(name: "\(family.rawValue).\(type(of: self).label)")
+		guard let labelString: String = dictionary[mnist.rawValue]?[type(of: self).label] else {
+			throw ErrorCases.NoRecourdFound(name: "\(mnist.rawValue).\(type(of: self).label)")
 		}
 		guard let labelURL: URL = URL(string: labelString) else {
 			throw ErrorCases.InvalidFormat(of: labelString, for: URL.self)
 		}
-		guard let imageString: String = dictionary[family.rawValue]?[type(of: self).image] else {
-			throw ErrorCases.NoRecourdFound(name: "\(family.rawValue).\(type(of: self).image)")
+		guard let imageString: String = dictionary[mnist.rawValue]?[type(of: self).image] else {
+			throw ErrorCases.NoRecourdFound(name: "\(mnist.rawValue).\(type(of: self).image)")
 		}
 		guard let imageURL: URL = URL(string: imageString) else {
 			throw ErrorCases.InvalidFormat(of: imageString, for: URL.self)
@@ -69,15 +70,15 @@ extension Educator {
 		do {
 			context.parent = self
 		}
-		try context.fetch(make(domain: type(of: self).MNIST, family: family.rawValue, option: Dictionary<String, Any>(), handle: "", offset: 0, limit: 0)).forEach(context.delete)
+		try context.fetch(make(domain: type(of: self).name, family: mnist.rawValue, option: Dictionary<String, Any>(), handle: "", offset: 0, limit: 0)).forEach(context.delete)
 		
 		let entityName: String = String(describing: Image.self)
 		try zip(labels, pixels).forEach {
 			guard let image: Image = NSEntityDescription.insertNewObject(forEntityName: entityName, into: context) as? Image else {
 				throw ErrorCases.NoEntityFound(name: entityName)
 			}
-			image.domain = type(of: self).MNIST
-			image.family = family.rawValue
+			image.domain = type(of: self).name
+			image.family = mnist.rawValue
 			image.option = Dictionary<String, Any>()
 			image.handle = String(describing: $0.0)
 			image.height = UInt16(rows)

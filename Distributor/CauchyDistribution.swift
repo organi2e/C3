@@ -1,63 +1,63 @@
 //
-//  Gauss.swift
-//  tvOS
+//  Cauchy.swift
+//  macOS
 //
-//  Created by Kota Nakano on 2017/01/27.
+//  Created by Kota Nakano on 2017/04/26.
 //
 //
 
 import Accelerate
 import Metal
 
-public class GaussDistributor {
+public class CauchyDistributor {
 	let collectorPipeline: CollectorPipeline
 	let correctorPipeline: CorrectorPipeline
 	let activatorPipeline: ActivatorPipeline
 	let derivatorPipeline: DerivatorPipeline
 	let jacobianPipeline: JacobianPipeline
 	public init(device: MTLDevice, xorshift: (Int, Int, Int) = (5, 7, 4)) throws {
-		let bundle: Bundle = Bundle(for: GaussDistributor.self)
+		let bundle: Bundle = Bundle(for: CauchyDistributor.self)
 		let library: MTLLibrary = try device.makeDefaultLibrary(bundle: bundle)
 		let xorshiftValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
 		xorshiftValues.setConstantValue([uint(xorshift.0), uint(xorshift.1), uint(xorshift.2)], type: .uint3, withName: "xorshift16")
 		collectorPipeline = CollectorPipeline(
-			W: try library.make(name: "GaussCollectW"),
-			C: try library.make(name: "GaussCollectC"),
-			D: try library.make(name: "GaussCollectD"),
-			F: try library.make(name: "GaussCollectF")
+			W: try library.make(name: "CauchyCollectW"),
+			C: try library.make(name: "CauchyCollectC"),
+			D: try library.make(name: "CauchyCollectD"),
+			F: try library.make(name: "CauchyCollectF")
 		)
 		correctorPipeline = CorrectorPipeline(
-			J: try library.make(name: "GaussCorrectJ"),
-			G: try library.make(name: "GaussCorrectG"),
-			N: try library.make(name: "GaussCorrectN"),
-			P: try library.make(name: "GaussCorrectP"),
-			V: try library.make(name: "GaussCorrectV")
+			J: try library.make(name: "CauchyCorrectJ"),
+			G: try library.make(name: "CauchyCorrectG"),
+			N: try library.make(name: "CauchyCorrectN"),
+			P: try library.make(name: "CauchyCorrectP"),
+			V: try library.make(name: "CauchyCorrectV")
 		)
 		jacobianPipeline = JacobianPipeline(
-			X: try library.make(name: "GaussJacobianX"),
-			A: try library.make(name: "GaussJacobianA"),
-			B: try library.make(name: "GaussJacobianB"),
-			C: try library.make(name: "GaussJacobianC"),
-			D: try library.make(name: "GaussJacobianD"),
-			E: try library.make(name: "GaussJacobianE"),
-			F: try library.make(name: "GaussJacobianF")
+			X: try library.make(name: "CauchyJacobianX"),
+			A: try library.make(name: "CauchyJacobianA"),
+			B: try library.make(name: "CauchyJacobianB"),
+			C: try library.make(name: "CauchyJacobianC"),
+			D: try library.make(name: "CauchyJacobianD"),
+			E: try library.make(name: "CauchyJacobianE"),
+			F: try library.make(name: "CauchyJacobianF")
 		)
 		activatorPipeline = ActivatorPipeline(
-			AP: try library.make(name: "GaussActivateP", constantValues: xorshiftValues),
-			AV: try library.make(name: "GaussActivateV", constantValues: xorshiftValues),
-			GP: try library.make(name: "GaussDerivateP"),
-			GV: try library.make(name: "GaussDerivateV")
+			AP: try library.make(name: "CauchyActivateP", constantValues: xorshiftValues),
+			AV: try library.make(name: "CauchyActivateV", constantValues: xorshiftValues),
+			GP: try library.make(name: "CauchyDerivateP"),
+			GV: try library.make(name: "CauchyDerivateV")
 		)
 		derivatorPipeline = DerivatorPipeline(
-			JP: try library.make(name: "GaussDeltaJP"),
-			JV: try library.make(name: "GaussDeltaJV"),
-			GP: try library.make(name: "GaussDeltaGP"),
-			GV: try library.make(name: "GaussDeltaGV")
+			JP: try library.make(name: "CauchyDeltaJP"),
+			JV: try library.make(name: "CauchyDeltaJV"),
+			GP: try library.make(name: "CauchyDeltaGP"),
+			GV: try library.make(name: "CauchyDeltaGV")
 		)
 	}
 }
-extension GaussDistributor {
-	private struct GaussCollector: Collector {
+extension CauchyDistributor {
+	private struct CauchyCollector: Collector {
 		let order: MTLCommandBuffer
 		let state: CollectorPipeline
 		let width: Int
@@ -133,7 +133,7 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 		do {
-			collector(GaussCollector(order: commandBuffer, state: collectorPipeline, width: count, Σ: φ))
+			collector(CauchyCollector(order: commandBuffer, state: collectorPipeline, width: count, Σ: φ))
 		}
 		do {
 			assert( commandBuffer.device === collectorPipeline.F.device )
@@ -207,8 +207,8 @@ extension GaussDistributor {
 		}
 	}
 }
-extension GaussDistributor {
-	private struct GaussCorrector: Corrector {
+extension CauchyDistributor {
+	private struct CauchyCorrector: Corrector {
 		let order: MTLCommandBuffer
 		let state: CorrectorPipeline
 		let width: Int
@@ -288,7 +288,7 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 		do {
-			corrector(GaussCorrector(order: commandBuffer, state: correctorPipeline, width: count, Δ: Δφ.μ))
+			corrector(CauchyCorrector(order: commandBuffer, state: correctorPipeline, width: count, Δ: Δφ.μ))
 		}
 	}
 	public func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector) -> Void) {
@@ -344,8 +344,8 @@ extension GaussDistributor {
 		}
 	}
 }
-extension GaussDistributor {
-	private struct GaussJacobian: Jacobian {
+extension CauchyDistributor {
+	private struct CauchyJacobian: Jacobian {
 		let order: MTLCommandBuffer
 		let state: JacobianPipeline
 		let width: Int
@@ -480,7 +480,7 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 		do {
-			jacobian(GaussJacobian(order: commandBuffer, state: jacobianPipeline, width: count.rows, refer: count.cols, Σ: j))
+			jacobian(CauchyJacobian(order: commandBuffer, state: jacobianPipeline, width: count.rows, refer: count.cols, Σ: j))
 		}
 		do {
 			assert( commandBuffer.device === jacobianPipeline.F.device )
@@ -580,7 +580,7 @@ extension GaussDistributor {
 		}
 	}
 }
-extension GaussDistributor {
+extension CauchyDistributor {
 	public func jacobian(commandBuffer: MTLCommandBuffer, Σ: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int)) {
 		assert( commandBuffer.device === jacobianPipeline.X.device )
 		assert( commandBuffer.device === Σ.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.μ.length )
@@ -735,7 +735,7 @@ extension GaussDistributor {
 		encoder.endEncoding()
 	}
 }
-extension GaussDistributor {
+extension CauchyDistributor {
 	public func derivate(commandBuffer: MTLCommandBuffer, Δ: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer), Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int)) {
 		assert( commandBuffer.device === derivatorPipeline.GV.device )
 		assert( commandBuffer.device === Δ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Δ.length )
@@ -779,8 +779,8 @@ extension GaussDistributor {
 		encoder.endEncoding()
 	}
 }
-extension GaussDistributor: Distributor {
-
+extension CauchyDistributor: Distributor {
+	
 }
 private extension MTLLibrary {
 	func make(name: String, constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()) throws -> MTLComputePipelineState {

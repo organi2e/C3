@@ -45,7 +45,39 @@ internal extension Corpus {
 	@NSManaged internal var body: String
 }
 public extension Corpus {
-	
+	public var text: String {
+		return body
+	}
+}
+extension Array where Element == Float {
+	public var asOnehot: CChar {
+		let cache: Array<CChar> = enumerated().flatMap {
+			$0.element != 0 && $0.offset < 128 ? CChar($0.offset) : nil
+		}
+		return cache.count == 1 ? cache.first ?? 0 : 10
+	}
+	public var asUnicode: UnicodeScalar {
+		func bitmask(accum: UInt32, value: Float) -> UInt32 {
+			return accum * 2 + (value == 0 ? 0 : 1)
+		}
+		return UnicodeScalar(reduce(UInt32(0), bitmask)) ?? UnicodeScalar("🤖")
+	}
+}
+extension CChar {
+	public var onehot: Array<Float> {
+		let result: Array<Float> = Array<Float>(repeating: 0, count: 256)
+		UnsafeMutablePointer<Float>(mutating: result).advanced(by: Int(self)).pointee = 1
+		return result
+	}
+}
+extension UnicodeScalar {
+	public var unicode: Array<Float> {
+		func bitmask(offset: UInt32) -> Float{
+			let mask: UInt32 = 1 << offset
+			return self.value & mask == 0 ? 0 : 1
+		}
+		return CountableRange(uncheckedBounds: (lower: 0, upper: 32)).reversed().map(bitmask)
+	}
 }
 public class Image: Group {
 	public var source: Array<Float> {

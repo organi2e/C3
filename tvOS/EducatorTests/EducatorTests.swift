@@ -30,18 +30,18 @@ class EducatorTests: XCTestCase {
 				                                   storage: storage,
 				                                   optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-3))
 				let mnist: Educator = try Educator(storage: trainer)
-				if try 0 == mnist.count(family: .train) {
-					try mnist.build(family: .train)
+				if try 0 == mnist.count(mnist: .train) {
+					try mnist.build(mnist: .train)
 					try mnist.save()
 				}
-				let count: Int = try mnist.count(family: .train)
+				let count: Int = try mnist.count(mnist: .train)
 				try (0..<1).forEach { (_) in
 					guard let I: Cell = try context.fetch(label: "\(prefix)I\(suffix)", width: 28 * 28).last else { XCTFail(); return }
 					guard let O: Cell = try context.fetch(label: "\(prefix)O\(suffix)", width: 10).last else { XCTFail(); return }
 					let batch: Int = 1024
 					try stride(from: 0, to: count, by: batch).forEach {
 						print($0)
-						try mnist.fetch(family: .train, offset: $0, limit: batch).forEach {
+						try mnist.fetch(mnist: .train, offset: $0, limit: batch).forEach {
 							O.collect_refresh()
 							I.correct_refresh()
 							O.target = try $0.onehot(count: 10, value: 1)
@@ -62,12 +62,12 @@ class EducatorTests: XCTestCase {
 				guard let I: Cell = try context.fetch(label: "\(prefix)I\(suffix)", width: 28 * 28).last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "\(prefix)O\(suffix)", width: 10).last else { XCTFail(); return }
 				let mnist: Educator = try Educator(storage: trainer)
-				if try 0 == mnist.count(family: .t10k) {
-					try mnist.build(family: .t10k)
+				if try 0 == mnist.count(mnist: .t10k) {
+					try mnist.build(mnist: .t10k)
 					try mnist.save()
 				}
 				let batch: Int = 1024
-				let count: Int = try mnist.fetch(family: .t10k, limit: batch).map {
+				let count: Int = try mnist.fetch(mnist: .t10k, limit: batch).map {
 					O.collect_refresh()
 					I.correct_refresh()
 					I.source = $0.source

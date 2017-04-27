@@ -34,6 +34,9 @@ public enum AdapterType: String {
 	case RegFloor = "RegFloor"
 	case Exponential = "Exponential"
 }
+public enum OptimizerType {
+	case naiive(L2: Float, L1: Float, η: Float)
+}
 public class Context: NSManagedObjectContext {
 	let mtl: MTLCommandQueue
 	let optimizerFactory: (Int) -> Optimizer

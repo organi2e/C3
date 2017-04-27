@@ -316,6 +316,29 @@ kernel void GaussCorrectN(device float * const dx [[ buffer(0) ]],
 		dx[idx] += 2 * x[idx] - 1;
 	}
 }
+kernel void GaussCorrectP(device float * const dx [[ buffer(0) ]],
+						  device float const * const u [[ buffer(1) ]],
+						  device float const * const s [[ buffer(2) ]],
+						  device float const * const d [[ buffer(3) ]],
+						  constant uint const & N [[ buffer(4) ]],
+						  uint const n [[ thread_position_in_grid ]]) {
+	if ( n < N ) {
+		int const idx = n;
+		float const p = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32767.0/65536.0, 0.5);
+		dx[idx] += ( p - d[idx] ) / p / ( 1 - p );
+	}
+}
+kernel void GaussCorrectV(device float * const dx [[ buffer(0) ]],
+						  device float const * const u [[ buffer(1) ]],
+						  device float const * const s [[ buffer(2) ]],
+						  device float const * const d [[ buffer(3) ]],
+						  constant uint const & N [[ buffer(4) ]],
+						  uint const n [[ thread_position_in_grid ]]) {
+	if ( n < N ) {
+		int const idx = n;
+		dx[idx] += u[idx] - d[idx];
+	}
+}
 /*----------------------------------------------------------------*/
 kernel void GaussJacobianX(device float * const ju [[ buffer(0) ]],
 						   device float * const js [[ buffer(1) ]],
@@ -328,8 +351,9 @@ kernel void GaussJacobianX(device float * const ju [[ buffer(0) ]],
 		int const rows = n.x;
 		int const cols = n.y;
 		int const idx = rows * N.y + cols;
+		float const v = x[cols];
 		ju[idx] +=    u[idx];
-		js[idx] += sq(s[idx]) * x[cols];
+		js[idx] += sq(s[idx]) * v;
 	}
 }
 kernel void GaussJacobianA(device float * const ju [[ buffer(0) ]],
@@ -491,6 +515,7 @@ kernel void GaussJacobianF(device float * const ju [[ buffer(0) ]],
 }
 /*----------------------------------------------------------------*/
 constant uint3 xorshift16 [[ function_constant(0) ]];
+constant float M_SQRT2PI_F = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F;
 kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   device float * const gu [[ buffer(1) ]],
 						   device float * const gs [[ buffer(2) ]],
@@ -505,8 +530,8 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 		float4 const r = 1 / *(device float4*)(s+k);
 		float4 const x = *(device float4*)(u+k) * r;
 		float4 const y = step(float4(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
-//		float4 const y = fma(erf(M_SQRT1_2_F * x), 0.5, 0.5);
-		float4 const ju = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F * exp( -0.5 * x * x ) * r;
+//		float4 const y = fma(erf(M_SQRT1_2_F * x), 32767.0/65536.0, 0.5);
+		float4 const ju = M_SQRT2PI_F * exp( -0.5 * x * x ) * r;
 		float4 const js = ju * -x;
 		seq ^= seq << xorshift16.x;
 		seq ^= seq >> xorshift16.y;
@@ -535,6 +560,27 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 		}
 	}
 }
+/*
+kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
+						   device float * const gu [[ buffer(1) ]],
+						   device float * const gs [[ buffer(2) ]],
+						   device float const * const u [[ buffer(3) ]],
+						   device float const * const s [[ buffer(4) ]],
+						   constant uint const & N [[ buffer(5) ]],
+						   uint const n [[ thread_position_in_grid ]]) {
+	if ( n < N ) {
+		int const idx = n;
+		float const r = 1 / s[idx];
+		float const x = u[idx] * r;
+		float const y = fma(erf(M_SQRT1_2_F * x), 0.5, 0.5);
+		float const ju = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F * exp( -0.5 * x * x ) * r;
+		float const js = ju * -x;
+		f[idx] = y;
+		gu[idx] = ju;
+		gs[idx] = js;
+	}
+}
+*/
 kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   device float * const ds [[ buffer(1) ]],
 						   device float const * const f [[ buffer(2) ]],
@@ -546,10 +592,9 @@ kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const e = sign(du[idx]);
-//		float const e = saturate(sign(du[idx]) - f[idx]) + f[idx];
-		float const p = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32767.0/65536.0, 0.5);
-		float const g = e / p / ( 1 - p );
+//		float const p = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32767.0/65536.0, 0.5);
+//		float const d = sign(du[idx]);//p - saturate(p - sign(du[idx]));
+		float const g = du[idx];// / p / ( 1 - p );//p - saturate(p - sign(du[idx]));//d / p / ( 1 - p );
 		du[idx] = g * gu[idx];
 		ds[idx] = g * gs[idx];
 	}
@@ -609,9 +654,11 @@ kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 	if ( n < N ) {
 		int const idx = n;
 		float const e = du[idx];
-		float const v = s[idx];
-		du[idx] = e;
-		ds[idx] = v - 0.5 * e * e / v;
+//		float const v = s[idx];
+//		du[idx] = e;
+//		ds[idx] = v - 0.5 * e * e / v;
+		du[idx] = e * gu[idx];
+		ds[idx] = e * gs[idx];
 	}
 }
 /*----------------------------------------------------------------*/

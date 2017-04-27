@@ -23,9 +23,13 @@ struct CorrectorPipeline {
 	let J: MTLComputePipelineState
 	let G: MTLComputePipelineState
 	let N: MTLComputePipelineState
+	let P: MTLComputePipelineState
+	let V: MTLComputePipelineState
 }
 public protocol Corrector {
 	func correct(χ: MTLBuffer, ϝ: MTLBuffer)
+	func correct(φ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer)
+	func correct(φ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer)
 	var Δ: MTLBuffer { get }
 	var order: MTLCommandBuffer { get }
 }
