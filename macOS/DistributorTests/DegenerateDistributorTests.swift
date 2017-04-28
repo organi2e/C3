@@ -215,7 +215,7 @@ class DegenerateDistributorTests: XCTestCase {
 			
 			let la_Δ: la_object_t = la_matrix_from_float_buffer([
 				la_difference(la_χ, la_ϝ)
-			].reduce(la_splat_from_float(0, attr), la_sum).array.map(sign), la_count_t(width), 1, 1, hint, attr)
+			].reduce(la_splat_from_float(0, attr), la_sum).array, la_count_t(width), 1, 1, hint, attr)
 			
 			XCTAssert( la_status(la_Δ) == 0 )
 			
