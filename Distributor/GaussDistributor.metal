@@ -574,8 +574,8 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float const r = 1 / s[k];
 		float const x = u[k] * r;
-//		float const y = step(float(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
-		float const y = fma(erf(M_SQRT1_2_F * x), 32767.0/65536.0, 0.5);
+		float const y = step(float(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
+//		float const y = fma(erf(M_SQRT1_2_F * x), 32767.0/65536.0, 0.5);
 		float const ju = M_SQRT2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
 		seq ^= seq << xorshift16.x;
@@ -586,28 +586,6 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 		gs[k] = js;
 	}
 }
-/*
-kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
-						   device float * const gu [[ buffer(1) ]],
-						   device float * const gs [[ buffer(2) ]],
-						   device float const * const u [[ buffer(3) ]],
-						   device float const * const s [[ buffer(4) ]],
-						   constant uchar const * const seeds [[ buffer(5) ]],
-						   constant uint const & N [[ buffer(6) ]],
-						   uint const n [[ thread_position_in_grid ]]) {
-	if ( n < N ) {
-		int const idx = n;
-		float const r = 1 / s[idx];
-		float const x = u[idx] * r;
-		float const y = fma(erf(M_SQRT1_2_F * x), 0.5, 0.5);
-		float const ju = M_SQRT2PI_F * exp( -0.5 * x * x ) * r;
-		float const js = ju * -x;
-		f[idx] = y;
-		gu[idx] = ju;
-		gs[idx] = js;
-	}
-}
-*/
 kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   device float * const ds [[ buffer(1) ]],
 						   device float const * const f [[ buffer(2) ]],

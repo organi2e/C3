@@ -66,6 +66,7 @@ extension Feedback {
 			[j.μ, j.σ].forEach {
 				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
 			}
+			encoder.label = "Feedback.Cache.reset"
 			encoder.endEncoding()
 		}
 	}
@@ -92,13 +93,13 @@ extension Feedback {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: cell.width * cell.width)
-		commandBuffer.label = "awakeFromFetch@Feedback(\(cell.label))"
+		commandBuffer.label = "Feedback(\(cell.label)).awakeFromFetch"
 		commandBuffer.commit()
 	}
 	override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
-		commandBuffer.label = "awakeFromSnapshotEvents@Feedback(\(cell.label))"
+		commandBuffer.label = "Feedback(\(cell.label)).awakeFromSnapshotEvents"
 		setup(commandBuffer: commandBuffer, count: cell.width * cell.width)
 		commandBuffer.commit()
 	}

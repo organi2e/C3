@@ -15,7 +15,7 @@ kernel void SoftplusGenerate(device float * const theta [[ buffer(0) ]],
 	if ( n < N ) {
 		int const idx = n;
 		float const p = phi[idx];
-		theta[idx] = log(1+exp(p));
+		theta[idx] = log ( 1 + exp ( p ) );
 	}
 }
 kernel void SoftplusGradient(device float * const delta [[ buffer(0) ]],

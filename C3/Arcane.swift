@@ -9,6 +9,7 @@ import Accelerate
 import Adapter
 import Distributor
 import Optimizer
+import simd
 internal class Arcane: Ground {
 	
 }
@@ -30,7 +31,7 @@ extension Arcane {
 		func flush(commandBuffer: CommandBuffer) {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.fill(buffer: Δ, range: NSRange(location: 0, length: Δ.length), value: 0)
-			encoder.label = "ArcaneFlush"
+			encoder.label = "Arcane.Flush"
 			encoder.endEncoding()
 		}
 		func refresh(commandBuffer: CommandBuffer) {
@@ -50,20 +51,12 @@ extension Arcane {
 	func change(commandBuffer: CommandBuffer, handler: ((μ: Buffer, σ: Buffer)) -> Void) {
 		
 		func will(_: MTLCommandBuffer) {
-			func block() {
-				willChangeValue(forKey: "location")
-				willChangeValue(forKey: "scale")
-			}
-//			block()
-			context.performAndWait(block)
+			willChangeValue(forKey: "location")
+			willChangeValue(forKey: "scale")
 		}
 		func done(_: MTLCommandBuffer) {
-			func block() {
-				didChangeValue(forKey: "location")
-				didChangeValue(forKey: "scale")
-			}
-//			block()
-			context.perform(block)
+			didChangeValue(forKey: "location")
+			didChangeValue(forKey: "scale")
 		}
 		
 		locationCache.flush(commandBuffer: commandBuffer)
@@ -74,34 +67,26 @@ extension Arcane {
 		locationCache.update(commandBuffer: commandBuffer)
 		scaleCache.update(commandBuffer: commandBuffer)
 		
-//		commandBuffer.addScheduledHandler(will)
-//		commandBuffer.addCompletedHandler(done)
+		commandBuffer.addScheduledHandler(will)
+		commandBuffer.addCompletedHandler(done)
 		
 	}
 	func fixing(commandBuffer: CommandBuffer) {
 		
 		func will(_: MTLCommandBuffer) {
-			func block() {
-				willAccessValue(forKey: "location")
-				willAccessValue(forKey: "scale")
-			}
-			block()
-//			context.performAndWait(block)
+			willAccessValue(forKey: "location")
+			willAccessValue(forKey: "scale")
 		}
 		func done(_: MTLCommandBuffer) {
-			func block() {
-				didAccessValue(forKey: "location")
-				didAccessValue(forKey: "scale")
-			}
-			block()
-		//	context.perform(block)
+			didAccessValue(forKey: "location")
+			didAccessValue(forKey: "scale")
 		}
 		
 		locationCache.refresh(commandBuffer: commandBuffer)
 		scaleCache.refresh(commandBuffer: commandBuffer)
 	
-//		commandBuffer.addScheduledHandler(will)
-//		commandBuffer.addCompletedHandler(done)
+		commandBuffer.addScheduledHandler(will)
+		commandBuffer.addCompletedHandler(done)
 		
 	}
 	func access(handler: ((μ: Buffer, σ: Buffer)) -> Void) {
@@ -125,8 +110,6 @@ extension Arcane {
 		scaleCache.reset(commandBuffer: commandBuffer)
 		scaleCache.refresh(commandBuffer: commandBuffer)
 		setPrimitiveValue(scaleCache.data, forKey: "scale")
-		
-//		commandBuffer.addCompletedHandler(done)
 		
 	}
 	internal func shuffle(commandBuffer: CommandBuffer, count: Int, μ: Float = 0, σ: Float = 1) {
@@ -153,35 +136,6 @@ extension Arcane {
 		}
 		commandBuffer.addCompletedHandler(shuffle)
 	}
-	/*
-	internal func save(commandBuffer: CommandBuffer, θ: (μ: Array<Float>, σ: Array<Float>)) {
-		
-		let μbuf: Buffer = context.make(array: μ.θ, options: .storageModePrivate)
-		let σbuf: Buffer = context.make(array: σ.θ, options: .storageModePrivate)
-		
-		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		[(μbuf, locationCache.φ), (σbuf, scaleCache.φ)].forEach {
-			encoder.copy(from: $0.0, sourceOffset: 0, to: $0.1, destinationOffset: 0, size: min($0.0.length, $0.1.length))
-		}
-		encoder.endEncoding()
-		
-		locationCache.refresh(commandBuffer: commandBuffer)
-		scaleCache.refresh(commandBuffer: commandBuffer)
-	
-	}
-	internal func load(commandBuffer: CommandBuffer, handler: (μ: Array<Float>, σ: Array<Float>)) {
-		let μbuf: Buffer = context.make(array: μ.θ, options: .storageModeShared)
-		let σbuf: Buffer = context.make(array: σ.θ, options: .storageModeShared)
-		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		[(μbuf, locationCache.φ), (σbuf, scaleCache.φ)].forEach {
-			encoder.copy(from: $0.0, sourceOffset: 0, to: $0.1, destinationOffset: 0, size: min($0.0.length, $0.1.length))
-		}
-		encoder.endEncoding()
-		
-		locationCache.refresh(commandBuffer: commandBuffer)
-		scaleCache.refresh(commandBuffer: commandBuffer)
-	}
-	*/
 	@NSManaged private var locationCache: Variable
 	@NSManaged private var scaleCache: Variable
 }
