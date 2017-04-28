@@ -9,12 +9,11 @@
 import Cocoa
 import Metal
 import Accelerate
-import Optimizer
 import C3
 import Educator
 
 private let prefix: String = "MNISTGAN"
-private let suffix: String = "v1.35"
+private let suffix: String = "v1.9b"
 private let trainer: URL = FileManager.default.temporaryDirectory.appendingPathComponent("trainer.sqlite")
 private let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("storage.sqlite")
 
@@ -36,7 +35,7 @@ internal class MNIST {
 		do {
 			let context: Context = try Context(queue: device.makeCommandQueue(),
 			                                   storage: storage,
-			                                   optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-3))
+			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
 			let educator: Educator = try Educator(storage: trainer)
 			if try 0 == educator.count(mnist: .train) {
 				print("build")
@@ -49,37 +48,37 @@ internal class MNIST {
 			if try 0 == context.count(label: "\(prefix)I\(suffix)") {
 				print("insert")
 				try autoreleasepool {
-					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 64, distribution: .Gauss,
-					                               activation: .Identity, adapters: (.Linear, .Softplus))
+					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 256, distribution: .Gauss,
+					                               activation: .Identity, adapters: (.Linear, .Linear))
 					
-					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 128, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Softplus), input: [I])
+					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 256, distribution: .Gauss,
+					                               activation: .Binary, adapters: (.Linear, .Linear), input: [I])
 					
 					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 256, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Softplus), input: [H])
+					                               activation: .Binary, adapters: (.Linear, .Linear), input: [H])
 					
-					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 512, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Softplus), input: [G])
+					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 256, distribution: .Gauss,
+					                               activation: .Binary, adapters: (.Linear, .Linear), input: [G])
 					
 					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 28 * 28, distribution: .Gauss,
-					                               activation: .Identity, adapters: (.Linear, .Softplus), input: [F])
+					                               activation: .Identity, adapters: (.Linear, .Linear), input: [F])
 					
 					let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 256, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Softplus), input: [E])
+					                               activation: .Binary, adapters: (.Linear, .Linear), input: [E])
 					
 					let C: Cell = try context.make(label: "\(prefix)C\(suffix)", width: 64, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Softplus), input: [D])
+					                               activation: .Binary, adapters: (.Linear, .Linear), input: [D])
 					
 					let _: Cell = try context.make(label: "\(prefix)B\(suffix)", width: 10, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Softplus), input: [C])
+					                               activation: .Binary, adapters: (.Linear, .Linear), input: [C])
 					
 					let _: Cell = try context.make(label: "\(prefix)A\(suffix)", width: 1, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Softplus), input: [C])
+					                               activation: .Binary, adapters: (.Linear, .Linear), input: [C])
 					try context.save()
 					context.reset()
 				}
 			}
-			let batch: Int = 10000
+			let batch: Int = 1000
 			let count: Int = try educator.count(mnist: .train)
 			try (0..<16).forEach {
 				let times: String = String(describing: $0)
@@ -122,7 +121,7 @@ internal class MNIST {
 								//
 								A.collect_refresh()
 								B.collect_refresh()
-								I.source = try $0.onehot(count: 10, value: 1) + Array<Void>(repeating: (), count: 54).map {
+								I.source = try $0.onehot(count: 10, value: 1) + Array<Void>(repeating: (), count: 1014).map {
 									Float(arc4random_uniform(256))/256.0
 								}
 								A.collect()
@@ -133,7 +132,7 @@ internal class MNIST {
 								A.target = [1]
 								E.correct()
 								
-								//A
+								//Ax
 								I.correct_refresh()
 								A.target = [0]
 								B.target = try $0.onehot(count: 10, value: 1)
@@ -159,7 +158,7 @@ internal class MNIST {
 							B.collect_refresh()
 							I.source = (0..<10).map {
 								Float($0 == index % 10 ? 1 : 0)
-							} + Array<Void>(repeating: (), count: 54).map {
+							} + Array<Void>(repeating: (), count: 1014).map {
 								Float(arc4random_uniform(256))/256.0
 							}
 							B.collect()

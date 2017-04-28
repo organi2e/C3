@@ -93,12 +93,14 @@ extension Decay {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: cell.width)
+		commandBuffer.label = "awakeFromFetch@Decay(\(cell.label))"
 		commandBuffer.commit()
 	}
 	override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: cell.width)
+		commandBuffer.label = "awakeFromSnapshotEvents@Decay(\(cell.label))"
 		commandBuffer.commit()
 	}
 }

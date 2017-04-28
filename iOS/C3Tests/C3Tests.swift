@@ -24,41 +24,47 @@ class C3Tests: XCTestCase {
 		super.setUp()
 		print(storage.lastPathComponent)
 	}
+	func testTime() {
+		guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
+		do {
+			let context: Context = try Context(queue: queue, optimizer: .SGD(L2: 1e-6, L1: 0, η: 0))
+			let I: Cell = try context.make(label: "I", width: 2048, distribution: .Gauss, activation: .Binary)
+			let H: Cell = try context.make(label: "H", width: 2048, distribution: .Gauss, activation: .Binary, input: [I])
+			let G: Cell = try context.make(label: "G", width: 2048, distribution: .Gauss, activation: .Binary, input: [H])
+			let F: Cell = try context.make(label: "F", width: 2048, distribution: .Gauss, activation: .Binary, input: [G])
+			let O: Cell = try context.make(label: "O", width: 2048, distribution: .Gauss, activation: .Binary, input: [F])
+			measure {
+				Array<Void>(repeating: Void(), count: 256).forEach {
+					O.collect_refresh()
+					O.collect()
+				}
+				print(O.source)
+			}
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
+	/*
 	func testReinforce() {
 		let source: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0]]
 		let answer: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
 		guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 		do {
-			let context: Context = try Context(queue: queue, optimizer: SMORMS3.factory(L2: 1e-6, α: 1e-3))
-			let I: Cell = try context.make(label: "I", width:  4, distribution: .Gauss, activation: .Binary)
-			let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: false)
-			let G: Cell = try context.make(label: "G", width:  4, distribution: .Gauss, activation: .Binary, input: [H], decay: false)
-			let F: Cell = try context.make(label: "F", width: 64, distribution: .Gauss, activation: .Binary, input: [G], decay: false)
-			let O: Cell = try context.make(label: "O", width:  5, distribution: .Gauss, activation: .Binary, input: [F], decay: false)
-			
+			let context: Context = try Context(queue: queue, optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
+			let I: Cell = try context.make(label: "I", width:   4, distribution: .Gauss, activation: .Binary)
+			let H1: Cell = try context.make(label: "H1", width:2048, distribution: .Gauss, activation: .Binary, input: [I], decay: false)
+			let H2: Cell = try context.make(label: "H2", width:2048, distribution: .Gauss, activation: .Binary, input: [H1], decay: false)
+			let G: Cell = try context.make(label: "G", width:   4, distribution: .Gauss, activation: .Binary, input: [H2], decay: false)
+			let F: Cell = try context.make(label: "F", width:4096, distribution: .Gauss, activation: .Binary, input: [G], decay: false)
+			let O: Cell = try context.make(label: "O", width:   5, distribution: .Gauss, activation: .Binary, input: [F], decay: false)
 			(0..<1024).forEach {
 				print($0)
 				zip(source, answer).forEach {
-					/*
-					var x: Array<Float> = Array<Void>(repeating: (), count: 4096).map {
-						Float(arc4random())/Float(UInt32.max)
-					}
-					var y: Array<Float> = Array<Void>(repeating: (), count: 4096).map {
-						Float(arc4random())/Float(UInt32.max)
-					}
-					var z: Array<Float> = Array<Void>(repeating: (), count: 4096).map {
-						Float(arc4random())/Float(UInt32.max)
-					}
-					let X: la_object_t = la_matrix_from_float_buffer_nocopy(&x, 64, 64, 64, la_hint_t(LA_NO_HINT), nil, la_attribute_t(LA_ATTRIBUTE_ENABLE_LOGGING))
-					let Y: la_object_t = la_matrix_from_float_buffer_nocopy(&y, 64, 64, 64, la_hint_t(LA_NO_HINT), nil, la_attribute_t(LA_ATTRIBUTE_ENABLE_LOGGING))
-					let Z: la_object_t = la_matrix_product(X, Y)
-					la_matrix_to_float_buffer(&z, 64, Z)
-					*/
 					
 					O.collect_refresh()
 					G.source = $0.0
 					O.collect()
-					
+
 					G.correct_refresh()
 					O.target = $0.1 + [0]
 					G.correct()
@@ -87,15 +93,15 @@ class C3Tests: XCTestCase {
 			}
 			(source).forEach {
 				O.collect_refresh()
-				I.source = $0
+				G.source = $0
 				O.collect()
 				print(O.source)
 			}
 			(answer).forEach {
-				G.collect_refresh()
+				O.collect_refresh()
 				I.source = $0
-				G.collect()
-				print(G.source)
+				O.collect()
+				print(O.source, G.source)
 			}
 		} catch {
 			XCTFail(String(describing: error))
@@ -117,7 +123,7 @@ class C3Tests: XCTestCase {
 			do {
 				let context: Context = try Context(queue: queue,
 				                                   storage: storage,
-				                                   optimizer: SMORMS3.factory(L2: 1e-8, L1: 0, α: 1e-3)
+				                                   optimizer: .SMORMS3(L2: 1e-8, L1: 0, α: 1e-3, ε: 0)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
@@ -188,6 +194,7 @@ class C3Tests: XCTestCase {
 			XCTFail(String(describing: error))
 		}
 	}
+*/
 }
 private let norm: la_norm_t = la_norm_t(LA_L2_NORM)
 private let hint: la_hint_t = la_hint_t(LA_NO_HINT)
