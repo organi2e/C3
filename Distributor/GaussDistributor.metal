@@ -32,6 +32,34 @@ template<typename T> T erf(T z) {
 						1),
 					z);
 }
+template<typename T> T erfinv(T x) {
+	T p, w = - log((1.0f-x)*(1.0f+x));
+	if ( w < 5.000000f ) {
+		w = w - 2.500000f;
+		p =   2.81022636e-08f;
+		p =   3.43273939e-07f + p*w;
+		p =   -3.5233877e-06f + p*w;
+		p =  -4.39150654e-06f + p*w;
+		p =    0.00021858087f + p*w;
+		p =   -0.00125372503f + p*w;
+		p =   -0.00417768164f + p*w;
+		p =      0.246640727f + p*w;
+		p =       1.50140941f + p*w;
+	}
+	else {
+		w = sqrtf(w) - 3.000000f;
+		p =  -0.000200214257f;
+		p =   0.000100950558f + p*w;
+		p =    0.00134934322f + p*w;
+		p =   -0.00367342844f + p*w;
+		p =    0.00573950773f + p*w;
+		p =    -0.0076224613f + p*w;
+		p =    0.00943887047f + p*w;
+		p =       1.00167406f + p*w;
+		p =       2.83297682f + p*w;
+	}
+	return p*x;
+}
 template<typename T> inline T sq(const T x) {
 	return x * x;
 }
@@ -525,39 +553,20 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   constant uint const & N [[ buffer(6) ]],
 						   uint const t [[ thread_position_in_threadgroup ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
-	ushort4 seq = *(constant ushort4*)(seeds+4*t);
-	for ( int k = 4 * t, K = N, dk = 4 * T ; k < K ; k += dk ) {
-		float4 const r = 1 / *(device float4*)(s+k);
-		float4 const x = *(device float4*)(u+k) * r;
-		float4 const y = step(float4(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
-//		float4 const y = fma(erf(M_SQRT1_2_F * x), 32767.0/65536.0, 0.5);
-		float4 const ju = M_SQRT2PI_F * exp( -0.5 * x * x ) * r;
-		float4 const js = ju * -x;
+	ushort seq = seeds[t];
+	for ( int k = t, K = N ; k < K ; k += T ) {
+		float const r = 1 / s[k];
+		float const x = u[k] * r;
+		float const y = step(float(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
+//		float const y = fma(erf(M_SQRT1_2_F * x), 32767.0/65536.0, 0.5);
+		float const ju = M_SQRT2PI_F * exp( -0.5 * x * x ) * r;
+		float const js = ju * -x;
 		seq ^= seq << xorshift16.x;
 		seq ^= seq >> xorshift16.y;
 		seq ^= seq << xorshift16.z;
-		switch(min(4, K-k)) {
-			case 4:
-				*(device float4*)(f+k) = y.xyzw;
-				*(device float4*)(gu+k) = ju.xyzw;
-				*(device float4*)(gs+k) = js.xyzw;
-				break;
-			case 3:
-				*(device float3*)(f+k) = y.xyz;
-				*(device float3*)(gu+k) = ju.xyz;
-				*(device float3*)(gs+k) = js.xyz;
-				break;
-			case 2:
-				*(device float2*)(f+k) = y.xy;
-				*(device float2*)(gu+k) = ju.xy;
-				*(device float2*)(gs+k) = js.xy;
-				break;
-			case 1:
-				*(device float *)(f+k) = y.x;
-				*(device float *)(gu+k) = ju.x;
-				*(device float *)(gs+k) = js.x;
-				break;
-		}
+		f[k] = y;
+		gu[k] = ju;
+		gs[k] = js;
 	}
 }
 /*
@@ -566,14 +575,15 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   device float * const gs [[ buffer(2) ]],
 						   device float const * const u [[ buffer(3) ]],
 						   device float const * const s [[ buffer(4) ]],
-						   constant uint const & N [[ buffer(5) ]],
+						   constant uchar const * const seeds [[ buffer(5) ]],
+						   constant uint const & N [[ buffer(6) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
 		float const r = 1 / s[idx];
 		float const x = u[idx] * r;
 		float const y = fma(erf(M_SQRT1_2_F * x), 0.5, 0.5);
-		float const ju = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F * exp( -0.5 * x * x ) * r;
+		float const ju = M_SQRT2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
 		f[idx] = y;
 		gu[idx] = ju;

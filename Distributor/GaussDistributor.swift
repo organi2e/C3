@@ -169,7 +169,9 @@ extension GaussDistributor {
 			typealias T = ushort
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
 			let threads: Int = activatorPipeline.AP.threadExecutionWidth
-			let uniform: Array<T> = Array<Void>(repeating: (), count: 4 * threads).map { T(1) + T(arc4random_uniform(UInt32(T.max-1))) }
+			let uniform: Array<T> = Array<Void>(repeating: (), count: 4 * threads).map {
+				T(1) + T(arc4random_uniform(UInt32(T.max-1)))
+			}
 			encoder.setComputePipelineState(activatorPipeline.AP)
 			encoder.setBuffer(f, offset: 0, at: 0)
 			encoder.setBuffer(g.μ, offset: 0, at: 1)
