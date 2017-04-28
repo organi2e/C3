@@ -13,7 +13,7 @@ import C3
 import Educator
 
 private let prefix: String = "MNISTGAN"
-private let suffix: String = "v2.1b"
+private let suffix: String = "v2.2b"
 private let trainer: URL = FileManager.default.temporaryDirectory.appendingPathComponent("trainer.sqlite")
 private let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("storage.sqlite")
 
@@ -51,13 +51,13 @@ internal class MNIST {
 					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 128, distribution: .Gauss,
 					                               activation: .Binary, adapters: (.Linear, .Linear))
 					
-					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 256, distribution: .Gauss,
+					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 2048, distribution: .Gauss,
 					                               activation: .Binary, adapters: (.Linear, .Linear), input: [I])
 					
-					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 512, distribution: .Gauss,
+					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 2048, distribution: .Gauss,
 					                               activation: .Binary, adapters: (.Linear, .Linear), input: [H])
 					
-					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 1024, distribution: .Gauss,
+					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 2048, distribution: .Gauss,
 					                               activation: .Binary, adapters: (.Linear, .Linear), input: [G])
 					
 					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 28 * 28, distribution: .Gauss,

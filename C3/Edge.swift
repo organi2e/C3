@@ -74,6 +74,7 @@ extension Edge {
 			[ja.μ, ja.σ, jx.μ, jx.σ].forEach {
 				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
 			}
+			encoder.label = "Edge.Cache.reset"
 			encoder.endEncoding()
 		}
 	}
@@ -104,14 +105,14 @@ extension Edge {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: output.width * input.width)
-		commandBuffer.label = "awakeFromFetch@Edge(\(output.label, input.label))"
+		commandBuffer.label = "Edge(\(output.label, input.label)).awakeFromFetch"
 		commandBuffer.commit()
 	}
 	override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: output.width * input.width)
-		commandBuffer.label = "awakeFromSnapshotEvents@Edge(\(output.label, input.label))"
+		commandBuffer.label = "Edge(\(output.label, input.label)).awakeFromSnapshotEvents"
 		commandBuffer.commit()
 	}
 }

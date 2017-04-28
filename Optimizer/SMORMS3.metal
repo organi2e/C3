@@ -13,7 +13,7 @@ constant float3 alpha [[ function_constant(0) ]];
 constant float epsilon [[ function_constant(1) ]];
 
 kernel void SMORMS3Optimize(device float * const theta [[ buffer(0) ]],
-							device float3 * const parameters [[ buffer(1) ]],
+							device float * const parameters [[ buffer(1) ]],
 							device float * const delta [[ buffer(2) ]],
 							constant uint const & N [[ buffer(3) ]],
 							uint const n [[ thread_position_in_grid ]]) {
@@ -23,7 +23,7 @@ kernel void SMORMS3Optimize(device float * const theta [[ buffer(0) ]],
 		int const idx = n;
 		
 		//fetch
-		float3 p = parameters[idx];
+		float3 p = ((device float3*)parameters)[idx];
 		float const g = delta[idx];
 		
 		p.xy = mix(p.xy, float2(g*g, g), 1/(1+p.z));
@@ -49,6 +49,6 @@ kernel void SMORMS3Optimize(device float * const theta [[ buffer(0) ]],
 		theta[idx] -= fma(g*r, min(x, alpha.z), dot(alpha.xy, float2(t, sign(t))));
 		//g * min(alpha.z, x) * r;
 		//theta[idx] -= g * min(alpha.z, x) * r;
-		parameters[idx] = p;
+		((device float3*)parameters)[idx] = p;
 	}
 }

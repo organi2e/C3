@@ -19,9 +19,9 @@ public class SMORMS3 {
 		limit = count
 		threads = MTLSize(width: optimizer.threadExecutionWidth, height: 1, depth: 1)
 		groups = MTLSize(width: (limit-1)/threads.width+1, height: 1, depth: 1)
-		parameters = optimizer.device.makeBuffer(length: 4*((3*limit-1)/4+1) * MemoryLayout<Float>.stride,
+		parameters = optimizer.device.makeBuffer(length: 3 * limit * MemoryLayout<Float>.stride,
 		                                         options: .storageModePrivate)
-		parameters.label = "SMORMS3.Parameters(\(limit))"
+//		parameters.label = "SMORMS3.Parameters(\(limit))"
 	}
 	public static func optimizer(device: MTLDevice, L2: Float = 0.0, L1: Float = 0.0, α: Float = 1e-3, ε: Float = 0.0) throws -> (Int) -> Optimizer {
 		let bundle: Bundle = Bundle(for: self)
@@ -44,7 +44,7 @@ extension SMORMS3: Optimizer {
 		assert( optimizer.device === commandBuffer.device )
 		assert( optimizer.device === θ.device && limit * MemoryLayout<Float>.size <= θ.length )
 		assert( optimizer.device === Δ.device && limit * MemoryLayout<Float>.size <= Δ.length )
-		assert( optimizer.device === parameters.device && 3 * limit * MemoryLayout<Float>.size <= parameters.length )
+		assert( optimizer.device === parameters.device && 3 * limit * MemoryLayout<Float>.stride <= parameters.length )
 		
 		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
 		encoder.setComputePipelineState(optimizer)
@@ -54,14 +54,14 @@ extension SMORMS3: Optimizer {
 		encoder.setBufferOffset(0, at: 1)
 		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 3)
 		encoder.dispatchThreadgroups(groups, threadsPerThreadgroup: threads)
-		encoder.label = "SMORMS3.Optimize(\(limit))"
+//		encoder.label = "SMORMS3.Optimize(\(limit))"
 		encoder.endEncoding()
 		
 	}
 	public func reset(commandBuffer: MTLCommandBuffer) {
 		let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 		encoder.fill(buffer: parameters, range: NSRange(location: 0, length: 3 * limit * MemoryLayout<Float>.size), value: 0)
-		encoder.label = "SMORMS3.Reset(\(limit))"
+//		encoder.label = "SMORMS3.Reset(\(limit))"
 		encoder.endEncoding()
 	}
 }

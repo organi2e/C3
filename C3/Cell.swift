@@ -17,7 +17,7 @@ extension Cell {
 	public func collect_refresh() {
 		let commandBuffer: CommandBuffer = context.make()
 		collect_refresh(commandBuffer: commandBuffer)
-		commandBuffer.label = "collectRefresh@Cell(\(label))"
+		commandBuffer.label = "Cell(\(label)).collect_refresh"
 		commandBuffer.commit()
 	}
 	internal func collect_refresh(commandBuffer: CommandBuffer) {
@@ -59,7 +59,7 @@ extension Cell {
 			case .Identity:
 				distributor.activate(commandBuffer: commandBuffer, v: χ(0), g: g(0), φ: φ(0), count: width, collector: collector)
 			}
-			commandBuffer.label = "collect@Cell(\(label))"
+			commandBuffer.label = "Cell(\(label)).collect"
 			commandBuffer.commit()
 			state = true
 		}
@@ -121,7 +121,7 @@ extension Cell {
 				$0.correct(commandBuffer: commandBuffer, fix: fix, Δφ: Δ(0))
 			}
 			decay?.correct(commandBuffer: commandBuffer, fix: fix, Δφ: Δ(0))
-			commandBuffer.label = "correct@Cell(\(label))"
+			commandBuffer.label = "Cell(\(label)).correct"
 			commandBuffer.commit()
 			delta = true
 		}
@@ -144,8 +144,9 @@ extension Cell {
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: χ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(χ(0).length, target.length))
+			encoder.label = "Cell(\(label)).getSource"
 			encoder.endEncoding()
-			commandBuffer.label = "getSource@Cell(\(label))"
+			commandBuffer.label = "Cell(\(label)).getSource"
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
 			defer {
@@ -162,11 +163,12 @@ extension Cell {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: source, sourceOffset: 0,
 			             to: χ(0), destinationOffset: 0, size: min(source.length, χ(0).length))
+			encoder.label = "Cell(\(label)).setSource"
 			encoder.endEncoding()
 			commandBuffer.addCompletedHandler { (_) in
 				source.setPurgeableState(.empty)
 			}
-			commandBuffer.label = "setSource@Cell(\(label))"
+			commandBuffer.label = "Cell(\(label)).setSource"
 			commandBuffer.commit()
 			state = !newValue.isEmpty
 		}
@@ -178,8 +180,9 @@ extension Cell {
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: ϝ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(ϝ(0).length, target.length))
+			encoder.label = "Cell(\(label)).getTarget"
 			encoder.endEncoding()
-			commandBuffer.label = "getTarget@Cell\(label)"
+			commandBuffer.label = "Cell(\(label)).getTarget"
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
 			defer {
@@ -196,11 +199,12 @@ extension Cell {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: source, sourceOffset: 0,
 			             to: ϝ(0), destinationOffset: 0, size: min(source.length, ϝ(0).length))
+			encoder.label = "Cell(\(label)).setTarget"
 			encoder.endEncoding()
 			commandBuffer.addCompletedHandler { (_) in
 				source.setPurgeableState(.empty)
 			}
-			commandBuffer.label = "setTarget@Cell\(label)"
+			commandBuffer.label = "Cell(\(label)).setTarget"
 			commandBuffer.commit()
 			study = !newValue.isEmpty
 		}
@@ -239,6 +243,7 @@ extension Cell {
 			[χ, ϝ, φ.μ, φ.σ, g.μ, g.σ, Δ.μ, Δ.σ].forEach {
 				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
 			}
+			encoder.label = "Cell.Cache.reset"
 			encoder.endEncoding()
 		}
 	}
@@ -280,23 +285,23 @@ extension Cell {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer)
-		commandBuffer.label = "awakeFromFetch@\(label)"
+		commandBuffer.label = "Cell(\(label)).awakeFromFetch"
 		commandBuffer.commit()
 	}
 	public override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer)
-		commandBuffer.label = "awakeFromSnapshotEvents@\(label)"
+		commandBuffer.label = "Cell(\(label)).awakeFromSnapshotEvents"
 		commandBuffer.commit()
 	}
 }
 extension Cell {
-	var activation: ActivationType {
-		return activationType.activationType
+	var activation: ActivatorType {
+		return activatorType.activatorType
 	}
-	var distribution: DistributionType {
-		return distributionType.distributionType
+	var distribution: DistributorType {
+		return distributorType.distributorType
 	}
 	var distributor: Distributor {
 		return context.make(type: distribution)
@@ -311,8 +316,8 @@ extension Cell {
 	@NSManaged var label: String
 	@NSManaged var width: Int
 	@NSManaged var depth: Int
-	@NSManaged var distributionType: String
-	@NSManaged var activationType: String
+	@NSManaged var distributorType: String
+	@NSManaged var activatorType: String
 	@NSManaged var input: Set<Edge>
 	@NSManaged var output: Set<Edge>
 	@NSManaged var loop: Set<Feedback>
@@ -322,8 +327,8 @@ extension Cell {
 extension Context {
 	public func make(label: String,
 	                 width: Int,
-	                 distribution: DistributionType = .Degenerate,
-	                 activation: ActivationType = .Binary,
+	                 distributor: DistributorType = .Degenerate,
+	                 activator: ActivatorType = .Binary,
 	                 adapters: (AdapterType, AdapterType) = (.Linear, .Linear),
 	                 output: Set<Cell> = Set<Cell>(),
 	                 input: Set<Cell> = Set<Cell>(),
@@ -336,8 +341,8 @@ extension Context {
 		cell.label = label
 		cell.width = width
 		cell.depth = recurrent.map{-$0}.reduce(2, max)
-		cell.distributionType = distribution.rawValue
-		cell.activationType = activation.rawValue
+		cell.distributorType = distributor.rawValue
+		cell.activatorType = activator.rawValue
 		cell.output = try Set<Edge>(output.map{try make(commandBuffer: commandBuffer, output: $0, input: cell, adapters: adapters)})
 		cell.input = try Set<Edge>(input.map{try make(commandBuffer: commandBuffer, output: cell, input: $0, adapters: adapters)})
 		cell.bias = try make(commandBuffer: commandBuffer, cell: cell, adapters: adapters)
@@ -371,12 +376,12 @@ extension Context {
 	}
 }
 private extension String {
-	var activationType: ActivationType {
-		guard let activationType: ActivationType = ActivationType(rawValue: self) else { fatalError(self) }
+	var activatorType: ActivatorType {
+		guard let activationType: ActivatorType = ActivatorType(rawValue: self) else { fatalError(self) }
 		return activationType
 	}
-	var distributionType: DistributionType {
-		guard let distributionType: DistributionType = DistributionType(rawValue: self) else { fatalError(self) }
+	var distributorType: DistributorType {
+		guard let distributionType: DistributorType = DistributorType(rawValue: self) else { fatalError(self) }
 		return distributionType
 	}
 	

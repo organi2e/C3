@@ -14,11 +14,11 @@ import Adapter
 import Distributor
 import Optimizer
 
-public enum DistributionType: String {
+public enum DistributorType: String {
 	case Degenerate = "Degenerate"
 	case Gauss = "Gauss"
 }
-public enum ActivationType: String {
+public enum ActivatorType: String {
 	case Binary = "Binary"
 	case Identity = "Identity"
 }
@@ -45,7 +45,7 @@ public class Context: NSManagedObjectContext {
 	let mtl: MTLCommandQueue
 	let optimizerFactory: (Int) -> Optimizer
 	let adapter: Dictionary<AdapterType, (Int)->Adapter>
-	let distributor: Dictionary<DistributionType, Distributor>
+	let distributor: Dictionary<DistributorType, Distributor>
 	enum ErrorCase: Error, CustomStringConvertible {
 		case InvalidContext
 		case InvalidEntity(name: String)
@@ -77,26 +77,22 @@ public class Context: NSManagedObjectContext {
 	            concurrencyType: NSManagedObjectContextConcurrencyType = .privateQueueConcurrencyType) throws {
 		let device: Device = queue.device
 		mtl = queue
-		adapter = try {
-			var result: Dictionary<AdapterType, (Int)->Adapter> = Dictionary<AdapterType, (Int)->Adapter>()
-			result.updateValue(Discard.init, forKey: .Discard)
-			result.updateValue(Linear.init, forKey: .Linear)
-			try result.updateValue(Tanh.adapter(device: $0), forKey: .Tanh)
-			try result.updateValue(Floor.adapter(device: $0), forKey: .Floor)
-			try result.updateValue(Regular.adapter(device: $0), forKey: .Regular)
-			try result.updateValue(Positive.adapter(device: $0), forKey: .Positive)
-			try result.updateValue(Softplus.adapter(device: $0), forKey: .Softplus)
-			try result.updateValue(Logistic.adapter(device: $0), forKey: .Logistic)
-			try result.updateValue(RegFloor.adapter(device: $0), forKey: .RegFloor)
-			try result.updateValue(Exponential.adapter(device: $0), forKey: .Exponential)
-			return result
-		} (device)
-		distributor = try {
-			var result: Dictionary<DistributionType, Distributor> = Dictionary<DistributionType, Distributor>()
-			try result.updateValue(DegenerateDistributor(device: $0), forKey: .Degenerate)
-			try result.updateValue(GaussDistributor(device: $0), forKey: .Gauss)
-			return result
-		} (device)
+		adapter = try Dictionary<AdapterType, (Int)->Adapter>(dictionaryLiteral:
+			(.Discard, Discard.init),
+			(.Linear, Linear.init),
+			(.Tanh, Tanh.adapter(device: device)),
+			(.Floor, Floor.adapter(device: device)),
+			(.Regular, Regular.adapter(device: device)),
+			(.Positive, Positive.adapter(device: device)),
+			(.Softplus, Softplus.adapter(device: device)),
+			(.Logistic, Logistic.adapter(device: device)),
+			(.RegFloor, RegFloor.adapter(device: device)),
+			(.Exponential, Exponential.adapter(device: device))
+		)
+		distributor = try Dictionary<DistributorType, Distributor>(dictionaryLiteral:
+			(.Degenerate, DegenerateDistributor(device: device)),
+			(.Gauss, GaussDistributor(device: device))
+		)
 		switch optimizer {
 		case let .SGD(L2, L1, η):
 			optimizerFactory = try SGD.optimizer(device: device, L2: L2, L1: L1, η: η)
@@ -134,7 +130,7 @@ extension Context {
 		guard let factory: (Int) -> Adapter = adapter[type] else { fatalError(type.rawValue) }
 		return factory(count)
 	}
-	func make(type: DistributionType) -> Distributor {
+	func make(type: DistributorType) -> Distributor {
 		guard let distributor: Distributor = distributor[type] else { fatalError(type.rawValue) }
 		return distributor
 	}
