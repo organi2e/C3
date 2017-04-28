@@ -21,18 +21,17 @@ public class AdaDelta {
 		groups = MTLSize(width: (limit-1)/threads.width+1, height: 1, depth: 1)
 		parameters = optimizer.device.makeBuffer(length: limit*MemoryLayout<float2>.size, options: .storageModePrivate)
 	}
-	public static func factory(ρ: Float = 0.95, ε: Float = 1e-6) -> (MTLDevice) throws -> (Int) -> Optimizer {
+	public static func optimizer(device: MTLDevice, L2: Float = 0, L1: Float = 0, ρ: Float = 0.95, ε: Float = 1e-6) throws -> (Int) -> Optimizer {
 		let bundle: Bundle = Bundle(for: self)
 		let constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
 		constantValues.setConstantValue([ρ], type: .float, withName: "rho")
 		constantValues.setConstantValue([ε], type: .float, withName: "epsilon")
+		
+		let library: MTLLibrary = try device.makeDefaultLibrary(bundle: bundle)
+		let function: MTLFunction = try library.makeFunction(name: "AdaDeltaOptimize", constantValues: constantValues)
+		let pipeline: MTLComputePipelineState = try device.makeComputePipelineState(function: function)
 		return {
-			let library: MTLLibrary = try $0.makeDefaultLibrary(bundle: bundle)
-			let function: MTLFunction = try library.makeFunction(name: "AdaDeltaOptimize", constantValues: constantValues)
-			let pipeline: MTLComputePipelineState = try $0.makeComputePipelineState(function: function)
-			return {
-				AdaDelta(pipeline: pipeline, count: $0)
-			}
+			AdaDelta(pipeline: pipeline, count: $0)
 		}
 	}
 }

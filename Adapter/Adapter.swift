@@ -35,7 +35,10 @@ extension Linear: Adapter {
 		assert( commandBuffer.device === θ.device && limit * MemoryLayout<Float>.size <= θ.length )
 		assert( commandBuffer.device === φ.device && limit * MemoryLayout<Float>.size <= φ.length )
 		let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		encoder.copy(from: φ, sourceOffset: 0, to: θ, destinationOffset: 0, size: min(θ.length, φ.length))
+		encoder.copy(from: φ, sourceOffset: 0,
+		             to: θ, destinationOffset: 0,
+		             size: min(limit * MemoryLayout<Float>.stride, θ.length, φ.length))
+		encoder.label = "LinearAdapter.generate"
 		encoder.endEncoding()
 	}
 	public func gradient(commandBuffer: MTLCommandBuffer, Δ: MTLBuffer, θ: MTLBuffer, φ: MTLBuffer) {
@@ -75,6 +78,7 @@ extension NonLinear: Adapter {
 		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 2)
 		encoder.dispatchThreadgroups(MTLSize(width: (limit-1)/threads+1, height: 1, depth: 1),
 		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.label = "\(String(describing: self)).generate(\(limit))"
 		encoder.endEncoding()
 		
 	}
@@ -93,6 +97,7 @@ extension NonLinear: Adapter {
 		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 3)
 		encoder.dispatchThreadgroups(MTLSize(width: (limit-1)/threads+1, height: 1, depth: 1),
 		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.label = "\(String(describing: self)).gradient(\(limit))"
 		encoder.endEncoding()
 		
 	}

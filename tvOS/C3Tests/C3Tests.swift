@@ -9,8 +9,6 @@
 import XCTest
 import Accelerate
 import Metal
-import Optimizer
-import Adapter
 @testable import C3
 
 let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
@@ -74,15 +72,16 @@ class C3Tests: XCTestCase {
 			XCTFail()
 			return
 		}
+		let queue: MTLCommandQueue = device.makeCommandQueue()
 		do {
-			let context: Context = try Context(queue: device.makeCommandQueue(),
+			let context: Context = try Context(queue: queue,
 			                                   storage: storage,
-			                                   optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-3)
+			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0)
 			)
 			do {
 				let I: Cell = try context.make(label: "I", width: 4, distribution: .Gauss, activation: .Identity)
-				let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [])
-				let G: Cell = try context.make(label: "G", width: 64, distribution: .Gauss, activation: .Binary, input: [H], decay: true, recurrent: [])
+				let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [-1])
+				let G: Cell = try context.make(label: "G", width: 64, distribution: .Gauss, activation: .Binary, input: [H], decay: true, recurrent: [-1])
 //				let F: Cell = try context.make(label: "F", width: 64, distribution: .Gauss, activation: .Binary, input: [G], decay: true, recurrent: [])
 				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Binary, input: [G], decay: false)
 				try context.save()
@@ -101,6 +100,19 @@ class C3Tests: XCTestCase {
 						I.source = IS[ref]
 						O.collect()
 						I.correct()
+						
+						let command = queue.makeCommandBuffer()
+						command.addCompletedHandler { (_) in
+							var xbuf: Array<Float> = Array<Float>(repeating: Float.pi, count: 256 * 256 * 256)
+							var wbuf: Array<Float> = Array<Float>(repeating: Float.pi, count: 256 * 256)
+							var ybuf: Array<Float> = Array<Float>(repeating: Float.pi, count: 256 * 256 * 256)
+							let x: la_object_t = la_matrix_from_float_buffer_nocopy(&xbuf, 256, 256 * 256, 256 * 256, la_hint_t(LA_NO_HINT), nil, la_attribute_t(LA_ATTRIBUTE_ENABLE_LOGGING))
+							let w: la_object_t = la_matrix_from_float_buffer_nocopy(&wbuf, 256, 256, 256, la_hint_t(LA_NO_HINT), nil, la_attribute_t(LA_ATTRIBUTE_ENABLE_LOGGING))
+							let z: la_object_t = la_matrix_product(w, x)
+							la_matrix_to_float_buffer(&ybuf, 256 * 256, z)
+						}
+						command.commit()
+						
 						//print(O.source)
 					}
 				}

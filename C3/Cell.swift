@@ -17,6 +17,7 @@ extension Cell {
 	public func collect_refresh() {
 		let commandBuffer: CommandBuffer = context.make()
 		collect_refresh(commandBuffer: commandBuffer)
+		commandBuffer.label = "collectRefresh@Cell(\(label))"
 		commandBuffer.commit()
 	}
 	internal func collect_refresh(commandBuffer: CommandBuffer) {
@@ -58,6 +59,7 @@ extension Cell {
 			case .Identity:
 				distributor.activate(commandBuffer: commandBuffer, v: χ(0), g: g(0), φ: φ(0), count: width, collector: collector)
 			}
+			commandBuffer.label = "collect@Cell(\(label))"
 			commandBuffer.commit()
 			state = true
 		}
@@ -97,7 +99,8 @@ extension Cell {
 						$0.correct(corrector: corrector, fix: fix, visit: visit.union([self]))
 					}
 					if study {
-						corrector.correct(φ: φ(0), f: ϝ(0))
+						corrector.correct(χ: χ(0), ϝ: ϝ(0))
+//						corrector.correct(φ: φ(0), v: ϝ(0))
 					}
 				}
 				distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), f: χ(0), g: g(0), φ: φ(0), count: width, corrector: corrector)
@@ -107,7 +110,8 @@ extension Cell {
 						$0.correct(corrector: corrector, fix: fix, visit: visit.union([self]))
 					}
 					if study {
-						corrector.correct(φ: φ(0), v: ϝ(0))
+						corrector.correct(χ: χ(0), ϝ: ϝ(0))
+//						corrector.correct(φ: φ(0), v: ϝ(0))
 					}
 				}
 				distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), v: χ(0), g: g(0), φ: φ(0), count: width, corrector: corrector)
@@ -117,6 +121,7 @@ extension Cell {
 				$0.correct(commandBuffer: commandBuffer, fix: fix, Δφ: Δ(0))
 			}
 			decay?.correct(commandBuffer: commandBuffer, fix: fix, Δφ: Δ(0))
+			commandBuffer.label = "correct@Cell(\(label))"
 			commandBuffer.commit()
 			delta = true
 		}
@@ -140,6 +145,7 @@ extension Cell {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: χ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(χ(0).length, target.length))
 			encoder.endEncoding()
+			commandBuffer.label = "getSource@Cell(\(label))"
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
 			defer {
@@ -152,15 +158,16 @@ extension Cell {
 		set {
 			let source: Buffer = context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)),
 			                                  options: .storageModeShared)
-			let command: CommandBuffer = context.make()
-			let encoder: BlitCommandEncoder = command.makeBlitCommandEncoder()
+			let commandBuffer: CommandBuffer = context.make()
+			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: source, sourceOffset: 0,
 			             to: χ(0), destinationOffset: 0, size: min(source.length, χ(0).length))
 			encoder.endEncoding()
-			command.addCompletedHandler { (_) in
+			commandBuffer.addCompletedHandler { (_) in
 				source.setPurgeableState(.empty)
 			}
-			command.commit()
+			commandBuffer.label = "setSource@Cell(\(label))"
+			commandBuffer.commit()
 			state = !newValue.isEmpty
 		}
 	}
@@ -172,6 +179,7 @@ extension Cell {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: ϝ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(ϝ(0).length, target.length))
 			encoder.endEncoding()
+			commandBuffer.label = "getTarget@Cell\(label)"
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
 			defer {
@@ -184,15 +192,16 @@ extension Cell {
 		set {
 			let source: Buffer = context.make(array: newValue + Array<Float>(repeating: 0, count: max(0, width - newValue.count)),
 			                                  options: .storageModeShared)
-			let command: CommandBuffer = context.make()
-			let encoder: BlitCommandEncoder = command.makeBlitCommandEncoder()
+			let commandBuffer: CommandBuffer = context.make()
+			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: source, sourceOffset: 0,
 			             to: ϝ(0), destinationOffset: 0, size: min(source.length, ϝ(0).length))
 			encoder.endEncoding()
-			command.addCompletedHandler { (_) in
+			commandBuffer.addCompletedHandler { (_) in
 				source.setPurgeableState(.empty)
 			}
-			command.commit()
+			commandBuffer.label = "setTarget@Cell\(label)"
+			commandBuffer.commit()
 			study = !newValue.isEmpty
 		}
 	}
@@ -271,12 +280,14 @@ extension Cell {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer)
+		commandBuffer.label = "awakeFromFetch@\(label)"
 		commandBuffer.commit()
 	}
 	public override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer)
+		commandBuffer.label = "awakeFromSnapshotEvents@\(label)"
 		commandBuffer.commit()
 	}
 }
@@ -333,6 +344,7 @@ extension Context {
 		cell.loop = try Set<Feedback>(recurrent.map{try make(commandBuffer: commandBuffer, cell: cell, refer: $0, adapters: adapters)})
 		cell.decay = try !decay ? nil : make(commandBuffer: commandBuffer, cell: cell)
 		cell.setup(commandBuffer: commandBuffer)
+		commandBuffer.label = "make Cell(\(cell.label))"
 		commandBuffer.commit()
 		return cell
 	}

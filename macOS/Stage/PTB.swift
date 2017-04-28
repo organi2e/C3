@@ -11,7 +11,7 @@ import Accelerate
 import Optimizer
 import C3
 import Educator
-
+/*
 private let prefix: String = "ASCIImod"
 private let suffix: String = "v0.3"
 private let trainer: URL = FileManager.default.temporaryDirectory.appendingPathComponent("trainer.sqlite")
@@ -47,7 +47,7 @@ internal class PTB {
 			let queue: MTLCommandQueue = device.makeCommandQueue()
 			let context: Context = try Context(queue: queue,
 			                                   storage: storage,
-			                                   optimizer: SMORMS3.factory(L2: 1e-6, α: 1e-3))
+			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
 			if try 0 == context.count(label: "\(prefix)I\(suffix)") {
 				print("insert")
 				try autoreleasepool {
@@ -116,3 +116,4 @@ internal class PTB {
 		}
 	}
 }
+*/

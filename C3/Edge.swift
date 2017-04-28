@@ -57,8 +57,8 @@ extension Edge {
 		let ja: (μ: Buffer, σ: Buffer)
 		let jx: (μ: Buffer, σ: Buffer)
 		init(context: Context, count: Int) {
-			let length: Int = count * MemoryLayout<Float>.size
-			let option: MTLResourceOptions = .storageModePrivate
+			let length: Int = count * MemoryLayout<Float>.stride
+			let option: MTLResourceOptions = .storageModeShared
 			ja = (
 				μ: context.make(length: length, options: option),
 				σ: context.make(length: length, options: option)
@@ -104,12 +104,14 @@ extension Edge {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: output.width * input.width)
+		commandBuffer.label = "awakeFromFetch@Edge(\(output.label, input.label))"
 		commandBuffer.commit()
 	}
 	override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: output.width * input.width)
+		commandBuffer.label = "awakeFromSnapshotEvents@Edge(\(output.label, input.label))"
 		commandBuffer.commit()
 	}
 }

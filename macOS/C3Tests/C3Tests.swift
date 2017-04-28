@@ -9,8 +9,6 @@ import Foundation
 import XCTest
 import Accelerate
 import Metal
-import Optimizer
-import Adapter
 @testable import C3
 
 let file: String = UUID().uuidString
@@ -29,13 +27,13 @@ class C3Tests: XCTestCase {
 		let answer: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
 		guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 		do {
-			let context: Context = try Context(queue: queue, optimizer: SMORMS3.factory(L2: 1e-6, α: 1e-3))
+			let context: Context = try Context(queue: queue, optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
 			let I: Cell = try context.make(label: "I", width:   4, distribution: .Gauss, activation: .Binary)
-			let H1: Cell = try context.make(label: "H1", width: 256, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [I], decay: false)
-			let H2: Cell = try context.make(label: "H2", width: 256, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [H1], decay: false)
+			let H1: Cell = try context.make(label: "H1", width: 1024, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [I], decay: false)
+			let H2: Cell = try context.make(label: "H2", width: 1024, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [H1], decay: false)
 			let G: Cell = try context.make(label: "G", width:   4, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [H2], decay: false)
-			let F1: Cell = try context.make(label: "F1", width: 256, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [G], decay: false)
-			let F2: Cell = try context.make(label: "F2", width: 256, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [F1], decay: false)
+			let F1: Cell = try context.make(label: "F1", width: 1024, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [G], decay: false)
+			let F2: Cell = try context.make(label: "F2", width: 1024, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [F1], decay: false)
 			let O: Cell = try context.make(label: "O", width:   5, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [F2], decay: false)
 			
 			(0..<4096).forEach {

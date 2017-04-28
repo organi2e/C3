@@ -58,6 +58,7 @@ extension Bias {
 			[j.μ, j.σ].forEach {
 				encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
 			}
+			encoder.label = "Bias.Cache.Flush"
 			encoder.endEncoding()
 		}
 	}
@@ -84,12 +85,14 @@ extension Bias {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: cell.width)
+		commandBuffer.label = "awakeFromFetch@Bias(\(cell.label))"
 		commandBuffer.commit()
 	}
 	override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: cell.width)
+		commandBuffer.label = "awakeFromSnapshotEvents@Bias(\(cell.label))"
 		commandBuffer.commit()
 	}
 }

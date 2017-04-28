@@ -28,7 +28,7 @@ class EducatorTests: XCTestCase {
 			do {
 				let context: Context = try Context(queue: queue,
 				                                   storage: storage,
-				                                   optimizer: SMORMS3.factory(L2: 1e-6, L1: 0, α: 1e-3))
+				                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
 				let mnist: Educator = try Educator(storage: trainer)
 				if try 0 == mnist.count(mnist: .train) {
 					try mnist.build(mnist: .train)

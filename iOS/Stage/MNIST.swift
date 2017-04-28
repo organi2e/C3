@@ -38,7 +38,7 @@ internal class MNIST {
 			let trainer: URL = basedir.appendingPathComponent("db.db")
 			let context: Context = try Context(queue: device.makeCommandQueue(),
 			                                   storage: storage,
-			                                   optimizer: Adamax.factory(L2: 1e-6, L1: 0, α: 1e-3))
+			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
 			let educator: Educator = try Educator(storage: trainer)
 			if try 0 == educator.count(mnist: .train) {
 				print("build")

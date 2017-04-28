@@ -35,7 +35,11 @@ public enum AdapterType: String {
 	case Exponential = "Exponential"
 }
 public enum OptimizerType {
-	case naiive(L2: Float, L1: Float, η: Float)
+	case SGD(L2: Float, L1: Float, η: Float)
+	case AdaDelta(L2: Float, L1: Float, ρ: Float, ε: Float)
+	case Adam(L2: Float, L1: Float, α: Float, β: Float, γ: Float, ε: Float)
+	case Adamax(L2: Float, L1: Float, α: Float, β: Float, γ: Float, ε: Float)
+	case SMORMS3(L2: Float, L1: Float, α: Float, ε: Float)
 }
 public class Context: NSManagedObjectContext {
 	let mtl: MTLCommandQueue
@@ -69,7 +73,7 @@ public class Context: NSManagedObjectContext {
 	}
 	public init(queue: MTLCommandQueue,
 	            storage: URL? = nil,
-	            optimizer: (MTLDevice) throws -> (Int) -> Optimizer = SGD.factory(),
+	            optimizer: OptimizerType = .SGD(L2: 0, L1: 0, η: 0),
 	            concurrencyType: NSManagedObjectContextConcurrencyType = .privateQueueConcurrencyType) throws {
 		let device: Device = queue.device
 		mtl = queue
@@ -77,23 +81,34 @@ public class Context: NSManagedObjectContext {
 			var result: Dictionary<AdapterType, (Int)->Adapter> = Dictionary<AdapterType, (Int)->Adapter>()
 			result.updateValue(Discard.init, forKey: .Discard)
 			result.updateValue(Linear.init, forKey: .Linear)
-			result.updateValue(try Tanh.adapter(device: $0), forKey: .Tanh)
-			result.updateValue(try Floor.adapter(device: $0), forKey: .Floor)
-			result.updateValue(try Regular.adapter(device: $0), forKey: .Regular)
-			result.updateValue(try Positive.adapter(device: $0), forKey: .Positive)
-			result.updateValue(try Softplus.adapter(device: $0), forKey: .Softplus)
-			result.updateValue(try Logistic.adapter(device: $0), forKey: .Logistic)
-			result.updateValue(try RegFloor.adapter(device: $0), forKey: .RegFloor)
-			result.updateValue(try Exponential.adapter(device: $0), forKey: .Exponential)
+			try result.updateValue(Tanh.adapter(device: $0), forKey: .Tanh)
+			try result.updateValue(Floor.adapter(device: $0), forKey: .Floor)
+			try result.updateValue(Regular.adapter(device: $0), forKey: .Regular)
+			try result.updateValue(Positive.adapter(device: $0), forKey: .Positive)
+			try result.updateValue(Softplus.adapter(device: $0), forKey: .Softplus)
+			try result.updateValue(Logistic.adapter(device: $0), forKey: .Logistic)
+			try result.updateValue(RegFloor.adapter(device: $0), forKey: .RegFloor)
+			try result.updateValue(Exponential.adapter(device: $0), forKey: .Exponential)
 			return result
 		} (device)
 		distributor = try {
 			var result: Dictionary<DistributionType, Distributor> = Dictionary<DistributionType, Distributor>()
-			result.updateValue(try DegenerateDistributor(device: $0), forKey: .Degenerate)
-			result.updateValue(try GaussDistributor(device: $0), forKey: .Gauss)
+			try result.updateValue(DegenerateDistributor(device: $0), forKey: .Degenerate)
+			try result.updateValue(GaussDistributor(device: $0), forKey: .Gauss)
 			return result
 		} (device)
-		optimizerFactory = try optimizer(device)
+		switch optimizer {
+		case let .SGD(L2, L1, η):
+			optimizerFactory = try SGD.optimizer(device: device, L2: L2, L1: L1, η: η)
+		case let .AdaDelta(L2, L1, ρ, ε):
+			optimizerFactory = try AdaDelta.optimizer(device: device, L2: L2, L1: L1, ρ: ρ, ε: ε)
+		case let .Adam(L2, L1, α, β, γ, ε):
+			optimizerFactory = try Adam.optimizer(device: device, L2: L2, L1: L1, α: α, β: β, γ: γ, ε: ε)
+		case let .Adamax(L2, L1, α, β, γ, ε):
+			optimizerFactory = try Adamax.optimizer(device: device, L2: L2, L1: L1, α: α, β: β, γ: γ, ε: ε)
+		case let .SMORMS3(L2, L1, α, ε):
+			optimizerFactory = try SMORMS3.optimizer(device: device, L2: L2, L1: L1, α: α, ε: ε)
+		}
 		super.init(concurrencyType: concurrencyType)
 		guard let model: NSManagedObjectModel = NSManagedObjectModel.mergedModel(from: [Bundle(for: type(of: self))]) else { throw ErrorCase.NoModelFound }
 		let store: NSPersistentStoreCoordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
@@ -193,6 +208,7 @@ extension Context {
 		}
 		let commandBuffer: CommandBuffer = make()
 		commandBuffer.addCompletedHandler(done)
+		commandBuffer.label = "save"
 		commandBuffer.commit()
 		commandBuffer.waitUntilCompleted()
 		if let encounter: Error = encounter {

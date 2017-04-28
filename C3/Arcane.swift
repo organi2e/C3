@@ -30,6 +30,7 @@ extension Arcane {
 		func flush(commandBuffer: CommandBuffer) {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.fill(buffer: Δ, range: NSRange(location: 0, length: Δ.length), value: 0)
+			encoder.label = "ArcaneFlush"
 			encoder.endEncoding()
 		}
 		func refresh(commandBuffer: CommandBuffer) {
@@ -67,7 +68,7 @@ extension Arcane {
 		
 		locationCache.flush(commandBuffer: commandBuffer)
 		scaleCache.flush(commandBuffer: commandBuffer)
-			
+		
 		handler(μ: locationCache.Δ, σ: scaleCache.Δ)
 		
 		locationCache.update(commandBuffer: commandBuffer)
