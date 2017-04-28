@@ -306,7 +306,7 @@ kernel void DegenerateActivateP(device float * const f [[ buffer(0) ]],
 		int const idx = n;
 		float const x = v[idx];
 		float const p = fma(tanh(0.5*x), 32767.0/65536.0, 0.5);//Avoid flowing
-		f[idx] = p;//step(0, x);
+		f[idx] = step(0, x);
 		g[idx] = p * ( 1 - p );
 	}
 }
@@ -321,7 +321,7 @@ kernel void DegenerateDerivateP(device float * const d [[ buffer(0) ]],
 //		float const x = v[idx];
 //		float const p = fma(tanh(0.5*x), 32767.0/65536.0, 0.5);
 //		d[idx] = sign(d[idx]);// / p / ( 1 - p );
-		d[idx] = d[idx] * g[idx];
+		d[idx] *= g[idx];
 	}
 }
 kernel void DegenerateActivateV(device float * const f [[ buffer(0) ]],
