@@ -49,7 +49,7 @@ internal class MNIST {
 				print("insert")
 				try autoreleasepool {
 					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 256, distribution: .Gauss,
-					                               activation: .Identity, adapters: (.Linear, .Linear))
+					                               activation: .Binary, adapters: (.Linear, .Linear))
 					
 					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 256, distribution: .Gauss,
 					                               activation: .Binary, adapters: (.Linear, .Linear), input: [I])
@@ -61,7 +61,7 @@ internal class MNIST {
 					                               activation: .Binary, adapters: (.Linear, .Linear), input: [G])
 					
 					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 28 * 28, distribution: .Gauss,
-					                               activation: .Identity, adapters: (.Linear, .Linear), input: [F])
+					                               activation: .Binary, adapters: (.Linear, .Linear), input: [F])
 					
 					let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 256, distribution: .Gauss,
 					                               activation: .Binary, adapters: (.Linear, .Linear), input: [E])
