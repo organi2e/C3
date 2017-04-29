@@ -93,13 +93,13 @@ extension Feedback {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: cell.width * cell.width)
-		commandBuffer.label = "Feedback(\(cell.label)).awakeFromFetch"
+		commandBuffer.label = "Feedback.awakeFromFetch"
 		commandBuffer.commit()
 	}
 	override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
-		commandBuffer.label = "Feedback(\(cell.label)).awakeFromSnapshotEvents"
+		commandBuffer.label = "Feedback.awakeFromSnapshotEvents"
 		setup(commandBuffer: commandBuffer, count: cell.width * cell.width)
 		commandBuffer.commit()
 	}

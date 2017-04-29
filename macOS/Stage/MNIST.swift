@@ -13,7 +13,7 @@ import C3
 import Educator
 
 private let prefix: String = "MNISTGAN"
-private let suffix: String = "v2.2b"
+private let suffix: String = "v2.3b"
 private let trainer: URL = FileManager.default.temporaryDirectory.appendingPathComponent("trainer.sqlite")
 private let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("storage.sqlite")
 
@@ -35,7 +35,7 @@ internal class MNIST {
 		do {
 			let context: Context = try Context(queue: device.makeCommandQueue(),
 			                                   storage: storage,
-			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
+			                                   optimizer: .SGD(L2: 1e-6, L1: 0, η: 1e-3))
 			let educator: Educator = try Educator(storage: trainer)
 			if try 0 == educator.count(mnist: .train) {
 				print("build")
@@ -48,32 +48,32 @@ internal class MNIST {
 			if try 0 == context.count(label: "\(prefix)I\(suffix)") {
 				print("insert")
 				try autoreleasepool {
-					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 128, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Linear))
+					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 128, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Linear, .Linear))
 					
-					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 2048, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Linear), input: [I])
+					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 2048, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Linear, .Linear), input: [I])
 					
-					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 2048, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Linear), input: [H])
+					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 2048, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Linear, .Linear), input: [H])
 					
-					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 2048, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Linear), input: [G])
+					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 2048, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Linear, .Linear), input: [G])
 					
-					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 28 * 28, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Linear), input: [F])
+					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 28 * 28, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Linear, .Linear), input: [F])
 					
-					let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 256, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Linear), input: [E])
+					let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 256, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Linear, .Linear), input: [E])
 					
-					let C: Cell = try context.make(label: "\(prefix)C\(suffix)", width: 64, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Linear), input: [D])
+					let C: Cell = try context.make(label: "\(prefix)C\(suffix)", width: 64, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Linear, .Linear), input: [D])
 					
-					let _: Cell = try context.make(label: "\(prefix)B\(suffix)", width: 10, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Linear), input: [C])
+					let _: Cell = try context.make(label: "\(prefix)B\(suffix)", width: 10, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Linear, .Linear), input: [C])
 					
-					let _: Cell = try context.make(label: "\(prefix)A\(suffix)", width: 1, distribution: .Gauss,
-					                               activation: .Binary, adapters: (.Linear, .Linear), input: [C])
+					let _: Cell = try context.make(label: "\(prefix)A\(suffix)", width: 1, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Linear, .Linear), input: [C])
 					try context.save()
 					context.reset()
 				}

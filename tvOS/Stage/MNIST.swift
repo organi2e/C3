@@ -1,18 +1,16 @@
 //
 //  MNIST.swift
-//  iOS
+//  tvOS
 //
-//  Created by Kota Nakano on 4/26/17.
+//  Created by Kota Nakano on 2017/04/28.
 //
 //
-
 import C3
-import Optimizer
 import Educator
 
 private let prefix: String = "GaussAE-"
 //private let prefix: String = "DegenerateAE-"
-private let suffix: String = "v0.997"
+private let suffix: String = "v0.999"
 
 internal class MNIST {
 	let bar: UIProgressView?
@@ -51,25 +49,25 @@ internal class MNIST {
 			if try 0 == context.count(label: "\(prefix)I\(suffix)") {
 				print("insert")
 				try autoreleasepool {
-					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 64, distributor: .Gauss,
+					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 256, distributor: .Gauss,
 					                               activator: .Identity, adapters: (.Linear, .Softplus))
 					
-					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 256, distributor: .Gauss,
+					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 512, distributor: .Gauss,
 					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [I])
 					
-					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 512, distributor: .Gauss,
+					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 1024, distributor: .Gauss,
 					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [H])
 					
-					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 1024, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [G])
+					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 28 * 28, distributor: .Gauss,
+					                               activator: .Identity, adapters: (.Linear, .Softplus), input: [G])
 					
-					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 28 * 28, distributor: .Gauss,
-					                               activator: .Identity, adapters: (.Linear, .Softplus), input: [F])
+					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 1024, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [F])
 					
-					let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 1024, distributor: .Gauss,
+					let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 256, distributor: .Gauss,
 					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [E])
 					
-					let C: Cell = try context.make(label: "\(prefix)C\(suffix)", width: 256, distributor: .Gauss,
+					let C: Cell = try context.make(label: "\(prefix)C\(suffix)", width: 64, distributor: .Gauss,
 					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [D])
 					
 					let _: Cell = try context.make(label: "\(prefix)B\(suffix)", width: 10, distributor: .Gauss,
@@ -80,10 +78,12 @@ internal class MNIST {
 					try context.save()
 					context.reset()
 				}
+			} else {
+				print("fetched")
 			}
 			let batch: Int = 5000
 			let count: Int = try educator.count(mnist: .train)
-			try (0..<16).forEach {
+			try (0..<64).forEach {
 				let times: String = String(describing: $0)
 				DispatchQueue.main.async {
 					lab.text = times
@@ -94,7 +94,7 @@ internal class MNIST {
 							let I: Cell = try context.fetch(label: "\(prefix)I\(suffix)").last,
 							//								let H: Cell = try context.fetch(label: "\(prefix)H\(suffix)").last,
 							//								let G: Cell = try context.fetch(label: "\(prefix)G\(suffix)").last,
-							//								let F: Cell = try context.fetch(label: "\(prefix)F\(suffix)").last,
+							let F: Cell = try context.fetch(label: "\(prefix)F\(suffix)").last,
 							let E: Cell = try context.fetch(label: "\(prefix)E\(suffix)").last,
 							let D: Cell = try context.fetch(label: "\(prefix)D\(suffix)").last,
 							let C: Cell = try context.fetch(label: "\(prefix)C\(suffix)").last,
@@ -112,19 +112,19 @@ internal class MNIST {
 								
 								A.collect_refresh()
 								B.collect_refresh()
-								E.source = $0.source
+								F.source = $0.source
 								A.collect()
 								B.collect()
 								
-								E.correct_refresh()
+								F.correct_refresh()
 								A.target = [0]
 								B.target = try $0.onehot(count: 10, value: 1)
-								E.correct()
+								F.correct()
 								
 								A.collect_refresh()
 								B.collect_refresh()
-								I.source = try $0.onehot(count: 10, value: 1) + Array<Void>(repeating: (), count: 54).map {
-									Float(arc4random_uniform(256))/256.0
+								I.source = try $0.onehot(count: 10, value: 1) + Array<Void>(repeating: (), count: 246).map {
+									Float(arc4random_uniform(1024))/1024.0
 								}
 								A.collect()
 								B.collect()
@@ -132,11 +132,11 @@ internal class MNIST {
 								I.correct_refresh()
 								A.target = [0]
 								B.target = try $0.onehot(count: 10, value: 1)
-								I.correct(fix: [A, B, C, D])
+								I.correct(fix: [A, B, C, D, E])
 								
-								E.correct_refresh()
+								F.correct_refresh()
 								A.target = [1]
-								E.correct()
+								F.correct()
 								
 							}
 						}
@@ -157,13 +157,13 @@ internal class MNIST {
 							A.collect_refresh()
 							I.source = (0..<10).map {
 								Float($0 == index % 10 ? 1 : 0)
-							} + Array<Void>(repeating: (), count: 54).map {
-									Float(arc4random_uniform(256))/256.0
+								} + Array<Void>(repeating: (), count: 246).map {
+									Float(arc4random_uniform(1024))/1024.0
 							}
 							A.collect()
 							print(A.source, B.source)
-//							print(E.source)
-							try Data(buffer: UnsafeBufferPointer<Float>(start: E.source, count: 28 * 28))
+							//							print(E.source)
+							try Data(buffer: UnsafeBufferPointer<Float>(start: F.source, count: 28 * 28))
 								.write(to: output.appendingPathComponent("img\(index).raw"), options: [])
 						}
 						context.reset()

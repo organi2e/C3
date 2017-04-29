@@ -8,7 +8,7 @@
 
 import Accelerate
 import Metal
-
+/*
 public class CauchyDistributor {
 	let collectorPipeline: CollectorPipeline
 	let correctorPipeline: CorrectorPipeline
@@ -787,3 +787,4 @@ private extension MTLLibrary {
 		return try device.makeComputePipelineState(function: try makeFunction(name: name, constantValues: constantValues))
 	}
 }
+*/

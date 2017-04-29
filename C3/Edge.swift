@@ -105,14 +105,14 @@ extension Edge {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: output.width * input.width)
-		commandBuffer.label = "Edge(\(output.label, input.label)).awakeFromFetch"
+		commandBuffer.label = "Edge.awakeFromFetch"
 		commandBuffer.commit()
 	}
 	override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: output.width * input.width)
-		commandBuffer.label = "Edge(\(output.label, input.label)).awakeFromSnapshotEvents"
+		commandBuffer.label = "Edge.awakeFromSnapshotEvents"
 		commandBuffer.commit()
 	}
 }

@@ -32,12 +32,10 @@ public class Linear {
 }
 extension Linear: Adapter {
 	public func generate(commandBuffer: MTLCommandBuffer, θ: MTLBuffer, φ: MTLBuffer) {
-		assert( commandBuffer.device === θ.device && limit * MemoryLayout<Float>.size <= θ.length )
-		assert( commandBuffer.device === φ.device && limit * MemoryLayout<Float>.size <= φ.length )
+		assert( commandBuffer.device === θ.device && limit * MemoryLayout<Float>.stride <= θ.length )
+		assert( commandBuffer.device === φ.device && limit * MemoryLayout<Float>.stride <= φ.length )
 		let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		encoder.copy(from: φ, sourceOffset: 0,
-		             to: θ, destinationOffset: 0,
-		             size: min(limit * MemoryLayout<Float>.stride, θ.length, φ.length))
+		encoder.copy(from: φ, sourceOffset: 0, to: θ, destinationOffset: 0, size: limit * MemoryLayout<Float>.stride)
 		encoder.label = "LinearAdapter.generate"
 		encoder.endEncoding()
 	}
