@@ -18,6 +18,7 @@ class ViewController: UIViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
+		Thread(block: MNIST(progress: bar, label: lab).run).start()
 		// Do any additional setup after loading the view, typically from a nib.
 	}
 

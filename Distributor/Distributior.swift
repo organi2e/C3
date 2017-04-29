@@ -33,12 +33,6 @@ public protocol Corrector {
 	var Δ: MTLBuffer { get }
 	var order: MTLCommandBuffer { get }
 }
-public protocol Activator {
-	func activate(commandBuffer: MTLCommandBuffer, f: MTLBuffer, collector: (Collector)->Void)
-	func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), corrector: (Corrector)->Void)
-	var φ: (Int) -> (μ: MTLBuffer, σ: MTLBuffer) { get }
-	var g: (Int) -> (μ: MTLBuffer, σ: MTLBuffer) { get }
-}
 public protocol Jacobian {
 	func jacobian(x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer))
 	func jacobian(a: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer)
@@ -69,59 +63,12 @@ struct DerivatorPipeline {
 	let GP: MTLComputePipelineState
 	let GV: MTLComputePipelineState
 }
-public protocol Derivator {
-	func jacobian(commandBuffer: MTLCommandBuffer, x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer))
-	func jacobian(commandBuffer: MTLCommandBuffer, a: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer)
-	func jacobian(commandBuffer: MTLCommandBuffer, b: (μ: MTLBuffer, σ: MTLBuffer), y: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer))
-	func jacobian(commandBuffer: MTLCommandBuffer, c: (μ: MTLBuffer, σ: MTLBuffer))
-	func jacobian(commandBuffer: MTLCommandBuffer, d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer))
-	func jacobian(commandBuffer: MTLCommandBuffer, d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer))
-	func flush(commandBuffer: MTLCommandBuffer)
-	func fix(commandBuffer: MTLCommandBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer))
-	func derivate(commandBuffer: MTLCommandBuffer, Δx: MTLBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer))
-	func derivate(commandBuffer: MTLCommandBuffer, Δv: MTLBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer))
-	func derivate(commandBuffer: MTLCommandBuffer, Δθ: (μ: MTLBuffer, σ: MTLBuffer), Δφ: (μ: MTLBuffer, σ: MTLBuffer))
-	var j: (Int) -> (μ: MTLBuffer, σ: MTLBuffer) { get }
-}
 public protocol Distributor {
 	func activate(commandBuffer: MTLCommandBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector)->Void)
 	func activate(commandBuffer: MTLCommandBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector)->Void)
 	func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector)->Void)
 	func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector)->Void)
-	/*
-	func jacobian(commandBuffer: MTLCommandBuffer,
-	              Σ: (μ: MTLBuffer, σ: MTLBuffer),
-	              x: MTLBuffer,
-	              a: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
-	func jacobian(commandBuffer: MTLCommandBuffer,
-	              Σ: (μ: MTLBuffer, σ: MTLBuffer),
-	              a: (μ: MTLBuffer, σ: MTLBuffer),
-	              x: MTLBuffer, count: (rows: Int, cols: Int))
-	func jacobian(commandBuffer: MTLCommandBuffer,
-	              Σ: (μ: MTLBuffer, σ: MTLBuffer),
-	              b: (μ: MTLBuffer, σ: MTLBuffer),
-	              y: MTLBuffer,
-	              g: (μ: MTLBuffer, σ: MTLBuffer),
-	              j: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
-	func jacobian(commandBuffer: MTLCommandBuffer,
-	              Σ: (μ: MTLBuffer, σ: MTLBuffer),
-	              c: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
-	func jacobian(commandBuffer: MTLCommandBuffer,
-	              Σ: (μ: MTLBuffer, σ: MTLBuffer),
-	              d: MTLBuffer,
-	              φ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
-	func jacobian(commandBuffer: MTLCommandBuffer,
-	              Σ: (μ: MTLBuffer, σ: MTLBuffer),
-	              d: MTLBuffer,
-	              φ: (μ: MTLBuffer, σ: MTLBuffer),
-	              j: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
-	func jacobian(commandBuffer: MTLCommandBuffer,
-	              j: (μ: MTLBuffer, σ: MTLBuffer),
-	              Σ: (μ: MTLBuffer, σ: MTLBuffer),
-	              φ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
-	func derivate(commandBuffer: MTLCommandBuffer, Δ: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer), Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
-	func derivate(commandBuffer: MTLCommandBuffer, Δ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer), Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int))
-	*/
+	
 	func derivate(commandBuffer: MTLCommandBuffer, Δx: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
 	              Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
 	              count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void)
@@ -131,7 +78,4 @@ public protocol Distributor {
 	func derivate(commandBuffer: MTLCommandBuffer, Δθ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer),
 	              Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
 	              count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void)
-	
-	//func flush(commandBuffer: MTLCommandBuffer, θ: MTLBuffer)
-	//func flush(commandBuffer: MTLCommandBuffer, θ: (μ: MTLBuffer, σ: MTLBuffer))
 }

@@ -85,14 +85,14 @@ extension Bias {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: cell.width)
-		commandBuffer.label = "Bias(\(cell.label)).awakeFromFetch"
+		commandBuffer.label = "Bias.awakeFromFetch"
 		commandBuffer.commit()
 	}
 	override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer, count: cell.width)
-		commandBuffer.label = "@Bias(\(cell.label)).awakeFromSnapshotEvents"
+		commandBuffer.label = "Bias.awakeFromSnapshotEvents"
 		commandBuffer.commit()
 	}
 }

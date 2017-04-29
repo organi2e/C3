@@ -29,14 +29,60 @@ template<typename T> T erf(T const z) {
 											0.09678418),
 										0.37409196),
 									1.00002368),
-								-z*z-1.26551223)),
+								-fma(z, z, 1.26551223))),
 						1),
 					z);
 }
-//Mike Giles, ``Approximating the erfinv function, ''
+//refer: Mike Giles, ``Approximating the erfinv function, ''
+/*
+inline float erfinv(float const x) {
+	float const z = - log ( 1 - x * x );
+	float2 const w = float2(z, sqrt(z)) - float2(2.5, 3.0);
+	float2 const y = x * fma(w,
+							 fma(w,
+								 fma(w,
+									 fma(w,
+										 fma(w,
+											 fma(w,
+												 fma(w,
+													 fma(w, float2(2.81022636e-08,-0.000200214257),
+														 float2(3.43273939e-07,0.000100950558)),
+													 float2(-3.5233877e-06,0.00134934322)),
+												 float2(-4.39150654e-06,-0.00367342844)),
+											 float2(0.00021858087,0.00573950773)),
+										 float2(-0.00125372503,-0.0076224613)),
+									 float2(-0.00417768164,0.00943887047)),
+								 float2(0.246640727,1.00167406)),
+							 float2(1.50140941,2.83297682));
+	return z < 5.0 ? y.x : y.y;
+}
+*/
 template<typename T> T erfinv(T const x) {
-	T const z = - log(1-x*x);
-	if ( z < 5.000000f ) {
+	T const z = - log ( 1 - x * x );
+	auto const s = z < 5.0;
+	T const w = select(sqrt(z) - 3.0, z - 2.5, s);
+	T const y = fma(w,
+					fma(w,
+						fma(w,
+							fma(w,
+								fma(w,
+									fma(w,
+										fma(w,
+											fma(w, select(T(-0.000200214257), T(2.81022636e-08), s),
+												select(T(0.000100950558), T(3.43273939e-07), s)),
+											select(T(0.00134934322), T(-3.5233877e-06), s)),
+										select(T(-0.00367342844), T(-4.39150654e-06), s)),
+									select(T(0.00573950773), T(0.00021858087), s)),
+								select(T(-0.0076224613), T(-0.00125372503), s)),
+							select(T(0.00943887047), T(-0.00417768164), s)),
+						select(T(1.00167406), T(0.246640727), s)),
+					select(T(2.83297682), T(1.50140941), s));
+	return x * y;
+}
+/*
+template<typename T> T erfinv(T const x) {
+	T const z = - log ( 1 - x * x );
+	if ( z < 5.0 ) {
 		T const w = z - 2.5;
 		return x * fma(w,
 					   fma(w,
@@ -45,8 +91,7 @@ template<typename T> T erfinv(T const x) {
 								   fma(w,
 									   fma(w,
 										   fma(w,
-											   fma(w,
-												   2.81022636e-08,
+											   fma(w, 2.81022636e-08,
 												   3.43273939e-07),
 											   -3.5233877e-06),
 										   -4.39150654e-06),
@@ -65,8 +110,7 @@ template<typename T> T erfinv(T const x) {
 								   fma(w,
 									   fma(w,
 										   fma(w,
-											   fma(w,
-												   -0.000200214257,
+											   fma(w, -0.000200214257,
 												   0.000100950558),
 											   0.00134934322),
 										   -0.00367342844),
@@ -77,6 +121,7 @@ template<typename T> T erfinv(T const x) {
 					   2.83297682);
 	}
 }
+*/
 template<typename T> inline T sq(const T x) {
 	return x * x;
 }
@@ -112,6 +157,8 @@ kernel void GaussCollectX(device float * const m [[ buffer(0) ]],
 	
 	float2x4 value = float2x4(0);
 	
+	float4 xx = 0.5;
+	float4 yy = erfinv(xx);
 	int4 const row = 4 * n + M_INC;
 	bool4 const rows_mask = row < size.x;
 	
@@ -151,20 +198,11 @@ kernel void GaussCollectX(device float * const m [[ buffer(0) ]],
 		}
 	}
 	
-	if ( a ) {
-		
-	} else if ( rows_mask.w ) {
-		*(device float4*)(m+row.x) += (*accum)[0].xyzw;
-		*(device float4*)(v+row.x) += (*accum)[1].xyzw;
-	} else if ( rows_mask.z ) {
-		*(device float3*)(m+row.x) += (*accum)[0].xyz;
-		*(device float3*)(v+row.x) += (*accum)[1].xyz;
-	} else if ( rows_mask.y ) {
-		*(device float2*)(m+row.x) += (*accum)[0].xy;
-		*(device float2*)(v+row.x) += (*accum)[1].xy;
-	} else if ( rows_mask.x ) {
-		*(device float *)(m+row.x) += (*accum)[0].x;
-		*(device float *)(v+row.x) += (*accum)[1].x;
+	if ( !a ) {
+		if ( rows_mask.x ) m[row.x] += (*accum)[0].x, v[row.x] += (*accum)[1].x;
+		if ( rows_mask.y ) m[row.y] += (*accum)[0].y, v[row.y] += (*accum)[1].y;
+		if ( rows_mask.z ) m[row.z] += (*accum)[0].z, v[row.z] += (*accum)[1].z;
+		if ( rows_mask.w ) m[row.w] += (*accum)[0].w, v[row.w] += (*accum)[1].w;
 	}
 }
 kernel void GaussCollectW(device float * const m [[ buffer(0) ]],
@@ -203,14 +241,14 @@ kernel void GaussCollectW(device float * const m [[ buffer(0) ]],
 		
 		float4 const f = select(0, *(device float4*)(x + k), cols_mask);
 		
-		value += float2x4(f * float4x4(select(0, *(device float4*)(u+idx.x), rows_mask.x && cols_mask),
-									   select(0, *(device float4*)(u+idx.y), rows_mask.y && cols_mask),
-									   select(0, *(device float4*)(u+idx.z), rows_mask.z && cols_mask),
-									   select(0, *(device float4*)(u+idx.w), rows_mask.w && cols_mask)),
-						  sq(f) * float4x4(sq(select(0, *(device float4*)(s+idx.x), rows_mask.x && cols_mask)),
-										   sq(select(0, *(device float4*)(s+idx.y), rows_mask.y && cols_mask)),
-										   sq(select(0, *(device float4*)(s+idx.z), rows_mask.z && cols_mask)),
-										   sq(select(0, *(device float4*)(s+idx.w), rows_mask.w && cols_mask))));
+		value += float2x4(   f *     float4x4(select(0, *(device float4*)(u+idx.x), rows_mask.x && cols_mask),
+											  select(0, *(device float4*)(u+idx.y), rows_mask.y && cols_mask),
+											  select(0, *(device float4*)(u+idx.z), rows_mask.z && cols_mask),
+											  select(0, *(device float4*)(u+idx.w), rows_mask.w && cols_mask)),
+						  sq(f) * sq(float4x4(select(0, *(device float4*)(s+idx.x), rows_mask.x && cols_mask),
+											  select(0, *(device float4*)(s+idx.y), rows_mask.y && cols_mask),
+											  select(0, *(device float4*)(s+idx.z), rows_mask.z && cols_mask),
+											  select(0, *(device float4*)(s+idx.w), rows_mask.w && cols_mask))));
 	}
 	
 	int const a = t;
@@ -226,20 +264,11 @@ kernel void GaussCollectW(device float * const m [[ buffer(0) ]],
 		}
 	}
 	
-	if ( a ) {
-		
-	} else if ( rows_mask.w ) {
-		*(device float4*)(m+row.x) += (*accum)[0].xyzw;
-		*(device float4*)(v+row.x) += (*accum)[1].xyzw;
-	} else if ( rows_mask.z ) {
-		*(device float3*)(m+row.x) += (*accum)[0].xyz;
-		*(device float3*)(v+row.x) += (*accum)[1].xyz;
-	} else if ( rows_mask.y ) {
-		*(device float2*)(m+row.x) += (*accum)[0].xy;
-		*(device float2*)(v+row.x) += (*accum)[1].xy;
-	} else if ( rows_mask.x ) {
-		*(device float *)(m+row.x) += (*accum)[0].x;
-		*(device float *)(v+row.x) += (*accum)[1].x;
+	if ( !a ) {
+		if ( rows_mask.x ) m[row.x] += (*accum)[0].x, v[row.x] += (*accum)[1].x;
+		if ( rows_mask.y ) m[row.y] += (*accum)[0].y, v[row.y] += (*accum)[1].y;
+		if ( rows_mask.z ) m[row.z] += (*accum)[0].z, v[row.z] += (*accum)[1].z;
+		if ( rows_mask.w ) m[row.w] += (*accum)[0].w, v[row.w] += (*accum)[1].w;
 	}
 }
 kernel void GaussCollectC(device float * const m [[ buffer(0) ]],
@@ -264,9 +293,6 @@ kernel void GaussCollectD(device float * const m [[ buffer(0) ]],
 	if ( n < N ) {
 		int const idx = n;
 		float const r = d[idx];
-		//		float2 const x =    float2(r, u[idx]);
-		//		float2 const y = sq(float2(r, s[idx]));
-		//		float2 const z = fma(float2(x.x, y.x), float2(x.y, y.y), float2(m[idx], v[idx]));
 		m[idx] +=    r*u[idx];
 		v[idx] += sq(r*s[idx]);
 	}
@@ -330,16 +356,11 @@ kernel void GaussCorrectJ(device float * const dx [[ buffer(0) ]],
 			*accum += accum[b];
 		}
 	}
-	if ( a ) {
-		
-	} else if ( rows_mask.w ) {
-		*(device float4*)(dx+row.x) += accum->xyzw;
-	} else if ( rows_mask.z ) {
-		*(device float3*)(dx+row.x) += accum->xyz;
-	} else if ( rows_mask.y ) {
-		*(device float2*)(dx+row.x) += accum->xy;
-	} else if ( rows_mask.x ) {
-		*(device float *)(dx+row.x) += accum->x;
+	if ( !a ) {
+		if ( rows_mask.x ) dx[row.x] += accum->x;
+		if ( rows_mask.y ) dx[row.y] += accum->y;
+		if ( rows_mask.z ) dx[row.z] += accum->z;
+		if ( rows_mask.w ) dx[row.w] += accum->w;
 	}
 }
 kernel void GaussCorrectG(device float * const dx [[ buffer(0) ]],
@@ -396,9 +417,9 @@ kernel void GaussJacobianX(device float * const ju [[ buffer(0) ]],
 		int const rows = n.x;
 		int const cols = n.y;
 		int const idx = rows * N.y + cols;
-		float const v = x[cols];
+		float const w = x[cols];
 		ju[idx] +=    u[idx];
-		js[idx] += sq(s[idx]) * v;
+		js[idx] += sq(s[idx]) * w;
 	}
 }
 kernel void GaussJacobianA(device float * const ju [[ buffer(0) ]],
@@ -412,9 +433,9 @@ kernel void GaussJacobianA(device float * const ju [[ buffer(0) ]],
 		int const rows = n.x;
 		int const cols = n.y;
 		int const idx = rows * N.y + cols;
-		float const v = x[cols];
-		ju[idx] +=    v;
-		js[idx] += sq(v) * s[idx];
+		float const w = x[cols];
+		ju[idx] +=    w;
+		js[idx] += sq(w) * s[idx];
 	}
 }
 kernel void GaussJacobianB(device float * const ju [[ buffer(0) ]],
@@ -493,8 +514,9 @@ kernel void GaussJacobianB(device float * const ju [[ buffer(0) ]],
 	}
 	for ( int2 row = int2(0, b.x), rows = int2(4, M) ; all(row < rows) ; ++ row ) {
 		for ( int2 col = int2(0, b.y), cols = int2(4, N) ; all(col < cols) ; ++ col ) {
-			ju [ row.y * N + col.y ] += ru [ row.x ] [ col.x ];
-			js [ row.y * N + col.y ] += rs [ row.x ] [ col.x ];
+			int const idx = row.y * N + col.y;
+			ju [ idx ] += ru [ row.x ] [ col.x ];
+			js [ idx ] += rs [ row.x ] [ col.x ];
 		}
 	}
 }
@@ -560,7 +582,7 @@ kernel void GaussJacobianF(device float * const ju [[ buffer(0) ]],
 }
 /*----------------------------------------------------------------*/
 constant uint3 xorshift16 [[ function_constant(0) ]];
-constant float M_SQRT2PI_F = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F;
+constant float M_SQRT1_2PI_F = 0.5 * M_2_SQRTPI_F * M_SQRT1_2_F;
 kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   device float * const gu [[ buffer(1) ]],
 						   device float * const gs [[ buffer(2) ]],
@@ -574,9 +596,9 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float const r = 1 / s[k];
 		float const x = u[k] * r;
-		float const y = step(float(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
-//		float const y = fma(erf(M_SQRT1_2_F * x), 32767.0/65536.0, 0.5);
-		float const ju = M_SQRT2PI_F * exp( -0.5 * x * x ) * r;
+//		float const y = step(float(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
+		float const y = fma(erf(M_SQRT1_2_F * x), 32767.0/65536.0, 0.5);
+		float const ju = M_SQRT1_2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
 		seq ^= seq << xorshift16.x;
 		seq ^= seq >> xorshift16.y;
@@ -597,13 +619,12 @@ kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-//		float const p = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32767.0/65536.0, 0.5);
-//		float const d = sign(du[idx]);//p - saturate(p - sign(du[idx]));
-		float const g = du[idx];// / p / ( 1 - p );//p - saturate(p - sign(du[idx]));//d / p / ( 1 - p );
+		float const g = du[idx];
 		du[idx] = g * gu[idx];
 		ds[idx] = g * gs[idx];
 	}
 }
+constant float M_1_INT16MAX_F = 1 / 32768.0;
 kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
 						   device float * const gu [[ buffer(1) ]],
 						   device float * const gs [[ buffer(2) ]],
@@ -615,7 +636,7 @@ kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
 	ushort seq = seeds[t];
 	for ( int k = t, K = N ; k < K ; k += T ) {
-		float const n = erfinv(fma(float(seq), 1.0/32768.0, -1))*M_SQRT2_F;
+		float const n = erfinv(fma(float(seq), M_1_INT16MAX_F, -1)) * M_SQRT2_F;
 		float const y = fma(n, s[k], u[k]);
 		float const ju = 1;
 		float const js = n;
@@ -639,11 +660,9 @@ kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 	if ( n < N ) {
 		int const idx = n;
 		float const e = du[idx];
-//		float const v = s[idx];
-//		du[idx] = e;
-//		ds[idx] = v - 0.5 * e * e / v;
-		du[idx] = e * gu[idx];
-		ds[idx] = e * gs[idx];
+		float const v = s[idx];
+		du[idx] = e;
+		ds[idx] = v - 0.5 * e * e / v;
 	}
 }
 /*----------------------------------------------------------------*/
@@ -672,16 +691,14 @@ kernel void GaussDeltaJV(device float * const d [[ buffer(0) ]],
 		
 		int4 const idx = col * size.x + row.x;
 		
-		value +=
-		float4x4(select(0, *(device float4*)(ju+idx.x), rows_mask && cols_mask.x),
-				 select(0, *(device float4*)(ju+idx.y), rows_mask && cols_mask.y),
-				 select(0, *(device float4*)(ju+idx.z), rows_mask && cols_mask.z),
-				 select(0, *(device float4*)(ju+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gu+k), cols_mask)
-		+
-		float4x4(select(0, *(device float4*)(js+idx.x), rows_mask && cols_mask.x),
-				 select(0, *(device float4*)(js+idx.y), rows_mask && cols_mask.y),
-				 select(0, *(device float4*)(js+idx.z), rows_mask && cols_mask.z),
-				 select(0, *(device float4*)(js+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gs+k), cols_mask);
+		value += float4x4(select(0, *(device float4*)(ju+idx.x), rows_mask && cols_mask.x),
+						  select(0, *(device float4*)(ju+idx.y), rows_mask && cols_mask.y),
+						  select(0, *(device float4*)(ju+idx.z), rows_mask && cols_mask.z),
+						  select(0, *(device float4*)(ju+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gu+k), cols_mask) +
+				 float4x4(select(0, *(device float4*)(js+idx.x), rows_mask && cols_mask.x),
+						  select(0, *(device float4*)(js+idx.y), rows_mask && cols_mask.y),
+						  select(0, *(device float4*)(js+idx.z), rows_mask && cols_mask.z),
+						  select(0, *(device float4*)(js+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gs+k), cols_mask);
 	}
 	
 	int const a = t;
@@ -696,16 +713,11 @@ kernel void GaussDeltaJV(device float * const d [[ buffer(0) ]],
 			*accum += accum[b];
 		}
 	}
-	if ( a ) {
-		
-	} else if ( rows_mask.w ) {
-		*(device float4*)(d+row.x) += accum->xyzw;
-	} else if ( rows_mask.z ) {
-		*(device float3*)(d+row.x) += accum->xyz;
-	} else if ( rows_mask.y ) {
-		*(device float2*)(d+row.x) += accum->xy;
-	} else if ( rows_mask.x ) {
-		*(device float *)(d+row.x) += accum->x;
+	if ( !a ) {
+		if ( rows_mask.x ) d[row.x] += accum->x;
+		if ( rows_mask.y ) d[row.y] += accum->y;
+		if ( rows_mask.z ) d[row.z] += accum->z;
+		if ( rows_mask.w ) d[row.w] += accum->w;
 	}
 }
 kernel void GaussDeltaJP(device float * const du [[ buffer(0) ]],
@@ -757,20 +769,12 @@ kernel void GaussDeltaJP(device float * const du [[ buffer(0) ]],
 			*accum += accum[b];
 		}
 	}
-	if ( a ) {
-		
-	} else if ( rows_mask.w ) {
-		*(device float4*)(du+row.x) += (*accum)[0].xyzw;
-		*(device float4*)(ds+row.x) += (*accum)[1].xyzw;
-	} else if ( rows_mask.z ) {
-		*(device float3*)(du+row.x) += (*accum)[0].xyz;
-		*(device float3*)(ds+row.x) += (*accum)[1].xyz;
-	} else if ( rows_mask.y ) {
-		*(device float2*)(du+row.x) += (*accum)[0].xy;
-		*(device float2*)(ds+row.x) += (*accum)[1].xy;
-	} else if ( rows_mask.x ) {
-		*(device float *)(du+row.x) += (*accum)[0].x;
-		*(device float *)(ds+row.x) += (*accum)[1].x;
+	
+	if ( !a ) {
+		if ( rows_mask.x ) du[row.x] += (*accum)[0].x, ds[row.x] += (*accum)[1].x;
+		if ( rows_mask.y ) du[row.y] += (*accum)[0].y, ds[row.y] += (*accum)[1].y;
+		if ( rows_mask.z ) du[row.z] += (*accum)[0].z, ds[row.z] += (*accum)[1].z;
+		if ( rows_mask.w ) du[row.w] += (*accum)[0].w, ds[row.w] += (*accum)[1].w;
 	}
 }
 kernel void GaussDeltaGP(device float * const du [[ buffer(0) ]],

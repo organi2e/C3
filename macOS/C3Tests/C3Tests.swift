@@ -28,13 +28,13 @@ class C3Tests: XCTestCase {
 		guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 		do {
 			let context: Context = try Context(queue: queue, optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
-			let I: Cell = try context.make(label: "I", width:   4, distribution: .Gauss, activation: .Binary)
-			let H1: Cell = try context.make(label: "H1", width: 1024, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [I], decay: false)
-			let H2: Cell = try context.make(label: "H2", width: 1024, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [H1], decay: false)
-			let G: Cell = try context.make(label: "G", width:   4, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [H2], decay: false)
-			let F1: Cell = try context.make(label: "F1", width: 1024, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [G], decay: false)
-			let F2: Cell = try context.make(label: "F2", width: 1024, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [F1], decay: false)
-			let O: Cell = try context.make(label: "O", width:   5, distribution: .Gauss, activation: .Binary, adapters: (.Linear, .Softplus), input: [F2], decay: false)
+			let I: Cell = try context.make(label: "I", width:   4, distributor: .Gauss, activator: .Binary)
+			let H1: Cell = try context.make(label: "H1", width: 1024, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [I], decay: false)
+			let H2: Cell = try context.make(label: "H2", width: 1024, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [H1], decay: false)
+			let G: Cell = try context.make(label: "G", width:   4, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [H2], decay: false)
+			let F1: Cell = try context.make(label: "F1", width: 1024, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [G], decay: false)
+			let F2: Cell = try context.make(label: "F2", width: 1024, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [F1], decay: false)
+			let O: Cell = try context.make(label: "O", width:   5, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [F2], decay: false)
 			
 			(0..<4096).forEach {
 				print($0)
@@ -91,17 +91,17 @@ class C3Tests: XCTestCase {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 			do {
 				let context: Context = try Context(queue: queue, storage: storage)
-				let I: Cell = try context.make(label: "I", width: 4, distribution: .Gauss, activation: .Binary)
-				let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [])
-				let G: Cell = try context.make(label: "G", width: 64, distribution: .Gauss, activation: .Binary, input: [H], decay: true, recurrent: [])
-//				let F: Cell = try context.make(label: "F", width: 64, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [])
-				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Binary, input: [G], decay: false, recurrent: [])
+				let I: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
+				let H: Cell = try context.make(label: "H", width: 64, distributor: .Gauss, activator: .Binary, input: [I], decay: true, recurrent: [])
+				let G: Cell = try context.make(label: "G", width: 64, distributor: .Gauss, activator: .Binary, input: [H], decay: true, recurrent: [])
+//				let F: Cell = try context.make(label: "F", width: 64, distributor: .Gauss, activator: .Binary, input: [G], decay: false, recurrent: [])
+				let _: Cell = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [G], decay: false, recurrent: [])
 				try context.save()
 			}
 			do {
 				let context: Context = try Context(queue: queue,
 				                                   storage: storage,
-				                                   optimizer: SMORMS3.factory(L2: 1e-8, L1: 0, α: 1e-3)
+				                                   optimizer: .SMORMS3(L2: 1e-8, L1: 0, α: 1e-3, ε: 0)
 				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }

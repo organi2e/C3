@@ -17,7 +17,7 @@ extension Cell {
 	public func collect_refresh() {
 		let commandBuffer: CommandBuffer = context.make()
 		collect_refresh(commandBuffer: commandBuffer)
-		commandBuffer.label = "Cell(\(label)).collect_refresh"
+		commandBuffer.label = "Cell.collect_refresh"
 		commandBuffer.commit()
 	}
 	internal func collect_refresh(commandBuffer: CommandBuffer) {
@@ -59,7 +59,7 @@ extension Cell {
 			case .Identity:
 				distributor.activate(commandBuffer: commandBuffer, v: χ(0), g: g(0), φ: φ(0), count: width, collector: collector)
 			}
-			commandBuffer.label = "Cell(\(label)).collect"
+			commandBuffer.label = "Cell.collect"
 			commandBuffer.commit()
 			state = true
 		}
@@ -144,9 +144,9 @@ extension Cell {
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: χ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(χ(0).length, target.length))
-			encoder.label = "Cell(\(label)).getSource"
+			encoder.label = "Cell.getSource"
 			encoder.endEncoding()
-			commandBuffer.label = "Cell(\(label)).getSource"
+			commandBuffer.label = "Cell.getSource"
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
 			defer {
@@ -163,12 +163,12 @@ extension Cell {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: source, sourceOffset: 0,
 			             to: χ(0), destinationOffset: 0, size: min(source.length, χ(0).length))
-			encoder.label = "Cell(\(label)).setSource"
+			encoder.label = "Cell.setSource"
 			encoder.endEncoding()
 			commandBuffer.addCompletedHandler { (_) in
 				source.setPurgeableState(.empty)
 			}
-			commandBuffer.label = "Cell(\(label)).setSource"
+			commandBuffer.label = "Cell.setSource"
 			commandBuffer.commit()
 			state = !newValue.isEmpty
 		}
@@ -180,9 +180,9 @@ extension Cell {
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: ϝ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(ϝ(0).length, target.length))
-			encoder.label = "Cell(\(label)).getTarget"
+			encoder.label = "Cell.getTarget"
 			encoder.endEncoding()
-			commandBuffer.label = "Cell(\(label)).getTarget"
+			commandBuffer.label = "Cell.getTarget"
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
 			defer {
@@ -199,12 +199,12 @@ extension Cell {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.copy(from: source, sourceOffset: 0,
 			             to: ϝ(0), destinationOffset: 0, size: min(source.length, ϝ(0).length))
-			encoder.label = "Cell(\(label)).setTarget"
+			encoder.label = "Cell.setTarget"
 			encoder.endEncoding()
 			commandBuffer.addCompletedHandler { (_) in
 				source.setPurgeableState(.empty)
 			}
-			commandBuffer.label = "Cell(\(label)).setTarget"
+			commandBuffer.label = "Cell.setTarget"
 			commandBuffer.commit()
 			study = !newValue.isEmpty
 		}
@@ -285,14 +285,14 @@ extension Cell {
 		super.awakeFromFetch()
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer)
-		commandBuffer.label = "Cell(\(label)).awakeFromFetch"
+		commandBuffer.label = "Cell.awakeFromFetch"
 		commandBuffer.commit()
 	}
 	public override func awake(fromSnapshotEvents flags: NSSnapshotEventType) {
 		super.awake(fromSnapshotEvents: flags)
 		let commandBuffer: CommandBuffer = context.make()
 		setup(commandBuffer: commandBuffer)
-		commandBuffer.label = "Cell(\(label)).awakeFromSnapshotEvents"
+		commandBuffer.label = "Cell.awakeFromSnapshotEvents"
 		commandBuffer.commit()
 	}
 }
@@ -349,7 +349,7 @@ extension Context {
 		cell.loop = try Set<Feedback>(recurrent.map{try make(commandBuffer: commandBuffer, cell: cell, refer: $0, adapters: adapters)})
 		cell.decay = try !decay ? nil : make(commandBuffer: commandBuffer, cell: cell)
 		cell.setup(commandBuffer: commandBuffer)
-		commandBuffer.label = "make Cell(\(cell.label))"
+		commandBuffer.label = "Context.make"
 		commandBuffer.commit()
 		return cell
 	}

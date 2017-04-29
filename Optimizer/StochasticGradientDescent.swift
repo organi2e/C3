@@ -10,36 +10,11 @@ import Accelerate
 import Metal
 
 public class StochasticGradientDescent {
-	let optimizer: (MTLCommandBuffer, MTLBuffer, MTLBuffer) -> Void
-	public init(η: Float, count: Int) {
-		optimizer = { (commandBuffer: MTLCommandBuffer, θ: MTLBuffer, Δ: MTLBuffer) in
-			assert( θ.storageMode == .shared && count * MemoryLayout<Float>.size<=θ.length )
-			assert( Δ.storageMode == .shared && count * MemoryLayout<Float>.size<=Δ.length )
-			commandBuffer.addCompletedHandler { (_: MTLCommandBuffer) in
-				cblas_saxpy(Int32(count), η, UnsafePointer<Float>(OpaquePointer(Δ.contents())), 1, UnsafeMutablePointer<Float>(OpaquePointer(θ.contents())), 1)
-			}
-		}
-	}
+	let optimizer: MTLComputePipelineState
+	let limit: Int
 	private init(pipeline: MTLComputePipelineState, count: Int) {
-		
-		optimizer = {
-			
-			let encoder: MTLComputeCommandEncoder = $0.0.makeComputeCommandEncoder()
-			let threads: Int = pipeline.threadExecutionWidth
-
-			assert( pipeline.device === encoder.device)
-			assert( pipeline.device === $0.1.device && count * MemoryLayout<Float>.size <= $0.1.length )
-			assert( pipeline.device === $0.2.device && count * MemoryLayout<Float>.size <= $0.2.length )
-			
-			encoder.setComputePipelineState(pipeline)
-			encoder.setBuffer($0.1, offset: 0, at: 0)
-			encoder.setBuffer($0.2, offset: 0, at: 1)
-			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 2)
-			encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
-			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.endEncoding()
-			
-		}
+		optimizer = pipeline
+		limit = count
 	}
 	public static func optimizer(device: MTLDevice, L2: Float = 0.0, L1: Float = 0.0, η: Float = 1e-3) throws -> (Int) -> Optimizer {
 		let bundle: Bundle = Bundle(for: self)
@@ -57,7 +32,20 @@ public class StochasticGradientDescent {
 }
 extension StochasticGradientDescent: Optimizer {
 	public func optimize(commandBuffer: MTLCommandBuffer, θ: MTLBuffer, Δ: MTLBuffer) {
-		optimizer(commandBuffer, θ, Δ)
+		
+		assert( optimizer.device === commandBuffer.device)
+		assert( optimizer.device === θ.device && limit * MemoryLayout<Float>.size <= θ.length )
+		assert( optimizer.device === Δ.device && limit * MemoryLayout<Float>.size <= Δ.length )
+		
+		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
+		let threads: Int = optimizer.threadExecutionWidth
+		encoder.setComputePipelineState(optimizer)
+		encoder.setBuffer(θ, offset: 0, at: 0)
+		encoder.setBuffer(Δ, offset: 0, at: 1)
+		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 2)
+		encoder.dispatchThreadgroups(MTLSize(width: (limit-1)/threads+1, height: 1, depth: 1),
+		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.endEncoding()
 	}
 	public func reset(commandBuffer: MTLCommandBuffer) {
 		
