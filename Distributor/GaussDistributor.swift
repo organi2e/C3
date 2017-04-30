@@ -11,56 +11,59 @@ import Metal
 import simd
 
 public class GaussDistributor {
-	let collectorPipeline: CollectorPipeline
-	let correctorPipeline: CorrectorPipeline
-	let activatorPipeline: ActivatorPipeline
-	let derivatorPipeline: DerivatorPipeline
-	let jacobianPipeline: JacobianPipeline
+	let collectPipeline: CollectPipeline
+	let correctPipeline: CorrectPipeline
+	let connectPipeline: ConnectPipeline
+	let activatePipeline: ActivatePipeline
+	let derivatePipeline: DerivatePipeline
+	let gradientPipeline: GradientPipeline
 	public init(device: MTLDevice, xorshift: (Int, Int, Int) = (5, 7, 4)) throws {
 		let bundle: Bundle = Bundle(for: GaussDistributor.self)
 		let library: MTLLibrary = try device.makeDefaultLibrary(bundle: bundle)
 		let xorshiftValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
 		xorshiftValues.setConstantValue([uint(xorshift.0), uint(xorshift.1), uint(xorshift.2)], type: .uint3, withName: "xorshift16")
-		collectorPipeline = CollectorPipeline(
+		collectPipeline = CollectPipeline(
 			W: try library.make(name: "GaussCollectW"),
 			C: try library.make(name: "GaussCollectC"),
 			D: try library.make(name: "GaussCollectD"),
 			F: try library.make(name: "GaussCollectF")
 		)
-		correctorPipeline = CorrectorPipeline(
+		correctPipeline = CorrectPipeline(
 			J: try library.make(name: "GaussCorrectJ"),
 			G: try library.make(name: "GaussCorrectG"),
 			N: try library.make(name: "GaussCorrectN"),
 			P: try library.make(name: "GaussCorrectP"),
 			V: try library.make(name: "GaussCorrectV")
 		)
-		jacobianPipeline = JacobianPipeline(
-			X: try library.make(name: "GaussJacobianX"),
-			A: try library.make(name: "GaussJacobianA"),
-			B: try library.make(name: "GaussJacobianB"),
-			C: try library.make(name: "GaussJacobianC"),
-			D: try library.make(name: "GaussJacobianD"),
-			E: try library.make(name: "GaussJacobianE"),
-			F: try library.make(name: "GaussJacobianF")
+		connectPipeline = ConnectPipeline(
+			X: try library.make(name: "GaussConnectX"),
+			A: try library.make(name: "GaussConnectA"),
+			B: try library.make(name: "GaussConnectB"),
+			C: try library.make(name: "GaussConnectC"),
+			D: try library.make(name: "GaussConnectD"),
+			E: try library.make(name: "GaussConnectE"),
+			F: try library.make(name: "GaussConnectF")
 		)
-		activatorPipeline = ActivatorPipeline(
-			AP: try library.make(name: "GaussActivateP", constantValues: xorshiftValues),
-			AV: try library.make(name: "GaussActivateV", constantValues: xorshiftValues),
-			GP: try library.make(name: "GaussDerivateP"),
-			GV: try library.make(name: "GaussDerivateV")
+		activatePipeline = ActivatePipeline(
+			P: try library.make(name: "GaussActivateP", constantValues: xorshiftValues),
+			V: try library.make(name: "GaussActivateV", constantValues: xorshiftValues)
 		)
-		derivatorPipeline = DerivatorPipeline(
-			JP: try library.make(name: "GaussDeltaJP"),
-			JV: try library.make(name: "GaussDeltaJV"),
-			GP: try library.make(name: "GaussDeltaGP"),
-			GV: try library.make(name: "GaussDeltaGV")
+		derivatePipeline = DerivatePipeline(
+			P: try library.make(name: "GaussDerivateP"),
+			V: try library.make(name: "GaussDerivateV")
+		)
+		gradientPipeline = GradientPipeline(
+			JP: try library.make(name: "GaussGradientJP"),
+			JV: try library.make(name: "GaussGradientJV"),
+			GP: try library.make(name: "GaussGradientGP"),
+			GV: try library.make(name: "GaussGradientGV")
 		)
 	}
 }
 extension GaussDistributor {
 	private struct GaussCollector: Collector {
 		let order: MTLCommandBuffer
-		let state: CollectorPipeline
+		let state: CollectPipeline
 		let width: Int
 		let Σ: (μ: MTLBuffer, σ: MTLBuffer)
 		public func collect(w: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer, count: Int) {
@@ -129,7 +132,7 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 	}
-	private func collect(commandBuffer: MTLCommandBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector) -> Void) {
+	private func activate(commandBuffer: MTLCommandBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector) -> Void) {
 		do {
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
 			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.stride <= φ.σ.length )
@@ -140,15 +143,15 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 		do {
-			collector(GaussCollector(order: commandBuffer, state: collectorPipeline, width: count, Σ: φ))
+			collect(GaussCollector(order: commandBuffer, state: collectPipeline, width: count, Σ: φ))
 		}
 		do {
-			assert( commandBuffer.device === collectorPipeline.F.device )
+			assert( commandBuffer.device === collectPipeline.F.device )
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.size <= φ.μ.length )
 			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.size <= φ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = collectorPipeline.F.threadExecutionWidth
-			encoder.setComputePipelineState(collectorPipeline.F)
+			let threads: Int = collectPipeline.F.threadExecutionWidth
+			encoder.setComputePipelineState(collectPipeline.F)
 			encoder.setBuffer(φ.μ, offset: 0, at: 0)
 			encoder.setBuffer(φ.σ, offset: 0, at: 1)
 			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 2)
@@ -158,12 +161,12 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 	}
-	public func activate(commandBuffer: MTLCommandBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector) -> Void) {
+	public func activate(commandBuffer: MTLCommandBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector) -> Void) {
 		do {
-			collect(commandBuffer: commandBuffer, φ: φ, count: count, collector: collector)
+			activate(commandBuffer: commandBuffer, φ: φ, count: count, collect: collect)
 		}
 		do {
-			assert( commandBuffer.device === activatorPipeline.AP.device )
+			assert( commandBuffer.device === activatePipeline.P.device )
 			assert( commandBuffer.device === f.device && count * MemoryLayout<Float>.stride <= f.length )
 			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
 			assert( commandBuffer.device === g.σ.device && count * MemoryLayout<Float>.stride <= g.σ.length )
@@ -171,11 +174,11 @@ extension GaussDistributor {
 			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.stride <= φ.σ.length )
 			typealias T = ushort
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = activatorPipeline.AP.threadExecutionWidth
+			let threads: Int = activatePipeline.P.threadExecutionWidth
 			let uniform: Array<T> = Array<Void>(repeating: (), count: 4 * threads).map {
 				T(1) + T(arc4random_uniform(UInt32(T.max-1)))
 			}
-			encoder.setComputePipelineState(activatorPipeline.AP)
+			encoder.setComputePipelineState(activatePipeline.P)
 			encoder.setBuffer(f, offset: 0, at: 0)
 			encoder.setBuffer(g.μ, offset: 0, at: 1)
 			encoder.setBuffer(g.σ, offset: 0, at: 2)
@@ -189,12 +192,12 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 	}
-	public func activate(commandBuffer: MTLCommandBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector) -> Void) {
+	public func activate(commandBuffer: MTLCommandBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector) -> Void) {
 		do {
-			collect(commandBuffer: commandBuffer, φ: φ, count: count, collector: collector)
+			activate(commandBuffer: commandBuffer, φ: φ, count: count, collect: collect)
 		}
 		do {
-			assert( commandBuffer.device === activatorPipeline.AV.device )
+			assert( commandBuffer.device === activatePipeline.V.device )
 			assert( commandBuffer.device === v.device && count * MemoryLayout<Float>.size <= v.length )
 			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.size <= g.μ.length )
 			assert( commandBuffer.device === g.σ.device && count * MemoryLayout<Float>.size <= g.σ.length )
@@ -202,9 +205,9 @@ extension GaussDistributor {
 			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.size <= φ.σ.length )
 			typealias T = ushort
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = activatorPipeline.AV.threadExecutionWidth
+			let threads: Int = activatePipeline.V.threadExecutionWidth
 			let uniform: Array<T> = Array<Void>(repeating: (), count: 4 * threads).map { T(1) + T(arc4random_uniform(UInt32(T.max-1))) }
-			encoder.setComputePipelineState(activatorPipeline.AV)
+			encoder.setComputePipelineState(activatePipeline.V)
 			encoder.setBuffer(v, offset: 0, at: 0)
 			encoder.setBuffer(g.μ, offset: 0, at: 1)
 			encoder.setBuffer(g.σ, offset: 0, at: 2)
@@ -222,7 +225,7 @@ extension GaussDistributor {
 extension GaussDistributor {
 	private struct GaussCorrector: Corrector {
 		let order: MTLCommandBuffer
-		let state: CorrectorPipeline
+		let state: CorrectPipeline
 		let width: Int
 		let Δ: MTLBuffer
 		public func correct(χ: MTLBuffer, ϝ: MTLBuffer) {
@@ -296,7 +299,7 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 	}
-	private func correct(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector) -> Void) {
+	private func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector) -> Void) {
 		do {
 			assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
 			assert( commandBuffer.device === Δφ.σ.device && count * MemoryLayout<Float>.stride <= Δφ.σ.length )
@@ -307,13 +310,13 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 		do {
-			corrector(GaussCorrector(order: commandBuffer, state: correctorPipeline, width: count, Δ: Δφ.μ))
+			correct(GaussCorrector(order: commandBuffer, state: correctPipeline, width: count, Δ: Δφ.μ))
 		}
 	}
-	public func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector) -> Void) {
-		correct(commandBuffer: commandBuffer, Δφ: Δφ, count: count, corrector: corrector)
+	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector) -> Void) {
+		derivate(commandBuffer: commandBuffer, Δφ: Δφ, count: count, correct: correct)
 		do {
-			assert( commandBuffer.device === activatorPipeline.GP.device )
+			assert( commandBuffer.device === derivatePipeline.P.device )
 			assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.size <= Δφ.μ.length )
 			assert( commandBuffer.device === Δφ.σ.device && count * MemoryLayout<Float>.size <= Δφ.σ.length )
 			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.size <= g.μ.length )
@@ -321,8 +324,8 @@ extension GaussDistributor {
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.size <= φ.μ.length )
 			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.size <= φ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = activatorPipeline.GP.threadExecutionWidth
-			encoder.setComputePipelineState(activatorPipeline.GP)
+			let threads: Int = derivatePipeline.P.threadExecutionWidth
+			encoder.setComputePipelineState(derivatePipeline.P)
 			encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
 			encoder.setBuffer(Δφ.σ, offset: 0, at: 1)
 			encoder.setBuffer(f, offset: 0, at: 2)
@@ -337,10 +340,10 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 	}
-	public func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector) -> Void) {
-		correct(commandBuffer: commandBuffer, Δφ: Δφ, count: count, corrector: corrector)
+	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector) -> Void) {
+		derivate(commandBuffer: commandBuffer, Δφ: Δφ, count: count, correct: correct)
 		do {
-			assert( commandBuffer.device === activatorPipeline.GV.device )
+			assert( commandBuffer.device === activatePipeline.V.device )
 			assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.size <= Δφ.μ.length )
 			assert( commandBuffer.device === Δφ.σ.device && count * MemoryLayout<Float>.size <= Δφ.σ.length )
 			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.size <= g.μ.length )
@@ -348,8 +351,8 @@ extension GaussDistributor {
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.size <= φ.μ.length )
 			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.size <= φ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = activatorPipeline.GV.threadExecutionWidth
-			encoder.setComputePipelineState(activatorPipeline.GV)
+			let threads: Int = derivatePipeline.V.threadExecutionWidth
+			encoder.setComputePipelineState(derivatePipeline.V)
 			encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
 			encoder.setBuffer(Δφ.σ, offset: 0, at: 1)
 			encoder.setBuffer(v, offset: 0, at: 2)
@@ -366,13 +369,13 @@ extension GaussDistributor {
 	}
 }
 extension GaussDistributor {
-	private struct GaussJacobian: Jacobian {
+	private struct GaussConnector: Connector {
 		let order: MTLCommandBuffer
-		let state: JacobianPipeline
+		let state: ConnectPipeline
 		let width: Int
 		let refer: Int
 		let Σ: (μ: MTLBuffer, σ: MTLBuffer)
-		func jacobian(x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer)) {
+		func connect(x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.X.device )
 			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.size <= Σ.μ.length )
@@ -396,7 +399,7 @@ extension GaussDistributor {
 			encoder.endEncoding()
 			
 		}
-		func jacobian(a: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer) {
+		func connect(a: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer) {
 			
 			assert( order.device === state.A.device )
 			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.stride <= Σ.μ.length )
@@ -420,10 +423,10 @@ extension GaussDistributor {
 			encoder.endEncoding()
 			
 		}
-		func jacobian(b: (μ: MTLBuffer, σ: MTLBuffer), y: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer)) {
+		func connect(b: (μ: MTLBuffer, σ: MTLBuffer), y: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 		}
-		func jacobian(c: (μ: MTLBuffer, σ: MTLBuffer)) {
+		func connect(c: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.C.device )
 			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.size <= Σ.μ.length )
@@ -445,7 +448,7 @@ extension GaussDistributor {
 			encoder.endEncoding()
 			
 		}
-		func jacobian(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer)) {
+		func connect(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.D.device )
 			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.size <= Σ.μ.length )
@@ -469,7 +472,7 @@ extension GaussDistributor {
 			encoder.endEncoding()
 			
 		}
-		func jacobian(φ: (μ: MTLBuffer, σ: MTLBuffer), d: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer)) {
+		func connect(φ: (μ: MTLBuffer, σ: MTLBuffer), d: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.E.device )
 			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.size <= Σ.μ.length )
@@ -498,28 +501,28 @@ extension GaussDistributor {
 			
 		}
 	}
-	private func jacob(commandBuffer: MTLCommandBuffer, j: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void) {
+	private func gradient(commandBuffer: MTLCommandBuffer, j: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int), connect: (Connector)->Void) {
 		do {
 			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.μ.length )
 			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.σ.length )
 			let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.fill(buffer: j.μ, range: NSRange(location: 0, length: count.rows * count.cols * MemoryLayout<Float>.stride), value: 0)
 			encoder.fill(buffer: j.σ, range: NSRange(location: 0, length: count.rows * count.cols * MemoryLayout<Float>.stride), value: 0)
-			encoder.label = "Gauss.GradientFlush"
+			encoder.label = "Gauss.GradientFlush(\(count))"
 			encoder.endEncoding()
 		}
 		do {
-			jacobian(GaussJacobian(order: commandBuffer, state: jacobianPipeline, width: count.rows, refer: count.cols, Σ: j))
+			connect(GaussConnector(order: commandBuffer, state: connectPipeline, width: count.rows, refer: count.cols, Σ: j))
 		}
 		do {
-			assert( commandBuffer.device === jacobianPipeline.F.device )
-			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
-			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
+			assert( commandBuffer.device === connectPipeline.F.device )
+			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.μ.length )
+			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.σ.length )
 			assert( commandBuffer.device === φ.μ.device && count.rows * MemoryLayout<Float>.size <= φ.μ.length )
 			assert( commandBuffer.device === φ.σ.device && count.rows * MemoryLayout<Float>.size <= φ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = jacobianPipeline.F.threadExecutionWidth
-			encoder.setComputePipelineState(jacobianPipeline.F)
+			let threads: Int = connectPipeline.F.threadExecutionWidth
+			encoder.setComputePipelineState(connectPipeline.F)
 			encoder.setBuffer(j.μ, offset: 0, at: 0)
 			encoder.setBuffer(j.σ, offset: 0, at: 1)
 			encoder.setBuffer(φ.μ, offset: 0, at: 2)
@@ -531,20 +534,20 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 	}
-	public func derivate(commandBuffer: MTLCommandBuffer, Δx: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
+	public func gradient(commandBuffer: MTLCommandBuffer, Δx: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
 	                     Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
-	                     count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void) {
-		jacob(commandBuffer: commandBuffer, j: j, φ: φ, count: count, jacobian: jacobian)
+	                     count: (rows: Int, cols: Int), connect: (Connector)->Void) {
+		gradient(commandBuffer: commandBuffer, j: j, φ: φ, count: count, connect: connect)
 		do {
-			assert( commandBuffer.device === derivatorPipeline.JV.device )
+			assert( commandBuffer.device === gradientPipeline.JV.device )
 			assert( commandBuffer.device === Δx.device && count.cols * MemoryLayout<Float>.stride <= Δx.length )
 			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.μ.length )
 			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.σ.length )
 			assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.stride <= Δφ.μ.length )
 			assert( commandBuffer.device === Δφ.σ.device && count.rows * MemoryLayout<Float>.stride <= Δφ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = derivatorPipeline.JV.threadExecutionWidth
-			encoder.setComputePipelineState(derivatorPipeline.JV)
+			let threads: Int = gradientPipeline.JV.threadExecutionWidth
+			encoder.setComputePipelineState(gradientPipeline.JV)
 			encoder.setBuffer(Δx, offset: 0, at: 0)
 			encoder.setBuffer(j.μ, offset: 0, at: 1)
 			encoder.setBuffer(j.σ, offset: 0, at: 2)
@@ -558,20 +561,20 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 	}
-	public func derivate(commandBuffer: MTLCommandBuffer, Δv: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
+	public func gradient(commandBuffer: MTLCommandBuffer, Δv: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
 	                     Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
-	                     count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void) {
-		jacob(commandBuffer: commandBuffer, j: j, φ: φ, count: count, jacobian: jacobian)
+	                     count: (rows: Int, cols: Int), connect: (Connector)->Void) {
+		gradient(commandBuffer: commandBuffer, j: j, φ: φ, count: count, connect: connect)
 		do {
-			assert( commandBuffer.device === derivatorPipeline.GV.device )
+			assert( commandBuffer.device === gradientPipeline.GV.device )
 			assert( commandBuffer.device === Δv.device && count.rows * MemoryLayout<Float>.size <= Δv.length )
 			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
 			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
 			assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.size <= Δφ.μ.length )
 			assert( commandBuffer.device === Δφ.σ.device && count.rows * MemoryLayout<Float>.size <= Δφ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = derivatorPipeline.GV.threadExecutionWidth
-			encoder.setComputePipelineState(derivatorPipeline.GV)
+			let threads: Int = gradientPipeline.GV.threadExecutionWidth
+			encoder.setComputePipelineState(gradientPipeline.GV)
 			encoder.setBuffer(Δv, offset: 0, at: 0)
 			encoder.setBuffer(j.μ, offset: 0, at: 1)
 			encoder.setBuffer(j.σ, offset: 0, at: 2)
@@ -584,12 +587,12 @@ extension GaussDistributor {
 			encoder.endEncoding()
 		}
 	}
-	public func derivate(commandBuffer: MTLCommandBuffer, Δθ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer),
+	public func gradient(commandBuffer: MTLCommandBuffer, Δθ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer),
 	                     Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
-	                     count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void) {
-		jacob(commandBuffer: commandBuffer, j: j, φ: φ, count: count, jacobian: jacobian)
+	                     count: (rows: Int, cols: Int), connect: (Connector)->Void) {
+		gradient(commandBuffer: commandBuffer, j: j, φ: φ, count: count, connect: connect)
 		do {
-			assert( commandBuffer.device === derivatorPipeline.GP.device )
+			assert( commandBuffer.device === gradientPipeline.GP.device )
 			assert( commandBuffer.device === Δθ.μ.device && count.rows * MemoryLayout<Float>.size <= Δθ.μ.length )
 			assert( commandBuffer.device === Δθ.σ.device && count.rows * MemoryLayout<Float>.size <= Δθ.σ.length )
 			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
@@ -597,8 +600,8 @@ extension GaussDistributor {
 			assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.size <= Δφ.μ.length )
 			assert( commandBuffer.device === Δφ.σ.device && count.rows * MemoryLayout<Float>.size <= Δφ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = derivatorPipeline.GP.threadExecutionWidth
-			encoder.setComputePipelineState(derivatorPipeline.GP)
+			let threads: Int = gradientPipeline.GP.threadExecutionWidth
+			encoder.setComputePipelineState(gradientPipeline.GP)
 			encoder.setBuffer(Δθ.μ, offset: 0, at: 0)
 			encoder.setBuffer(Δθ.σ, offset: 0, at: 1)
 			encoder.setBuffer(j.μ, offset: 0, at: 2)
@@ -611,214 +614,6 @@ extension GaussDistributor {
 			encoder.label = "Gauss.DerivateGP"
 			encoder.endEncoding()
 		}
-	}
-}
-extension GaussDistributor {
-	public func jacobian(commandBuffer: MTLCommandBuffer, Σ: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int)) {
-		assert( commandBuffer.device === jacobianPipeline.X.device )
-		assert( commandBuffer.device === Σ.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.μ.length )
-		assert( commandBuffer.device === Σ.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.σ.length )
-		assert( commandBuffer.device === x.device && count.cols * MemoryLayout<Float>.size <= x.length )
-		assert( commandBuffer.device === a.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= a.μ.length )
-		assert( commandBuffer.device === a.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= a.σ.length )
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		let threads: Int = jacobianPipeline.X.threadExecutionWidth
-		encoder.setComputePipelineState(jacobianPipeline.X)
-		encoder.setBuffer(Σ.μ, offset: 0, at: 0)
-		encoder.setBuffer(Σ.σ, offset: 0, at: 1)
-		encoder.setBuffer(x, offset: 0, at: 2)
-		encoder.setBuffer(a.μ, offset: 0, at: 3)
-		encoder.setBuffer(a.σ, offset: 0, at: 4)
-		encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 5)
-		encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = "Gauss.GradientX"
-		encoder.endEncoding()
-	}
-	public func jacobian(commandBuffer: MTLCommandBuffer, Σ: (μ: MTLBuffer, σ: MTLBuffer), a: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer, count: (rows: Int, cols: Int)) {
-		assert( commandBuffer.device === jacobianPipeline.A.device )
-		assert( commandBuffer.device === Σ.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.μ.length )
-		assert( commandBuffer.device === Σ.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.σ.length )
-		assert( commandBuffer.device === a.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= a.μ.length )
-		assert( commandBuffer.device === a.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= a.σ.length )
-		assert( commandBuffer.device === x.device && count.cols * MemoryLayout<Float>.size <= x.length )
-		
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		let threads: Int = jacobianPipeline.A.threadExecutionWidth
-		encoder.setComputePipelineState(jacobianPipeline.A)
-		encoder.setBuffer(Σ.μ, offset: 0, at: 0)
-		encoder.setBuffer(Σ.σ, offset: 0, at: 1)
-		encoder.setBuffer(a.μ, offset: 0, at: 2)
-		encoder.setBuffer(a.σ, offset: 0, at: 3)
-		encoder.setBuffer(x, offset: 0, at: 4)
-		encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 5)
-		encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = "Gauss.GradientA"
-		encoder.endEncoding()
-	}
-	public func jacobian(commandBuffer: MTLCommandBuffer, Σ: (μ: MTLBuffer, σ: MTLBuffer), b: (μ: MTLBuffer, σ: MTLBuffer), y: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int)) {
-		assert( commandBuffer.device === jacobianPipeline.B.device )
-		assert( commandBuffer.device === Σ.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.μ.length )
-		assert( commandBuffer.device === Σ.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.σ.length )
-		assert( commandBuffer.device === b.μ.device && count.rows * count.rows * MemoryLayout<Float>.size <= b.μ.length )
-		assert( commandBuffer.device === b.σ.device && count.rows * count.rows * MemoryLayout<Float>.size <= b.σ.length )
-		assert( commandBuffer.device === y.device && count.rows * MemoryLayout<Float>.size <= y.length )
-		assert( commandBuffer.device === g.μ.device && count.rows * MemoryLayout<Float>.size <= g.μ.length )
-		assert( commandBuffer.device === g.σ.device && count.rows * MemoryLayout<Float>.size <= g.σ.length )
-		assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
-		assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		let block: Int = 8
-		encoder.setComputePipelineState(jacobianPipeline.B)
-		encoder.setBuffer(Σ.μ, offset: 0, at: 0)
-		encoder.setBuffer(Σ.σ, offset: 0, at: 1)
-		encoder.setBuffer(b.μ, offset: 0, at: 2)
-		encoder.setBuffer(b.σ, offset: 0, at: 3)
-		encoder.setBuffer(y, offset: 0, at: 4)
-		encoder.setBuffer(g.μ, offset: 0, at: 5)
-		encoder.setBuffer(g.σ, offset: 0, at: 6)
-		encoder.setBuffer(j.μ, offset: 0, at: 7)
-		encoder.setBuffer(j.σ, offset: 0, at: 8)
-		encoder.setBytes([uint4(arrayLiteral: uint(count.rows), uint(count.cols), uint(count.rows), uint(block))], length: MemoryLayout<uint4>.size, at: 9)
-		encoder.setThreadgroupMemoryLength(block*block*MemoryLayout<float4x4>.stride, at: 0)
-		encoder.setThreadgroupMemoryLength(block*block*MemoryLayout<float4x4>.stride, at: 1)
-		encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/4/block+1, height: (count.cols-1)/4/block+1, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: block, height: block, depth: 1))
-		encoder.label = "Gauss.GradientB"
-		encoder.endEncoding()
-	}
-	public func jacobian(commandBuffer: MTLCommandBuffer, Σ: (μ: MTLBuffer, σ: MTLBuffer), c: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int)) {
-		assert( commandBuffer.device === jacobianPipeline.C.device )
-		assert( commandBuffer.device === Σ.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.μ.length )
-		assert( commandBuffer.device === Σ.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.σ.length )
-		assert( commandBuffer.device === c.μ.device && count.rows * MemoryLayout<Float>.size <= c.μ.length )
-		assert( commandBuffer.device === c.σ.device && count.rows * MemoryLayout<Float>.size <= c.σ.length )
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		let threads: Int = jacobianPipeline.C.threadExecutionWidth
-		encoder.setComputePipelineState(jacobianPipeline.C)
-		encoder.setBuffer(Σ.μ, offset: 0, at: 0)
-		encoder.setBuffer(Σ.σ, offset: 0, at: 1)
-		encoder.setBuffer(c.μ, offset: 0, at: 2)
-		encoder.setBuffer(c.σ, offset: 0, at: 3)
-		encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 4)
-		encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = "Gauss.GradientC"
-		encoder.endEncoding()
-	}
-	public func jacobian(commandBuffer: MTLCommandBuffer, Σ: (μ: MTLBuffer, σ: MTLBuffer), d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int)) {
-		assert( commandBuffer.device === jacobianPipeline.D.device )
-		assert( commandBuffer.device === Σ.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.μ.length )
-		assert( commandBuffer.device === Σ.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Σ.σ.length )
-		assert( commandBuffer.device === d.device && count.rows * MemoryLayout<Float>.size <= d.length )
-		assert( commandBuffer.device === φ.μ.device && count.rows * MemoryLayout<Float>.size <= φ.μ.length )
-		assert( commandBuffer.device === φ.σ.device && count.rows * MemoryLayout<Float>.size <= φ.σ.length )
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		let threads: Int = jacobianPipeline.D.threadExecutionWidth
-		encoder.setComputePipelineState(jacobianPipeline.D)
-		encoder.setBuffer(Σ.μ, offset: 0, at: 0)
-		encoder.setBuffer(Σ.σ, offset: 0, at: 1)
-		encoder.setBuffer(d, offset: 0, at: 2)
-		encoder.setBuffer(φ.μ, offset: 0, at: 3)
-		encoder.setBuffer(φ.σ, offset: 0, at: 4)
-		encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 5)
-		encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = "Gauss.GradientD"
-		encoder.endEncoding()
-	}
-	public func jacobian(commandBuffer: MTLCommandBuffer, Σ: (μ: MTLBuffer, σ: MTLBuffer), d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int)) {
-		assert( commandBuffer.device === jacobianPipeline.E.device )
-		assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
-		assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
-		assert( commandBuffer.device === Σ.μ.device && count.rows * MemoryLayout<Float>.size <= j.μ.length )
-		assert( commandBuffer.device === Σ.μ.device && count.rows * MemoryLayout<Float>.size <= j.μ.length )
-		assert( commandBuffer.device === Σ.σ.device && count.rows * MemoryLayout<Float>.size <= j.σ.length )
-		assert( commandBuffer.device === φ.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
-		assert( commandBuffer.device === φ.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		let threads: Int = jacobianPipeline.E.threadExecutionWidth
-		encoder.setComputePipelineState(jacobianPipeline.E)
-		encoder.setBuffer(Σ.μ, offset: 0, at: 0)
-		encoder.setBuffer(Σ.σ, offset: 0, at: 1)
-		encoder.setBuffer(φ.μ, offset: 0, at: 2)
-		encoder.setBuffer(φ.σ, offset: 0, at: 3)
-		encoder.setBuffer(d, offset: 0, at: 4)
-		encoder.setBuffer(j.μ, offset: 0, at: 5)
-		encoder.setBuffer(j.σ, offset: 0, at: 6)
-		encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 7)
-		encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = "Gauss.GradientE"
-		encoder.endEncoding()
-	}
-	public func jacobian(commandBuffer: MTLCommandBuffer, j: (μ: MTLBuffer, σ: MTLBuffer), Σ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int)) {
-		assert( commandBuffer.device === jacobianPipeline.F.device )
-		assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
-		assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
-		assert( commandBuffer.device === Σ.μ.device && count.rows * MemoryLayout<Float>.size <= j.μ.length )
-		assert( commandBuffer.device === Σ.σ.device && count.rows * MemoryLayout<Float>.size <= j.σ.length )
-		assert( commandBuffer.device === φ.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
-		assert( commandBuffer.device === φ.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		let threads: Int = jacobianPipeline.F.threadExecutionWidth
-		encoder.setComputePipelineState(jacobianPipeline.F)
-		encoder.setBuffer(j.μ, offset: 0, at: 0)
-		encoder.setBuffer(j.σ, offset: 0, at: 1)
-		encoder.setBuffer(Σ.μ, offset: 0, at: 2)
-		encoder.setBuffer(Σ.σ, offset: 0, at: 3)
-		encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 4)
-		encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = "Gauss.GradientF"
-		encoder.endEncoding()
-	}
-}
-extension GaussDistributor {
-	public func derivate(commandBuffer: MTLCommandBuffer, Δ: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer), Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int)) {
-		assert( commandBuffer.device === derivatorPipeline.GV.device )
-		assert( commandBuffer.device === Δ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Δ.length )
-		assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
-		assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
-		assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.size <= Δφ.μ.length )
-		assert( commandBuffer.device === Δφ.σ.device && count.rows * MemoryLayout<Float>.size <= Δφ.σ.length )
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		let threads: Int = derivatorPipeline.GV.threadExecutionWidth
-		encoder.setComputePipelineState(derivatorPipeline.GV)
-		encoder.setBuffer(Δ, offset: 0, at: 0)
-		encoder.setBuffer(j.μ, offset: 0, at: 1)
-		encoder.setBuffer(j.σ, offset: 0, at: 2)
-		encoder.setBuffer(Δφ.μ, offset: 0, at: 3)
-		encoder.setBuffer(Δφ.σ, offset: 0, at: 4)
-		encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 5)
-		encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = "Gauss.DerivateV"
-		encoder.endEncoding()
-	}
-	public func derivate(commandBuffer: MTLCommandBuffer, Δ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer), Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int)) {
-		assert( commandBuffer.device === derivatorPipeline.GP.device )
-		assert( commandBuffer.device === Δ.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Δ.μ.length )
-		assert( commandBuffer.device === Δ.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= Δ.σ.length )
-		assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
-		assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
-		assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.size <= Δφ.μ.length )
-		assert( commandBuffer.device === Δφ.σ.device && count.rows * MemoryLayout<Float>.size <= Δφ.σ.length )
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		let threads: Int = derivatorPipeline.GP.threadExecutionWidth
-		encoder.setComputePipelineState(derivatorPipeline.GP)
-		encoder.setBuffer(Δ.μ, offset: 0, at: 0)
-		encoder.setBuffer(Δ.σ, offset: 0, at: 1)
-		encoder.setBuffer(j.μ, offset: 0, at: 2)
-		encoder.setBuffer(j.σ, offset: 0, at: 3)
-		encoder.setBuffer(Δφ.μ, offset: 0, at: 4)
-		encoder.setBuffer(Δφ.σ, offset: 0, at: 5)
-		encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 6)
-		encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = "Gauss.DerivateP"
-		encoder.endEncoding()
 	}
 }
 extension GaussDistributor: Distributor {

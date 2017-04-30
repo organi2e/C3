@@ -7,7 +7,7 @@
 //
 
 import Metal
-struct CollectorPipeline {
+struct CollectPipeline {
 	let W: MTLComputePipelineState
 	let C: MTLComputePipelineState
 	let D: MTLComputePipelineState
@@ -19,7 +19,7 @@ public protocol Collector {
 	func collect(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer))
 	var order: MTLCommandBuffer { get }
 }
-struct CorrectorPipeline {
+struct CorrectPipeline {
 	let J: MTLComputePipelineState
 	let G: MTLComputePipelineState
 	let N: MTLComputePipelineState
@@ -33,16 +33,7 @@ public protocol Corrector {
 	var Δ: MTLBuffer { get }
 	var order: MTLCommandBuffer { get }
 }
-public protocol Jacobian {
-	func jacobian(x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer))
-	func jacobian(a: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer)
-	func jacobian(b: (μ: MTLBuffer, σ: MTLBuffer), y: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer))
-	func jacobian(c: (μ: MTLBuffer, σ: MTLBuffer))
-	func jacobian(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer))
-	func jacobian(φ: (μ: MTLBuffer, σ: MTLBuffer), d: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer))
-	var order: MTLCommandBuffer { get }
-}
-struct JacobianPipeline {
+struct ConnectPipeline {
 	let X: MTLComputePipelineState
 	let A: MTLComputePipelineState
 	let B: MTLComputePipelineState
@@ -51,31 +42,42 @@ struct JacobianPipeline {
 	let E: MTLComputePipelineState
 	let F: MTLComputePipelineState
 }
-struct ActivatorPipeline {
-	let AP: MTLComputePipelineState
-	let AV: MTLComputePipelineState
-	let GP: MTLComputePipelineState
-	let GV: MTLComputePipelineState
+public protocol Connector {
+	func connect(x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer))
+	func connect(a: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer)
+	func connect(b: (μ: MTLBuffer, σ: MTLBuffer), y: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer))
+	func connect(c: (μ: MTLBuffer, σ: MTLBuffer))
+	func connect(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer))
+	func connect(φ: (μ: MTLBuffer, σ: MTLBuffer), d: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer))
+	var order: MTLCommandBuffer { get }
 }
-struct DerivatorPipeline {
+struct ActivatePipeline {
+	let P: MTLComputePipelineState
+	let V: MTLComputePipelineState
+}
+struct DerivatePipeline {
+	let P: MTLComputePipelineState
+	let V: MTLComputePipelineState
+}
+struct GradientPipeline {
 	let JP: MTLComputePipelineState
 	let JV: MTLComputePipelineState
 	let GP: MTLComputePipelineState
 	let GV: MTLComputePipelineState
 }
 public protocol Distributor {
-	func activate(commandBuffer: MTLCommandBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector)->Void)
-	func activate(commandBuffer: MTLCommandBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector)->Void)
-	func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector)->Void)
-	func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector)->Void)
+	func activate(commandBuffer: MTLCommandBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector)->Void)
+	func activate(commandBuffer: MTLCommandBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector)->Void)
+	func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector)->Void)
+	func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector)->Void)
 	
-	func derivate(commandBuffer: MTLCommandBuffer, Δx: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
+	func gradient(commandBuffer: MTLCommandBuffer, Δx: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
 	              Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
-	              count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void)
-	func derivate(commandBuffer: MTLCommandBuffer, Δv: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
+	              count: (rows: Int, cols: Int), connect: (Connector)->Void)
+	func gradient(commandBuffer: MTLCommandBuffer, Δv: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
 	              Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
-	              count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void)
-	func derivate(commandBuffer: MTLCommandBuffer, Δθ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer),
+	              count: (rows: Int, cols: Int), connect: (Connector)->Void)
+	func gradient(commandBuffer: MTLCommandBuffer, Δθ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer),
 	              Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
-	              count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void)
+	              count: (rows: Int, cols: Int), connect: (Connector)->Void)
 }

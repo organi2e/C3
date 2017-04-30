@@ -57,48 +57,51 @@ template<typename T> T erfinv(T const x) {
 	return x * y;
 }
 /*
-template<typename T> T erfinv(T const x) {
+ template<typename T> T erfinv(T const x) {
 	T const z = - log ( 1 - x * x );
 	if ( z < 5.0 ) {
-		T const w = z - 2.5;
-		return x * fma(w,
-					   fma(w,
-						   fma(w,
-							   fma(w,
-								   fma(w,
-									   fma(w,
-										   fma(w,
-											   fma(w, 2.81022636e-08,
-												   3.43273939e-07),
-											   -3.5233877e-06),
-										   -4.39150654e-06),
-									   0.00021858087),
-								   -0.00125372503),
-							   -0.00417768164),
-						   0.246640727),
-					   1.50140941);
+ T const w = z - 2.5;
+ return x * fma(w,
+ fma(w,
+ fma(w,
+ fma(w,
+ fma(w,
+ fma(w,
+ fma(w,
+ fma(w, 2.81022636e-08,
+ 3.43273939e-07),
+ -3.5233877e-06),
+ -4.39150654e-06),
+ 0.00021858087),
+ -0.00125372503),
+ -0.00417768164),
+ 0.246640727),
+ 1.50140941);
 	}
 	else {
-		T const w = sqrt(z) - 3.0;
-		return x * fma(w,
-					   fma(w,
-						   fma(w,
-							   fma(w,
-								   fma(w,
-									   fma(w,
-										   fma(w,
-											   fma(w, -0.000200214257,
-												   0.000100950558),
-											   0.00134934322),
-										   -0.00367342844),
-									   0.00573950773),
-								   -0.0076224613),
-							   0.00943887047),
-						   1.00167406),
-					   2.83297682);
+ T const w = sqrt(z) - 3.0;
+ return x * fma(w,
+ fma(w,
+ fma(w,
+ fma(w,
+ fma(w,
+ fma(w,
+ fma(w,
+ fma(w, -0.000200214257,
+ 0.000100950558),
+ 0.00134934322),
+ -0.00367342844),
+ 0.00573950773),
+ -0.0076224613),
+ 0.00943887047),
+ 1.00167406),
+ 2.83297682);
 	}
+ }
+ */
+template<typename T> T const normcdf(T const x) {
+	return fma(erf(M_SQRT1_2_F*x), 32767.0/65536.0, 0.5);
 }
-*/
 
 template<typename T> T const boxmuller(T const x) { return sqrt(-2*log(-x.xy)).xxyy * float2(cospi(2*x.z), sinpi(2*x.w)).xyxy; }
 template<>half4 const boxmuller(half4 const);
@@ -362,8 +365,7 @@ kernel void GaussCorrectP(device float * const dx [[ buffer(0) ]],
 						  uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const p = fma(erf(M_SQRT1_2_F*u[idx]/s[idx]), 32767.0/65536.0, 0.5);
-		dx[idx] += ( p - d[idx] ) / p / ( 1 - p );
+		dx[idx] += normcdf(u[idx]/s[idx]) - d[idx];
 	}
 }
 kernel void GaussCorrectV(device float * const dx [[ buffer(0) ]],
@@ -378,13 +380,13 @@ kernel void GaussCorrectV(device float * const dx [[ buffer(0) ]],
 	}
 }
 /*----------------------------------------------------------------*/
-kernel void GaussJacobianX(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const x [[ buffer(2) ]],
-						   device float const * const u [[ buffer(3) ]],
-						   device float const * const s [[ buffer(4) ]],
-						   constant uint2 const & N [[ buffer(5) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+kernel void GaussConnectX(device float * const ju [[ buffer(0) ]],
+						  device float * const js [[ buffer(1) ]],
+						  device float const * const x [[ buffer(2) ]],
+						  device float const * const u [[ buffer(3) ]],
+						  device float const * const s [[ buffer(4) ]],
+						  constant uint2 const & N [[ buffer(5) ]],
+						  uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -394,13 +396,13 @@ kernel void GaussJacobianX(device float * const ju [[ buffer(0) ]],
 		js[idx] += sq(s[idx]) * w;
 	}
 }
-kernel void GaussJacobianA(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const u [[ buffer(2) ]],
-						   device float const * const s [[ buffer(3) ]],
-						   device float const * const x [[ buffer(4) ]],
-						   constant uint2 const & N [[ buffer(5) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+kernel void GaussConnectA(device float * const ju [[ buffer(0) ]],
+						  device float * const js [[ buffer(1) ]],
+						  device float const * const u [[ buffer(2) ]],
+						  device float const * const s [[ buffer(3) ]],
+						  device float const * const x [[ buffer(4) ]],
+						  constant uint2 const & N [[ buffer(5) ]],
+						  uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -410,20 +412,20 @@ kernel void GaussJacobianA(device float * const ju [[ buffer(0) ]],
 		js[idx] += sq(w) * s[idx];
 	}
 }
-kernel void GaussJacobianB(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const Bu [[ buffer(2) ]],
-						   device float const * const Bs [[ buffer(3) ]],
-						   device float const * const Y [[ buffer(4) ]],
-						   device float const * const Ju [[ buffer(5) ]],
-						   device float const * const Js [[ buffer(6) ]],
-						   device float const * const Pu [[ buffer(7) ]],
-						   device float const * const Ps [[ buffer(8) ]],
-						   constant uint4 const & mnkl [[ buffer(9) ]],
-						   threadgroup float4x4 * const sharedB [[ threadgroup(0) ]],
-						   threadgroup float4x4 * const sharedP [[ threadgroup(1) ]],
-						   uint2 const t [[ thread_position_in_threadgroup ]],
-						   uint2 const g [[ threadgroup_position_in_grid ]]) {
+kernel void GaussConnectB(device float * const ju [[ buffer(0) ]],
+						  device float * const js [[ buffer(1) ]],
+						  device float const * const Bu [[ buffer(2) ]],
+						  device float const * const Bs [[ buffer(3) ]],
+						  device float const * const Y [[ buffer(4) ]],
+						  device float const * const Ju [[ buffer(5) ]],
+						  device float const * const Js [[ buffer(6) ]],
+						  device float const * const Pu [[ buffer(7) ]],
+						  device float const * const Ps [[ buffer(8) ]],
+						  constant uint4 const & mnkl [[ buffer(9) ]],
+						  threadgroup float4x4 * const sharedB [[ threadgroup(0) ]],
+						  threadgroup float4x4 * const sharedP [[ threadgroup(1) ]],
+						  uint2 const t [[ thread_position_in_threadgroup ]],
+						  uint2 const g [[ threadgroup_position_in_grid ]]) {
 	int const M = mnkl.x;
 	int const N = mnkl.y;
 	int const K = mnkl.z;
@@ -492,12 +494,12 @@ kernel void GaussJacobianB(device float * const ju [[ buffer(0) ]],
 		}
 	}
 }
-kernel void GaussJacobianC(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const u [[ buffer(2) ]],
-						   device float const * const s [[ buffer(3) ]],
-						   constant uint2 const & N [[ buffer(4) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+kernel void GaussConnectC(device float * const ju [[ buffer(0) ]],
+						  device float * const js [[ buffer(1) ]],
+						  device float const * const u [[ buffer(2) ]],
+						  device float const * const s [[ buffer(3) ]],
+						  constant uint2 const & N [[ buffer(4) ]],
+						  uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -506,13 +508,13 @@ kernel void GaussJacobianC(device float * const ju [[ buffer(0) ]],
 		js[idx] += s[rows];
 	}
 }
-kernel void GaussJacobianD(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const d [[ buffer(2) ]],
-						   device float const * const u [[ buffer(3) ]],
-						   device float const * const s [[ buffer(4) ]],
-						   constant uint2 const & N [[ buffer(5) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+kernel void GaussConnectD(device float * const ju [[ buffer(0) ]],
+						  device float * const js [[ buffer(1) ]],
+						  device float const * const d [[ buffer(2) ]],
+						  device float const * const u [[ buffer(3) ]],
+						  device float const * const s [[ buffer(4) ]],
+						  constant uint2 const & N [[ buffer(5) ]],
+						  uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -521,15 +523,15 @@ kernel void GaussJacobianD(device float * const ju [[ buffer(0) ]],
 		js[idx] += sq(s[rows]) * d[rows];
 	}
 }
-kernel void GaussJacobianE(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const u [[ buffer(2) ]],
-						   device float const * const s [[ buffer(3) ]],
-						   device float const * const d [[ buffer(4) ]],
-						   device float const * const pu [[ buffer(5) ]],
-						   device float const * const ps [[ buffer(6) ]],
-						   constant uint2 const & N [[ buffer(7) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+kernel void GaussConnectE(device float * const ju [[ buffer(0) ]],
+						  device float * const js [[ buffer(1) ]],
+						  device float const * const u [[ buffer(2) ]],
+						  device float const * const s [[ buffer(3) ]],
+						  device float const * const d [[ buffer(4) ]],
+						  device float const * const pu [[ buffer(5) ]],
+						  device float const * const ps [[ buffer(6) ]],
+						  constant uint2 const & N [[ buffer(7) ]],
+						  uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -539,12 +541,12 @@ kernel void GaussJacobianE(device float * const ju [[ buffer(0) ]],
 		js[idx] += sq(r) * s[rows] * ps[idx];
 	}
 }
-kernel void GaussJacobianF(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const u [[ buffer(2) ]],
-						   device float const * const s [[ buffer(3) ]],
-						   constant uint2 const & N [[ buffer(4) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+kernel void GaussConnectF(device float * const ju [[ buffer(0) ]],
+						  device float * const js [[ buffer(1) ]],
+						  device float const * const u [[ buffer(2) ]],
+						  device float const * const s [[ buffer(3) ]],
+						  constant uint2 const & N [[ buffer(4) ]],
+						  uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -568,8 +570,8 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float const r = 1 / s[k];
 		float const x = u[k] * r;
-		float const y = step(float(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
-//		float const y = fma(erf(M_SQRT1_2_F * x), 32767.0/65536.0, 0.5);
+		//		float const y = step(float(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
+		float const y = normcdf(x);
 		float const ju = M_SQRT1_2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
 		seq ^= seq << xorshift16.x;
@@ -591,7 +593,8 @@ kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const g = du[idx];
+		float const p = normcdf(u[idx]/s[idx]);
+		float const g = du[idx] / p / ( 1 - p );
 		du[idx] = g * gu[idx];
 		ds[idx] = g * gs[idx];
 	}
@@ -632,14 +635,14 @@ kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const e = du[idx];
+		float const e = du[idx] * gu[idx];
 		float const v = s[idx];
 		du[idx] = e;
 		ds[idx] = v - 0.5 * e * e / v;
 	}
 }
 /*----------------------------------------------------------------*/
-kernel void GaussDeltaJV(device float * const d [[ buffer(0) ]],
+kernel void GaussGradientJV(device float * const d [[ buffer(0) ]],
 						 device float const * const ju [[ buffer(1) ]],
 						 device float const * const js [[ buffer(2) ]],
 						 device float const * const gu [[ buffer(3) ]],
@@ -668,10 +671,10 @@ kernel void GaussDeltaJV(device float * const d [[ buffer(0) ]],
 						  select(0, *(device float4*)(ju+idx.y), rows_mask && cols_mask.y),
 						  select(0, *(device float4*)(ju+idx.z), rows_mask && cols_mask.z),
 						  select(0, *(device float4*)(ju+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gu+k), cols_mask) +
-				 float4x4(select(0, *(device float4*)(js+idx.x), rows_mask && cols_mask.x),
-						  select(0, *(device float4*)(js+idx.y), rows_mask && cols_mask.y),
-						  select(0, *(device float4*)(js+idx.z), rows_mask && cols_mask.z),
-						  select(0, *(device float4*)(js+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gs+k), cols_mask);
+		float4x4(select(0, *(device float4*)(js+idx.x), rows_mask && cols_mask.x),
+				 select(0, *(device float4*)(js+idx.y), rows_mask && cols_mask.y),
+				 select(0, *(device float4*)(js+idx.z), rows_mask && cols_mask.z),
+				 select(0, *(device float4*)(js+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gs+k), cols_mask);
 	}
 	
 	int const a = t;
@@ -693,7 +696,7 @@ kernel void GaussDeltaJV(device float * const d [[ buffer(0) ]],
 		if ( rows_mask.w ) d[row.w] += accum->w;
 	}
 }
-kernel void GaussDeltaJP(device float * const du [[ buffer(0) ]],
+kernel void GaussGradientJP(device float * const du [[ buffer(0) ]],
 						 device float * const ds [[ buffer(1) ]],
 						 device float const * const ju [[ buffer(2) ]],
 						 device float const * const js [[ buffer(3) ]],
@@ -749,7 +752,7 @@ kernel void GaussDeltaJP(device float * const du [[ buffer(0) ]],
 		if ( rows_mask.w ) du[row.w] += (*accum)[0].w, ds[row.w] += (*accum)[1].w;
 	}
 }
-kernel void GaussDeltaGP(device float * const du [[ buffer(0) ]],
+kernel void GaussGradientGP(device float * const du [[ buffer(0) ]],
 						 device float * const ds [[ buffer(1) ]],
 						 device float const * const ju [[ buffer(2) ]],
 						 device float const * const js [[ buffer(3) ]],
@@ -766,7 +769,7 @@ kernel void GaussDeltaGP(device float * const du [[ buffer(0) ]],
 		ds[idx] += d.y;
 	}
 }
-kernel void GaussDeltaGV(device float * const d [[ buffer(0) ]],
+kernel void GaussGradientGV(device float * const d [[ buffer(0) ]],
 						 device float const * const ju [[ buffer(1) ]],
 						 device float const * const js [[ buffer(2) ]],
 						 device float const * const gu [[ buffer(3) ]],
