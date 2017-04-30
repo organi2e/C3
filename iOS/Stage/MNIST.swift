@@ -12,7 +12,7 @@ import Educator
 
 private let prefix: String = "GaussAE-"
 //private let prefix: String = "DegenerateAE-"
-private let suffix: String = "v0.997"
+private let suffix: String = "v0.998"
 
 internal class MNIST {
 	let bar: UIProgressView?

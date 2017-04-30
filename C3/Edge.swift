@@ -34,19 +34,19 @@ extension Edge {
 		let φ: (μ: Buffer, σ: Buffer) = output.φ(0)
 		if !fix.contains(output) {
 			change(commandBuffer: corrector.order) {
-				output.distributor.derivate(commandBuffer: corrector.order, Δθ: $0, j: ja(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
+				output.distributor.gradient(commandBuffer: corrector.order, Δθ: $0, j: ja(0), Δφ: Δφ, φ: φ, count: count) { connector in
 					access {
-						jacobian.jacobian(a: $0, x: input.χ(0))
+						connector.connect(a: $0, x: input.χ(0))
 					}
-					output.jacobian(jacobian: jacobian, feed: ja)
+					output.connect(connector: connector, feed: ja)
 				}
 			}
 		}
-		output.distributor.derivate(commandBuffer: corrector.order, Δx: corrector.Δ, j: jx(0), Δφ: Δφ, φ: φ, count: count) { jacobian in
+		output.distributor.gradient(commandBuffer: corrector.order, Δx: corrector.Δ, j: jx(0), Δφ: Δφ, φ: φ, count: count) { connector in
 			access {
-				jacobian.jacobian(x: input.χ(0), a: $0)
+				connector.connect(x: input.χ(0), a: $0)
 			}
-			output.jacobian(jacobian: jacobian, feed: jx)
+			output.connect(connector: connector, feed: jx)
 		}
 	}
 }

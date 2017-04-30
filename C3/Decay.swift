@@ -31,20 +31,20 @@ extension Decay {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
 		if !fix.contains(cell) {
 			change(commandBuffer: commandBuffer) {
-				cell.distributor.derivate(commandBuffer: commandBuffer, Δv: $0.μ, j: j(0), Δφ: Δφ, φ: cell.φ(0), count: count) { jacobian in
+				cell.distributor.gradient(commandBuffer: commandBuffer, Δv: $0.μ, j: j(0), Δφ: Δφ, φ: cell.φ(0), count: count) { connector in
 					access {
-						jacobian.jacobian(d: $0.μ, φ: cell.φ(-1))
+						connector.connect(d: $0.μ, φ: cell.φ(-1))
 					}
-					cell.jacobian(jacobian: jacobian, feed: j)
+					cell.connect(connector: connector, feed: j)
 				}
 			}
 		}
 	}
 }
 extension Decay {
-	func jacobian(jacobian: Jacobian, feed: (Int) -> (μ: Buffer, σ: Buffer)) {
+	func connect(connector: Connector, feed: (Int) -> (μ: Buffer, σ: Buffer)) {
 		access {
-			jacobian.jacobian(φ: cell.φ(-1), d: $0.μ, j: feed(-1))
+			connector.connect(φ: cell.φ(-1), d: $0.μ, j: feed(-1))
 		}
 	}
 }
