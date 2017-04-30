@@ -12,8 +12,8 @@ import XCTest
 @testable import Distributor
 class GaussDistributorTests: XCTestCase {
 	func testAVφ() {
-		let width: Int = 16 + Int(arc4random_uniform(240))
-		let refer: Int = 16 + Int(arc4random_uniform(240))
+		let width: Int = 1024//16 + Int(arc4random_uniform(240))
+		let refer: Int = 1024//16 + Int(arc4random_uniform(240))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 		let queue: MTLCommandQueue = device.makeCommandQueue()
 		let w: (μ: MTLBuffer, σ: MTLBuffer) = (
@@ -50,6 +50,7 @@ class GaussDistributorTests: XCTestCase {
 		let χ: MTLBuffer = device.makeBuffer(length: width*MemoryLayout<Float>.size, options: [])
 		do {
 			let distributor: Distributor = try GaussDistributor(device: device)
+			measure {
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
 			distributor.activate(commandBuffer: commandBuffer, v: χ, g: g, φ: φ, count: width) {
 				$0.collect(w: w, x: x, count: refer)
@@ -57,7 +58,8 @@ class GaussDistributorTests: XCTestCase {
 				$0.collect(d: d, φ: p)
 			}
 			commandBuffer.commit()
-			
+			commandBuffer.waitUntilCompleted()
+		}
 			let la_φμ: la_object_t = [
 				la_matrix_product(la_wμ, la_x),
 				la_elementwise_product(la_d, la_pμ),
@@ -79,7 +81,6 @@ class GaussDistributorTests: XCTestCase {
 			XCTAssert( la_status(la_Δφμ) == 0 )
 			XCTAssert( la_status(la_Δφv) == 0 )
 			
-			commandBuffer.waitUntilCompleted()
 			
 			XCTAssert( 0 < la_norm_as_float(la_φμ, norm) )
 			XCTAssert( 0 < la_norm_as_float(la_φv, norm) )

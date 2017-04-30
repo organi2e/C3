@@ -34,29 +34,6 @@ template<typename T> T erf(T const z) {
 					z);
 }
 //refer: Mike Giles, ``Approximating the erfinv function, ''
-/*
-inline float erfinv(float const x) {
-	float const z = - log ( 1 - x * x );
-	float2 const w = float2(z, sqrt(z)) - float2(2.5, 3.0);
-	float2 const y = x * fma(w,
-							 fma(w,
-								 fma(w,
-									 fma(w,
-										 fma(w,
-											 fma(w,
-												 fma(w,
-													 fma(w, float2(2.81022636e-08,-0.000200214257),
-														 float2(3.43273939e-07,0.000100950558)),
-													 float2(-3.5233877e-06,0.00134934322)),
-												 float2(-4.39150654e-06,-0.00367342844)),
-											 float2(0.00021858087,0.00573950773)),
-										 float2(-0.00125372503,-0.0076224613)),
-									 float2(-0.00417768164,0.00943887047)),
-								 float2(0.246640727,1.00167406)),
-							 float2(1.50140941,2.83297682));
-	return z < 5.0 ? y.x : y.y;
-}
-*/
 template<typename T> T erfinv(T const x) {
 	T const z = - log ( 1 - x * x );
 	auto const s = z < 5.0;
@@ -72,11 +49,11 @@ template<typename T> T erfinv(T const x) {
 												select(T(0.000100950558), T(3.43273939e-07), s)),
 											select(T(0.00134934322), T(-3.5233877e-06), s)),
 										select(T(-0.00367342844), T(-4.39150654e-06), s)),
-									select(T(0.00573950773), T(0.00021858087), s)),
-								select(T(-0.0076224613), T(-0.00125372503), s)),
-							select(T(0.00943887047), T(-0.00417768164), s)),
-						select(T(1.00167406), T(0.246640727), s)),
-					select(T(2.83297682), T(1.50140941), s));
+									select(T(0.00573950773), T(0.00021858087e-00), s)),
+								select(T(-0.0076224613), T(-0.00125372503e-00), s)),
+							select(T(0.00943887047), T(-0.00417768164e-00), s)),
+						select(T(1.00167406), T(0.246640727e-00), s)),
+					select(T(2.83297682), T(1.50140941e-00), s));
 	return x * y;
 }
 /*
@@ -122,24 +99,21 @@ template<typename T> T erfinv(T const x) {
 	}
 }
 */
-template<typename T> inline T sq(const T x) {
-	return x * x;
-}
-inline float2x2 const sq(const float2x2 x) {
-	return float2x2(sq(x[0]),
-					sq(x[1]));
-}
-inline float3x3 const sq(const float3x3 x) {
-	return float3x3(sq(x[0]),
-					sq(x[1]),
-					sq(x[2]));
-}
-inline float4x4 const sq(const float4x4 x) {
-	return float4x4(sq(x[0]),
-					sq(x[1]),
-					sq(x[2]),
-					sq(x[3]));
-}
+
+template<typename T> T const boxmuller(T const x) { return sqrt(-2*log(-x.xy)).xxyy * float2(cospi(2*x.z), sinpi(2*x.w)).xyxy; }
+template<>half4 const boxmuller(half4 const);
+template<>float4 const boxmuller(float4 const);
+
+template<typename T> inline T sq(const T x) { return x * x; }
+
+inline half2x2 const sq(half2x2 const x) { return half2x2(sq(x[0]), sq(x[1])); }
+inline half3x3 const sq(half3x3 const x) { return half3x3(sq(x[0]), sq(x[1]), sq(x[2])); }
+inline half4x4 const sq(half4x4 const x) { return half4x4(sq(x[0]), sq(x[1]), sq(x[2]), sq(x[3])); }
+
+inline float2x2 const sq(float2x2 const x) { return float2x2(sq(x[0]), sq(x[1])); }
+inline float3x3 const sq(float3x3 const x) { return float3x3(sq(x[0]), sq(x[1]), sq(x[2])); }
+inline float4x4 const sq(float4x4 const x) { return float4x4(sq(x[0]), sq(x[1]), sq(x[2]), sq(x[3])); }
+
 constant int4 const M_INC = int4(0, 1, 2, 3);
 /*----------------------------------------------------------------*/
 kernel void GaussCollectX(device float * const m [[ buffer(0) ]],
@@ -157,8 +131,6 @@ kernel void GaussCollectX(device float * const m [[ buffer(0) ]],
 	
 	float2x4 value = float2x4(0);
 	
-	float4 xx = 0.5;
-	float4 yy = erfinv(xx);
 	int4 const row = 4 * n + M_INC;
 	bool4 const rows_mask = row < size.x;
 	
@@ -198,11 +170,11 @@ kernel void GaussCollectX(device float * const m [[ buffer(0) ]],
 		}
 	}
 	
-	if ( !a ) {
-		if ( rows_mask.x ) m[row.x] += (*accum)[0].x, v[row.x] += (*accum)[1].x;
-		if ( rows_mask.y ) m[row.y] += (*accum)[0].y, v[row.y] += (*accum)[1].y;
-		if ( rows_mask.z ) m[row.z] += (*accum)[0].z, v[row.z] += (*accum)[1].z;
-		if ( rows_mask.w ) m[row.w] += (*accum)[0].w, v[row.w] += (*accum)[1].w;
+	if ( !a ) {//avoid over storing, note: alignment of float3 is 16-bytes
+		if ( rows_mask.x ) m [ row.x ] += (*accum)[0].x, v[row.x] += (*accum)[1].x;
+		if ( rows_mask.y ) m [ row.y ] += (*accum)[0].y, v[row.y] += (*accum)[1].y;
+		if ( rows_mask.z ) m [ row.z ] += (*accum)[0].z, v[row.z] += (*accum)[1].z;
+		if ( rows_mask.w ) m [ row.w ] += (*accum)[0].w, v[row.w] += (*accum)[1].w;
 	}
 }
 kernel void GaussCollectW(device float * const m [[ buffer(0) ]],
@@ -596,8 +568,8 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float const r = 1 / s[k];
 		float const x = u[k] * r;
-//		float const y = step(float(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
-		float const y = fma(erf(M_SQRT1_2_F * x), 32767.0/65536.0, 0.5);
+		float const y = step(float(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
+//		float const y = fma(erf(M_SQRT1_2_F * x), 32767.0/65536.0, 0.5);
 		float const ju = M_SQRT1_2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
 		seq ^= seq << xorshift16.x;
@@ -625,6 +597,7 @@ kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 	}
 }
 constant float M_1_INT16MAX_F = 1 / 32768.0;
+//constant float M_1_UINT16MAX_F = 1 / 65536.0;
 kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
 						   device float * const gu [[ buffer(1) ]],
 						   device float * const gs [[ buffer(2) ]],
@@ -760,7 +733,6 @@ kernel void GaussDeltaJP(device float * const du [[ buffer(0) ]],
 	int b = T;
 	
 	threadgroup float2x4 * accum = shared + a;
-	
 	*accum = value;
 	
 	while ( b >>= 1 ) {
