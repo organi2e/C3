@@ -9,6 +9,9 @@
 #include <metal_stdlib>
 using namespace metal;
 constant int4 const M_INC = int4(0, 1, 2, 3);
+template<typename T> T logistic(T const x) {
+	return fma(tanh(0.5*x), 32767.0/65536.0, 0.5);
+}
 /*----------------------------------------------------------------*/
 kernel void DegenerateCollectW(device float * const v [[ buffer(0) ]],
 							   device float const * const w [[ buffer(1) ]],
@@ -32,11 +35,10 @@ kernel void DegenerateCollectW(device float * const v [[ buffer(0) ]],
 		bool4 const cols_mask = col < size.y;
 		
 		int4 const idx = row * size.y + k;
-		value +=
-		select(0, *(device float4*)(x + k), cols_mask) * float4x4(select(0, *(device float4*)(w+idx.x), rows_mask.x && cols_mask),
-																  select(0, *(device float4*)(w+idx.y), rows_mask.y && cols_mask),
-																  select(0, *(device float4*)(w+idx.z), rows_mask.z && cols_mask),
-																  select(0, *(device float4*)(w+idx.w), rows_mask.w && cols_mask));
+		value += select(0, *(device float4*)(x + k), cols_mask) * float4x4(select(0, *(device float4*)(w+idx.x), rows_mask.x && cols_mask),
+																		   select(0, *(device float4*)(w+idx.y), rows_mask.y && cols_mask),
+																		   select(0, *(device float4*)(w+idx.z), rows_mask.z && cols_mask),
+																		   select(0, *(device float4*)(w+idx.w), rows_mask.w && cols_mask));
 	}
 	
 	int const a = t;
@@ -52,16 +54,11 @@ kernel void DegenerateCollectW(device float * const v [[ buffer(0) ]],
 		}
 	}
 	
-	if ( a ) {
-		
-	} else if ( rows_mask.w ) {
-		*(device float4*)(v+row.x) += accum->xyzw;
-	} else if ( rows_mask.z ) {
-		*(device float3*)(v+row.x) += accum->xyz;
-	} else if ( rows_mask.y ) {
-		*(device float2*)(v+row.x) += accum->xy;
-	} else if ( rows_mask.x ) {
-		*(device float *)(v+row.x) += accum->x;
+	if ( !a ) {
+		if ( rows_mask.x ) v [ row.x ] += accum->x;
+		if ( rows_mask.y ) v [ row.y ] += accum->y;
+		if ( rows_mask.z ) v [ row.z ] += accum->z;
+		if ( rows_mask.w ) v [ row.w ] += accum->w;
 	}
 }
 kernel void DegenerateCollectC(device float * const v [[ buffer(0) ]],
@@ -112,11 +109,11 @@ kernel void DegenerateCorrectJ(device float * const dx [[ buffer(0) ]],
 		
 		int4 const idx = col * size.x + row.x;
 		
-		value +=
-		float4x4(select(0, *(device float4*)(j+idx.x), rows_mask && cols_mask.x),
-				 select(0, *(device float4*)(j+idx.y), rows_mask && cols_mask.y),
-				 select(0, *(device float4*)(j+idx.z), rows_mask && cols_mask.z),
-				 select(0, *(device float4*)(j+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(g+k), cols_mask);
+		value += float4x4(select(0, *(device float4*)(j+idx.x), rows_mask && cols_mask.x),
+						  select(0, *(device float4*)(j+idx.y), rows_mask && cols_mask.y),
+						  select(0, *(device float4*)(j+idx.z), rows_mask && cols_mask.z),
+						  select(0, *(device float4*)(j+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(g+k), cols_mask);
+		
 	}
 	
 	int const a = t;
@@ -131,16 +128,11 @@ kernel void DegenerateCorrectJ(device float * const dx [[ buffer(0) ]],
 			*accum += accum[b];
 		}
 	}
-	if ( a ) {
-		
-	} else if ( rows_mask.w ) {
-		*(device float4*)(dx+row.x) += accum->xyzw;
-	} else if ( rows_mask.z ) {
-		*(device float3*)(dx+row.x) += accum->xyz;
-	} else if ( rows_mask.y ) {
-		*(device float2*)(dx+row.x) += accum->xy;
-	} else if ( rows_mask.x ) {
-		*(device float *)(dx+row.x) += accum->x;
+	if ( !a ) {
+		if ( rows_mask.x ) dx [ row.x ] += accum->x;
+		if ( rows_mask.y ) dx [ row.y ] += accum->y;
+		if ( rows_mask.z ) dx [ row.z ] += accum->z;
+		if ( rows_mask.w ) dx [ row.w ] += accum->w;
 	}
 }
 kernel void DegenerateCorrectG(device float * const dx [[ buffer(0) ]],
@@ -169,8 +161,7 @@ kernel void DegenerateCorrectP(device float * const dx [[ buffer(0) ]],
 							   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const p = fma(tanh(0.5*x[idx]), 32767.0/65536.0, 0.5);//Avoid flowing
-		dx[idx] += ( p - d[idx] ) / p / ( 1 - p );
+		dx[idx] += logistic(x[idx]) - d[idx];
 	}
 }
 kernel void DegenerateCorrectV(device float * const dx [[ buffer(0) ]],
@@ -184,11 +175,11 @@ kernel void DegenerateCorrectV(device float * const dx [[ buffer(0) ]],
 	}
 }
 /*----------------------------------------------------------------*/
-kernel void DegenerateJacobianX(device float * const j [[ buffer(0) ]],
-								device float const * const x [[ buffer(1) ]],
-								device float const * const w [[ buffer(2) ]],
-								constant uint2 const & N [[ buffer(3) ]],
-								uint2 const n [[ thread_position_in_grid ]]) {
+kernel void DegenerateConnectX(device float * const j [[ buffer(0) ]],
+							   device float const * const x [[ buffer(1) ]],
+							   device float const * const w [[ buffer(2) ]],
+							   constant uint2 const & N [[ buffer(3) ]],
+							   uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -196,11 +187,11 @@ kernel void DegenerateJacobianX(device float * const j [[ buffer(0) ]],
 		j[idx] += w[idx];
 	}
 }
-kernel void DegenerateJacobianA(device float * const j [[ buffer(0) ]],
-								device float const * const w [[ buffer(1) ]],
-								device float const * const x [[ buffer(2) ]],
-								constant uint2 const & N [[ buffer(3) ]],
-								uint2 const n [[ thread_position_in_grid ]]) {
+kernel void DegenerateConnectA(device float * const j [[ buffer(0) ]],
+							   device float const * const w [[ buffer(1) ]],
+							   device float const * const x [[ buffer(2) ]],
+							   constant uint2 const & N [[ buffer(3) ]],
+							   uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -208,16 +199,16 @@ kernel void DegenerateJacobianA(device float * const j [[ buffer(0) ]],
 		j[idx] += x[cols];
 	}
 }
-kernel void DegenerateJacobianB(device float * const j [[ buffer(0) ]],
-								device float const * const B [[ buffer(1) ]],
-								device float const * const Y [[ buffer(2) ]],
-								device float const * const J [[ buffer(3) ]],
-								device float const * const P [[ buffer(4) ]],
-								constant uint4 const & mnkl [[ buffer(5) ]],
-								threadgroup float4x4 * const sharedB [[ threadgroup(0) ]],
-								threadgroup float4x4 * const sharedP [[ threadgroup(1) ]],
-								uint2 const t [[ thread_position_in_threadgroup ]],
-								uint2 const g [[ threadgroup_position_in_grid ]]) {
+kernel void DegenerateConnectB(device float * const j [[ buffer(0) ]],
+							   device float const * const B [[ buffer(1) ]],
+							   device float const * const Y [[ buffer(2) ]],
+							   device float const * const J [[ buffer(3) ]],
+							   device float const * const P [[ buffer(4) ]],
+							   constant uint4 const & mnkl [[ buffer(5) ]],
+							   threadgroup float4x4 * const sharedB [[ threadgroup(0) ]],
+							   threadgroup float4x4 * const sharedP [[ threadgroup(1) ]],
+							   uint2 const t [[ thread_position_in_threadgroup ]],
+							   uint2 const g [[ threadgroup_position_in_grid ]]) {
 	int const M = mnkl.x;
 	int const N = mnkl.y;
 	int const K = mnkl.z;
@@ -254,10 +245,10 @@ kernel void DegenerateJacobianB(device float * const j [[ buffer(0) ]],
 		}
 	}
 }
-kernel void DegenerateJacobianC(device float * const j [[ buffer(0) ]],
-								device float const * const c [[ buffer(1) ]],
-								constant uint2 const & N [[ buffer(2) ]],
-								uint2 const n [[ thread_position_in_grid ]]) {
+kernel void DegenerateConnectC(device float * const j [[ buffer(0) ]],
+							   device float const * const c [[ buffer(1) ]],
+							   constant uint2 const & N [[ buffer(2) ]],
+							   uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -265,11 +256,11 @@ kernel void DegenerateJacobianC(device float * const j [[ buffer(0) ]],
 		j[idx] += 1;
 	}
 }
-kernel void DegenerateJacobianD(device float * const j [[ buffer(0) ]],
-								device float const * const d [[ buffer(1) ]],
-								device float const * const v [[ buffer(2) ]],
-								constant uint2 const & N [[ buffer(3) ]],
-								uint2 const n [[ thread_position_in_grid ]]) {
+kernel void DegenerateConnectD(device float * const j [[ buffer(0) ]],
+							   device float const * const d [[ buffer(1) ]],
+							   device float const * const v [[ buffer(2) ]],
+							   constant uint2 const & N [[ buffer(3) ]],
+							   uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -277,12 +268,12 @@ kernel void DegenerateJacobianD(device float * const j [[ buffer(0) ]],
 		j[idx] += v[rows];
 	}
 }
-kernel void DegenerateJacobianE(device float * const j [[ buffer(0) ]],
-								device float const * const v [[ buffer(1) ]],
-								device float const * const d [[ buffer(2) ]],
-								device float const * const p [[ buffer(3) ]],
-								constant uint2 const & N [[ buffer(4) ]],
-								uint2 const n [[ thread_position_in_grid ]]) {
+kernel void DegenerateConnectE(device float * const j [[ buffer(0) ]],
+							   device float const * const v [[ buffer(1) ]],
+							   device float const * const d [[ buffer(2) ]],
+							   device float const * const p [[ buffer(3) ]],
+							   constant uint2 const & N [[ buffer(4) ]],
+							   uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -290,10 +281,10 @@ kernel void DegenerateJacobianE(device float * const j [[ buffer(0) ]],
 		j[idx] += d[rows] * p[idx];
 	}
 }
-kernel void DegenerateJacobianF(device float * const j [[ buffer(0) ]],
-								device float const * const v [[ buffer(1) ]],
-								constant uint2 const & N [[ buffer(2) ]],
-								uint2 const n [[ thread_position_in_grid ]]) {
+kernel void DegenerateConnectF(device float * const j [[ buffer(0) ]],
+							   device float const * const v [[ buffer(1) ]],
+							   constant uint2 const & N [[ buffer(2) ]],
+							   uint2 const n [[ thread_position_in_grid ]]) {
 	
 }
 /*----------------------------------------------------------------*/
@@ -304,9 +295,8 @@ kernel void DegenerateActivateP(device float * const f [[ buffer(0) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const x = v[idx];
-		float const p = fma(tanh(0.5*x), 32767.0/65536.0, 0.5);//Avoid flowing
-		f[idx] = step(0, x);
+		float const p = logistic(v[idx]);
+		f[idx] = p;//step(0, x);
 		g[idx] = p * ( 1 - p );
 	}
 }
@@ -318,10 +308,8 @@ kernel void DegenerateDerivateP(device float * const d [[ buffer(0) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-//		float const x = v[idx];
-//		float const p = fma(tanh(0.5*x), 32767.0/65536.0, 0.5);
-//		d[idx] = sign(d[idx]);// / p / ( 1 - p );
-		d[idx] *= g[idx];
+		float const p = logistic(v[idx]);
+		d[idx] *= g[idx] / p / ( 1 - p );
 	}
 }
 kernel void DegenerateActivateV(device float * const f [[ buffer(0) ]],
@@ -346,7 +334,7 @@ kernel void DegenerateDerivateV(device float * const d [[ buffer(0) ]],
 	}
 }
 /*----------------------------------------------------------------*/
-kernel void DegenerateDeltaJ(device float * const d [[ buffer(0) ]],
+kernel void DegenerateGradientJ(device float * const d [[ buffer(0) ]],
 							 device float const * const j [[ buffer(1) ]],
 							 device float const * const g [[ buffer(2) ]],
 							 constant uint2 const & S [[ buffer(3) ]],
@@ -369,11 +357,11 @@ kernel void DegenerateDeltaJ(device float * const d [[ buffer(0) ]],
 		
 		int4 const idx = col * size.x + row.x;
 		
-		value +=
-		float4x4(select(0, *(device float4*)(j+idx.x), rows_mask && cols_mask.x),
-				 select(0, *(device float4*)(j+idx.y), rows_mask && cols_mask.y),
-				 select(0, *(device float4*)(j+idx.z), rows_mask && cols_mask.z),
-				 select(0, *(device float4*)(j+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(g+k), cols_mask);
+		value += float4x4(select(0, *(device float4*)(j+idx.x), rows_mask && cols_mask.x),
+						  select(0, *(device float4*)(j+idx.y), rows_mask && cols_mask.y),
+						  select(0, *(device float4*)(j+idx.z), rows_mask && cols_mask.z),
+						  select(0, *(device float4*)(j+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(g+k), cols_mask);
+		
 	}
 	
 	int const a = t;
@@ -388,19 +376,14 @@ kernel void DegenerateDeltaJ(device float * const d [[ buffer(0) ]],
 			*accum += accum[b];
 		}
 	}
-	if ( a ) {
-		
-	} else if ( rows_mask.w ) {
-		*(device float4*)(d+row.x) += accum->xyzw;
-	} else if ( rows_mask.z ) {
-		*(device float3*)(d+row.x) += accum->xyz;
-	} else if ( rows_mask.y ) {
-		*(device float2*)(d+row.x) += accum->xy;
-	} else if ( rows_mask.x ) {
-		*(device float *)(d+row.x) += accum->x;
+	if ( !a ) {
+		if ( rows_mask.x ) d[ row.x ] += accum->x;
+		if ( rows_mask.y ) d[ row.y ] += accum->y;
+		if ( rows_mask.z ) d[ row.z ] += accum->z;
+		if ( rows_mask.w ) d[ row.w ] += accum->w;
 	}
 }
-kernel void DegenerateDeltaG(device float * const d [[ buffer(0) ]],
+kernel void DegenerateGradientG(device float * const d [[ buffer(0) ]],
 							 device float const * const j [[ buffer(1) ]],
 							 device float const * const g [[ buffer(2) ]],
 							 constant uint2 const & N [[ buffer(3) ]],

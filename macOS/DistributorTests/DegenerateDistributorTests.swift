@@ -60,7 +60,7 @@ class DegenerateDistributorTests: XCTestCase {
 				la_matrix_product(la_w, la_x),
 				la_elementwise_product(la_d, la_p)
 			].reduce(la_c, la_sum)
-			let la_χ: la_object_t = la_matrix_from_float_buffer(la_φ.array.map{step($0, edge: 0.0)}, la_count_t(width), 1, 1, hint, attr)
+			let la_χ: la_object_t = la_matrix_from_float_buffer(la_φ.array.map(logistic), la_count_t(width), 1, 1, hint, attr)
 			
 			XCTAssert( la_status(la_φ) == 0 )
 			XCTAssert( la_status(la_χ) == 0 )
@@ -162,8 +162,8 @@ class DegenerateDistributorTests: XCTestCase {
 		}
 	}
 	func testDF() {
-		let width: Int = 16 + Int(arc4random_uniform(240))
-		let refer: Int = 16 + Int(arc4random_uniform(240))
+		let width: Int = 1024// + Int(arc4random_uniform(240))
+		let refer: Int = 1024// + Int(arc4random_uniform(240))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 		let queue: MTLCommandQueue = device.makeCommandQueue()
 		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
@@ -192,16 +192,26 @@ class DegenerateDistributorTests: XCTestCase {
 			distributor.activate(commandBuffer: commandBuffer, f: f, g: g, φ: φ, count: width) {
 				$0.collect(c: c)
 			}
-			distributor.activate(commandBuffer: commandBuffer, Δφ: Δφ, f: f, g: g, φ: φ, count: width) {
-				$0.correct(χ: χ, ϝ: ϝ)
+			distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ, f: f, g: g, φ: φ, count: width) {
+				$0.correct(φ: φ, f: ϝ)
 			}
 			commandBuffer.commit()
+			commandBuffer.waitUntilCompleted()
 			
-			let buf_p: Array<Float> = c.μ.buf.map { 1.0 / ( 1.0 + exp( -$0 ) ) }
+			let buf_p: Array<Float> = c.μ.buf.map(logistic)
+			let la_p: la_object_t = la_matrix_from_float_buffer(buf_p, la_count_t(width), 1, 1, hint, attr)
+			
+			XCTAssert( la_status(la_p) == 0 )
+			
 			let buf_g: Array<Float> = buf_p.map { $0 * ( 1.0 - $0 ) }
 			let la_g: la_object_t = la_matrix_from_float_buffer(buf_g, la_count_t(width), 1, 1, hint, attr)
 			
 			XCTAssert( la_status(la_g) == 0 )
+			
+			let buf_r: Array<Float> = buf_g.map(recip)
+			let la_r: la_object_t = la_matrix_from_float_buffer(buf_r, la_count_t(width), 1, 1, hint, attr)
+			
+			XCTAssert( la_status(la_r) == 0 )
 			
 			let la_Δg: la_object_t = la_difference(la_g, g.μ.matrix(rows: width, cols: 1))
 			
@@ -214,12 +224,12 @@ class DegenerateDistributorTests: XCTestCase {
 			XCTAssert( la_status(la_ϝ) == 0 )
 			
 			let la_Δ: la_object_t = la_matrix_from_float_buffer([
-				la_difference(la_χ, la_ϝ)
+				la_difference(la_p, la_ϝ)
 			].reduce(la_splat_from_float(0, attr), la_sum).array, la_count_t(width), 1, 1, hint, attr)
 			
 			XCTAssert( la_status(la_Δ) == 0 )
 			
-			let la_Δφ: la_object_t = la_matrix_product(la_g.diagonale, la_Δ)
+			let la_Δφ: la_object_t = la_matrix_product(la_elementwise_product(la_g, la_r).diagonale, la_Δ)
 			
 			XCTAssert( la_status(la_Δφ) == 0 )
 			
@@ -227,7 +237,6 @@ class DegenerateDistributorTests: XCTestCase {
 			
 			XCTAssert( la_status(la_ΔΔφ) == 0 )
 			
-			commandBuffer.waitUntilCompleted()
 			
 			XCTAssert( 0 == la_norm_as_float(g.σ.matrix(rows: width, cols: 1), norm) )
 			XCTAssert( 0 == la_norm_as_float(Δφ.σ.matrix(rows: width, cols: 1), norm) )
@@ -237,11 +246,14 @@ class DegenerateDistributorTests: XCTestCase {
 			
 			let rmseg: Float = la_norm_as_float(la_Δg, norm) * rsqrt(Float(width))
 			
-			XCTAssert( rmseg < 1e-6 )
+			XCTAssert( rmseg < 1e-4 )
+			print( la_norm_as_float(la_g, norm), la_norm_as_float(g.μ.matrix(rows: width, cols: 1), norm) )
 			
 			let rmseΔφ: Float = la_norm_as_float(la_ΔΔφ, norm) * rsqrt(Float(width))
 			
-			XCTAssert( rmseΔφ < 1e-6 )
+			XCTAssert( rmseΔφ < 1e-4 )
+			print( la_norm_as_float(la_Δφ, norm), la_norm_as_float(Δφ.μ.matrix(rows: width, cols: 1), norm) )
+			
 			
 		} catch {
 			XCTFail(String(describing: error))
@@ -278,7 +290,7 @@ class DegenerateDistributorTests: XCTestCase {
 			distributor.activate(commandBuffer: commandBuffer, v: v, g: g, φ: φ, count: width) {
 				$0.collect(c: c)
 			}
-			distributor.activate(commandBuffer: commandBuffer, Δφ: Δφ, v: v, g: g, φ: φ, count: width) {
+			distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ, v: v, g: g, φ: φ, count: width) {
 				$0.correct(χ: χ, ϝ: ϝ)
 			}
 			commandBuffer.commit()
@@ -365,9 +377,9 @@ class DegenerateDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try DegenerateDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.derivate(commandBuffer: commandBuffer, Δx: Δx, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
-				$0.jacobian(x: x, a: a)
-				$0.jacobian(φ: φ, d: d, j: p)
+			distributor.gradient(commandBuffer: commandBuffer, Δx: Δx, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
+				$0.connect(x: x, a: a)
+				$0.connect(φ: φ, d: d, j: p)
 			}
 			commandBuffer.commit()
 			
@@ -490,9 +502,9 @@ class DegenerateDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try DegenerateDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.derivate(commandBuffer: commandBuffer, Δθ: Δθ, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
-				$0.jacobian(a: a, x: x)
-				$0.jacobian(φ: φ, d: d, j: p)
+			distributor.gradient(commandBuffer: commandBuffer, Δθ: Δθ, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
+				$0.connect(a: a, x: x)
+				$0.connect(φ: φ, d: d, j: p)
 			}
 			commandBuffer.commit()
 			
@@ -619,9 +631,9 @@ class DegenerateDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try DegenerateDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.derivate(commandBuffer: commandBuffer, Δθ: Δθ, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
-				$0.jacobian(c: c)
-				$0.jacobian(φ: φ, d: d, j: p)
+			distributor.gradient(commandBuffer: commandBuffer, Δθ: Δθ, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
+				$0.connect(c: c)
+				$0.connect(φ: φ, d: d, j: p)
 			}
 			commandBuffer.commit()
 			
@@ -741,8 +753,8 @@ class DegenerateDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try DegenerateDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.derivate(commandBuffer: commandBuffer, Δv: Δv, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
-				$0.jacobian(d: d, φ: φ)
+			distributor.gradient(commandBuffer: commandBuffer, Δv: Δv, j: j, Δφ: Δφ, φ: φ, count: (rows: width, cols: refer)) {
+				$0.connect(d: d, φ: φ)
 				//$0.jacobian(φ: φ, d: d, j: p)
 			}
 			commandBuffer.commit()
@@ -883,4 +895,7 @@ private func uniform(count: Int, α: Float = -1, β: Float = 1) -> Array<Float> 
 	vDSP_vsmsa(array, 1, [(β-α)/Float(1<<16)/Float(1<<16)], [α], UnsafeMutablePointer<Float>(mutating: array), 1, vDSP_Length(count))
 	
 	return array
+}
+private func logistic(x: Float) -> Float {
+	return 32767.0 / 65536.0 * tanh(0.5 * x) + 0.5
 }

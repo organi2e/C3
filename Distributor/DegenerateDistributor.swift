@@ -11,47 +11,50 @@ import Metal
 import simd
 
 public class DegenerateDistributor {
-	let collectorPipeline: CollectorPipeline
-	let correctorPipeline: CorrectorPipeline
-	let activatorPipeline: ActivatorPipeline
-	let derivatorPipeline: DerivatorPipeline
-	let jacobianPipeline: JacobianPipeline
+	let collectPipeline: CollectPipeline
+	let correctPipeline: CorrectPipeline
+	let connectPipeline: ConnectPipeline
+	let activatePipeline: ActivatePipeline
+	let derivatePipeline: DerivatePipeline
+	let gradientPipeline: GradientPipeline
 	public init(device: MTLDevice) throws {
 		let bundle: Bundle = Bundle(for: DegenerateDistributor.self)
 		let library: MTLLibrary = try device.makeDefaultLibrary(bundle: bundle)
-		collectorPipeline = CollectorPipeline(
+		collectPipeline = CollectPipeline(
 			W: try library.make(name: "DegenerateCollectW"),
 			C: try library.make(name: "DegenerateCollectC"),
 			D: try library.make(name: "DegenerateCollectD"),
 			F: try library.make(name: "DegenerateCollectF")
 		)
-		correctorPipeline = CorrectorPipeline(
+		correctPipeline = CorrectPipeline(
 			J: try library.make(name: "DegenerateCorrectJ"),
 			G: try library.make(name: "DegenerateCorrectG"),
 			N: try library.make(name: "DegenerateCorrectN"),
 			P: try library.make(name: "DegenerateCorrectP"),
 			V: try library.make(name: "DegenerateCorrectV")
 		)
-		jacobianPipeline = JacobianPipeline(
-			X: try library.make(name: "DegenerateJacobianX"),
-			A: try library.make(name: "DegenerateJacobianA"),
-			B: try library.make(name: "DegenerateJacobianB"),
-			C: try library.make(name: "DegenerateJacobianC"),
-			D: try library.make(name: "DegenerateJacobianD"),
-			E: try library.make(name: "DegenerateJacobianE"),
-			F: try library.make(name: "DegenerateJacobianF")
+		connectPipeline = ConnectPipeline(
+			X: try library.make(name: "DegenerateConnectX"),
+			A: try library.make(name: "DegenerateConnectA"),
+			B: try library.make(name: "DegenerateConnectB"),
+			C: try library.make(name: "DegenerateConnectC"),
+			D: try library.make(name: "DegenerateConnectD"),
+			E: try library.make(name: "DegenerateConnectE"),
+			F: try library.make(name: "DegenerateConnectF")
 		)
-		activatorPipeline = ActivatorPipeline(
-			AP: try library.make(name: "DegenerateActivateP"),
-			AV: try library.make(name: "DegenerateActivateV"),
-			GP: try library.make(name: "DegenerateDerivateP"),
-			GV: try library.make(name: "DegenerateDerivateV")
+		activatePipeline = ActivatePipeline(
+			P: try library.make(name: "DegenerateActivateP"),
+			V: try library.make(name: "DegenerateActivateV")
 		)
-		derivatorPipeline = DerivatorPipeline(
-			JP: try library.make(name: "DegenerateDeltaJ"),
-			JV: try library.make(name: "DegenerateDeltaJ"),
-			GP: try library.make(name: "DegenerateDeltaG"),
-			GV: try library.make(name: "DegenerateDeltaG")
+		derivatePipeline = DerivatePipeline(
+			P: try library.make(name: "DegenerateDerivateP"),
+			V: try library.make(name: "DegenerateDerivateV")
+		)
+		gradientPipeline = GradientPipeline(
+			JP: try library.make(name: "DegenerateGradientJ"),
+			JV: try library.make(name: "DegenerateGradientJ"),
+			GP: try library.make(name: "DegenerateGradientG"),
+			GV: try library.make(name: "DegenerateGradientG")
 		)
 	}
 
@@ -59,7 +62,7 @@ public class DegenerateDistributor {
 extension DegenerateDistributor {
 	private struct DegenerateCollector: Collector {
 		let order: MTLCommandBuffer
-		let state: CollectorPipeline
+		let state: CollectPipeline
 		let width: Int
 		let Σ: (μ: MTLBuffer, σ: MTLBuffer)
 		public func collect(w: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer, count: Int) {
@@ -116,30 +119,29 @@ extension DegenerateDistributor {
 			encoder.endEncoding()
 		}
 	}
-	private func collect(commandBuffer: MTLCommandBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector) -> Void) {
+	private func activate(commandBuffer: MTLCommandBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector) -> Void) {
 		do {
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
 			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.stride <= φ.σ.length )
 			let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.fill(buffer: φ.μ, range: NSRange(location: 0, length: count * MemoryLayout<Float>.stride), value: 0)
-			encoder.fill(buffer: φ.σ, range: NSRange(location: 0, length: count * MemoryLayout<Float>.stride), value: 0)
 			encoder.label = "Degenerate.CollectFlush(\(count))"
 			encoder.endEncoding()
 		}
-		collector(DegenerateCollector(order: commandBuffer, state: collectorPipeline, width: count, Σ: φ))
+		collect(DegenerateCollector(order: commandBuffer, state: collectPipeline, width: count, Σ: φ))
 	}
-	public func activate(commandBuffer: MTLCommandBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector) -> Void) {
+	public func activate(commandBuffer: MTLCommandBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector) -> Void) {
 		do {
-			collect(commandBuffer: commandBuffer, φ: φ, count: count, collector: collector)
+			activate(commandBuffer: commandBuffer, φ: φ, count: count, collect: collect)
 		}
 		do {
-			assert( commandBuffer.device === activatorPipeline.AP.device )
+			assert( commandBuffer.device === activatePipeline.P.device )
 			assert( commandBuffer.device === f.device && count * MemoryLayout<Float>.stride <= f.length )
 			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = activatorPipeline.AP.threadExecutionWidth
-			encoder.setComputePipelineState(activatorPipeline.AP)
+			let threads: Int = activatePipeline.P.threadExecutionWidth
+			encoder.setComputePipelineState(activatePipeline.P)
 			encoder.setBuffer(f, offset: 0, at: 0)
 			encoder.setBuffer(g.μ, offset: 0, at: 1)
 			encoder.setBuffer(φ.μ, offset: 0, at: 2)
@@ -150,18 +152,18 @@ extension DegenerateDistributor {
 			encoder.endEncoding()
 		}
 	}
-	public func activate(commandBuffer: MTLCommandBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collector: (Collector) -> Void) {
+	public func activate(commandBuffer: MTLCommandBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector) -> Void) {
 		do {
-			collect(commandBuffer: commandBuffer, φ: φ, count: count, collector: collector)
+			activate(commandBuffer: commandBuffer, φ: φ, count: count, collect: collect)
 		}
 		do {
-			assert( commandBuffer.device === activatorPipeline.AV.device )
+			assert( commandBuffer.device === activatePipeline.V.device )
 			assert( commandBuffer.device === v.device && count * MemoryLayout<Float>.stride <= v.length )
 			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = activatorPipeline.AV.threadExecutionWidth
-			encoder.setComputePipelineState(activatorPipeline.AV)
+			let threads: Int = activatePipeline.V.threadExecutionWidth
+			encoder.setComputePipelineState(activatePipeline.V)
 			encoder.setBuffer(v, offset: 0, at: 0)
 			encoder.setBuffer(g.μ, offset: 0, at: 1)
 			encoder.setBuffer(φ.μ, offset: 0, at: 2)
@@ -176,7 +178,7 @@ extension DegenerateDistributor {
 extension DegenerateDistributor {
 	private struct DegenerateCorrector: Corrector {
 		let order: MTLCommandBuffer
-		let state: CorrectorPipeline
+		let state: CorrectPipeline
 		let width: Int
 		let Δ: MTLBuffer
 		public func correct(χ: MTLBuffer, ϝ: MTLBuffer) {
@@ -210,65 +212,63 @@ extension DegenerateDistributor {
 			encoder.endEncoding()
 		}
 		public func correct(φ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer) {
-			assert( order.device === state.G.device )
+			assert( order.device === state.P.device )
 			assert( order.device === Δ.device && width * MemoryLayout<Float>.stride <= Δ.length )
 			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.stride <= φ.μ.length )
-			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.stride <= φ.σ.length )
 			assert( order.device === f.device && width * MemoryLayout<Float>.stride <= f.length )
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.G.threadExecutionWidth
 			encoder.setComputePipelineState(state.P)
 			encoder.setBuffer(Δ, offset: 0, at: 0)
 			encoder.setBuffer(φ.μ, offset: 0, at: 1)
-			encoder.setBuffer(φ.σ, offset: 0, at: 2)
-			encoder.setBuffer(f, offset: 0, at: 3)
-			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 4)
+			encoder.setBuffer(f, offset: 0, at: 2)
+			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.CorrectP(\(width))"
 			encoder.endEncoding()
 		}
 		public func correct(φ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer) {
-			assert( order.device === state.G.device )
+			assert( order.device === state.V.device )
 			assert( order.device === Δ.device && width * MemoryLayout<Float>.stride <= Δ.length )
 			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.stride <= φ.μ.length )
-			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.stride <= φ.σ.length )
 			assert( order.device === v.device && width * MemoryLayout<Float>.stride <= v.length )
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.G.threadExecutionWidth
-			encoder.setComputePipelineState(state.P)
+			encoder.setComputePipelineState(state.V)
 			encoder.setBuffer(Δ, offset: 0, at: 0)
 			encoder.setBuffer(φ.μ, offset: 0, at: 1)
-			encoder.setBuffer(φ.σ, offset: 0, at: 2)
-			encoder.setBuffer(v, offset: 0, at: 3)
-			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 4)
+			encoder.setBuffer(v, offset: 0, at: 2)
+			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.CorrectV(\(width))"
 			encoder.endEncoding()
 		}
 	}
-	private func correct(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector)->Void) {
+	private func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector)->Void) {
 		do {
 			assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
 			assert( commandBuffer.device === Δφ.σ.device && count * MemoryLayout<Float>.stride <= Δφ.σ.length )
 			let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.fill(buffer: Δφ.μ, range: NSRange(location: 0, length: count * MemoryLayout<Float>.stride), value: 0)
-			encoder.fill(buffer: Δφ.σ, range: NSRange(location: 0, length: count * MemoryLayout<Float>.stride), value: 0)
+			encoder.label = "Degenerate.CorrectFlush(\(count))"
 			encoder.endEncoding()
 		}
-		corrector(DegenerateCorrector(order: commandBuffer, state: correctorPipeline, width: count, Δ: Δφ.μ))
+		correct(DegenerateCorrector(order: commandBuffer, state: correctPipeline, width: count, Δ: Δφ.μ))
 	}
-	public func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector) -> Void) {
+	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector) -> Void) {
 		do {
-			correct(commandBuffer: commandBuffer, Δφ: Δφ, count: count, corrector: corrector)
+			derivate(commandBuffer: commandBuffer, Δφ: Δφ, count: count, correct: correct)
 		}
 		do {
-			assert( commandBuffer.device === activatorPipeline.GP.device )
+			assert( commandBuffer.device === derivatePipeline.P.device )
 			assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
 			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = activatorPipeline.GP.threadExecutionWidth
-			encoder.setComputePipelineState(activatorPipeline.GP)
+			let threads: Int = derivatePipeline.P.threadExecutionWidth
+			encoder.setComputePipelineState(derivatePipeline.P)
 			encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
 			encoder.setBuffer(f, offset: 0, at: 1)
 			encoder.setBuffer(g.μ, offset: 0, at: 2)
@@ -276,21 +276,22 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 4)
 			encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.Derivate(\(count))"
 			encoder.endEncoding()
 		}
 	}
-	public func activate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, corrector: (Corrector) -> Void) {
+	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector) -> Void) {
 		do {
-			correct(commandBuffer: commandBuffer, Δφ: Δφ, count: count, corrector: corrector)
+			derivate(commandBuffer: commandBuffer, Δφ: Δφ, count: count, correct: correct)
 		}
 		do {
-			assert( commandBuffer.device === activatorPipeline.GV.device )
+			assert( commandBuffer.device === derivatePipeline.V.device )
 			assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
 			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = activatorPipeline.GV.threadExecutionWidth
-			encoder.setComputePipelineState(activatorPipeline.GV)
+			let threads: Int = derivatePipeline.V.threadExecutionWidth
+			encoder.setComputePipelineState(derivatePipeline.V)
 			encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
 			encoder.setBuffer(v, offset: 0, at: 1)
 			encoder.setBuffer(g.μ, offset: 0, at: 2)
@@ -298,18 +299,19 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 4)
 			encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.Derivate(\(count))"
 			encoder.endEncoding()
 		}
 	}
 }
 extension DegenerateDistributor {
-	private struct DegenerateJacobian: Jacobian {
+	private struct DegenerateConnector: Connector {
 		let order: MTLCommandBuffer
-		let state: JacobianPipeline
+		let state: ConnectPipeline
 		let width: Int
 		let refer: Int
 		let Σ: (μ: MTLBuffer, σ: MTLBuffer)
-		func jacobian(x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer)) {
+		func connect(x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.X.device )
 			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.stride <= Σ.μ.length )
@@ -325,10 +327,11 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(width), uint(refer))], length: MemoryLayout<uint2>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: refer, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.ConnectX(\(width, refer))"
 			encoder.endEncoding()
 			
 		}
-		func jacobian(a: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer) {
+		func connect(a: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer) {
 			
 			assert( order.device === state.A.device )
 			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.stride <= Σ.μ.length )
@@ -344,13 +347,14 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(width), uint(refer))], length: MemoryLayout<uint2>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: refer, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.ConnectA(\(width, refer))"
 			encoder.endEncoding()
 			
 		}
-		func jacobian(b: (μ: MTLBuffer, σ: MTLBuffer), y: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer)) {
+		func connect(b: (μ: MTLBuffer, σ: MTLBuffer), y: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 		}
-		func jacobian(c: (μ: MTLBuffer, σ: MTLBuffer)) {
+		func connect(c: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.C.device )
 			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.stride <= Σ.μ.length )
@@ -364,10 +368,11 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(width), uint(refer))], length: MemoryLayout<uint2>.size, at: 2)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: refer, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.ConnectC(\(width, refer))"
 			encoder.endEncoding()
 			
 		}
-		func jacobian(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer)) {
+		func connect(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.D.device )
 			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.stride <= Σ.μ.length )
@@ -383,10 +388,11 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(width), uint(refer))], length: MemoryLayout<uint2>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: refer, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.ConnectD(\(width, refer))"
 			encoder.endEncoding()
 			
 		}
-		func jacobian(φ: (μ: MTLBuffer, σ: MTLBuffer), d: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer)) {
+		func connect(φ: (μ: MTLBuffer, σ: MTLBuffer), d: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.E.device )
 			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.stride <= Σ.μ.length )
@@ -404,35 +410,36 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(width), uint(refer))], length: MemoryLayout<uint2>.size, at: 4)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: refer, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.ConnectE(\(width, refer))"
 			encoder.endEncoding()
 			
 		}
 	}
-	private func derivate(commandBuffer: MTLCommandBuffer, j: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void) {
+	private func gradient(commandBuffer: MTLCommandBuffer, j: (μ: MTLBuffer, σ: MTLBuffer), count: (rows: Int, cols: Int), connect: (Connector)->Void) {
 		do {
 			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.μ.length )
 			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.σ.length )
 			let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.fill(buffer: j.μ, range: NSRange(location: 0, length: count.rows * count.cols * MemoryLayout<Float>.stride), value: 0)
-			encoder.fill(buffer: j.σ, range: NSRange(location: 0, length: count.rows * count.cols * MemoryLayout<Float>.stride), value: 0)
+			encoder.label = "Degenerate.GradientJP(\(count))"
 			encoder.endEncoding()
 		}
-		jacobian(DegenerateJacobian(order: commandBuffer, state: jacobianPipeline, width: count.rows, refer: count.cols, Σ: j))
+		connect(DegenerateConnector(order: commandBuffer, state: connectPipeline, width: count.rows, refer: count.cols, Σ: j))
 	}
-	public func derivate(commandBuffer: MTLCommandBuffer, Δx: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
+	public func gradient(commandBuffer: MTLCommandBuffer, Δx: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
 	                     Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
-	                     count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void) {
+	                     count: (rows: Int, cols: Int), connect: (Connector)->Void) {
 		do {
-			derivate(commandBuffer: commandBuffer, j: j, count: count, jacobian: jacobian)
+			gradient(commandBuffer: commandBuffer, j: j, count: count, connect: connect)
 		}
 		do {
-			assert( commandBuffer.device === derivatorPipeline.JV.device )
+			assert( commandBuffer.device === gradientPipeline.JV.device )
 			assert( commandBuffer.device === Δx.device && count.cols * MemoryLayout<Float>.stride <= Δx.length )
 			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.μ.length )
 			assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.stride <= Δφ.μ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = derivatorPipeline.JV.threadExecutionWidth
-			encoder.setComputePipelineState(derivatorPipeline.JV)
+			let threads: Int = gradientPipeline.JV.threadExecutionWidth
+			encoder.setComputePipelineState(gradientPipeline.JV)
 			encoder.setBuffer(Δx, offset: 0, at: 0)
 			encoder.setBuffer(j.μ, offset: 0, at: 1)
 			encoder.setBuffer(Δφ.μ, offset: 0, at: 2)
@@ -440,52 +447,55 @@ extension DegenerateDistributor {
 			encoder.setThreadgroupMemoryLength(threads*MemoryLayout<float4>.stride, at: 0)
 			encoder.dispatchThreadgroups(MTLSize(width: (count.cols+3)/4, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.GradientJV(\(count))"
 			encoder.endEncoding()
 		}
 	}
-	public func derivate(commandBuffer: MTLCommandBuffer, Δv: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
+	public func gradient(commandBuffer: MTLCommandBuffer, Δv: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
 	                     Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
-	                     count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void) {
+	                     count: (rows: Int, cols: Int), connect: (Connector)->Void) {
 		do {
-			derivate(commandBuffer: commandBuffer, j: j, count: count, jacobian: jacobian)
+			gradient(commandBuffer: commandBuffer, j: j, count: count, connect: connect)
 		}
 		do {
-			assert( commandBuffer.device === derivatorPipeline.GV.device )
+			assert( commandBuffer.device === gradientPipeline.GV.device )
 			assert( commandBuffer.device === Δv.device && count.rows * MemoryLayout<Float>.stride <= Δv.length )
 			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.μ.length )
 			assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.stride <= Δφ.μ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = derivatorPipeline.GV.threadExecutionWidth
-			encoder.setComputePipelineState(derivatorPipeline.GV)
+			let threads: Int = gradientPipeline.GV.threadExecutionWidth
+			encoder.setComputePipelineState(gradientPipeline.GV)
 			encoder.setBuffer(Δv, offset: 0, at: 0)
 			encoder.setBuffer(j.μ, offset: 0, at: 1)
 			encoder.setBuffer(Δφ.μ, offset: 0, at: 2)
 			encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.GradientGV(\(count))"
 			encoder.endEncoding()
 		}
 	}
-	public func derivate(commandBuffer: MTLCommandBuffer, Δθ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer),
+	public func gradient(commandBuffer: MTLCommandBuffer, Δθ: (μ: MTLBuffer, σ: MTLBuffer), j: (μ: MTLBuffer, σ: MTLBuffer),
 	                     Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),
-	                     count: (rows: Int, cols: Int), jacobian: (Jacobian)->Void) {
+	                     count: (rows: Int, cols: Int), connect: (Connector)->Void) {
 		do {
-			derivate(commandBuffer: commandBuffer, j: j, count: count, jacobian: jacobian)
+			gradient(commandBuffer: commandBuffer, j: j, count: count, connect: connect)
 		}
 		do {
-			assert( commandBuffer.device === derivatorPipeline.GP.device )
+			assert( commandBuffer.device === gradientPipeline.GP.device )
 			assert( commandBuffer.device === Δθ.μ.device && count.rows * MemoryLayout<Float>.stride <= Δθ.μ.length )
 			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.μ.length )
 			assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.stride <= Δφ.μ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = derivatorPipeline.GP.threadExecutionWidth
-			encoder.setComputePipelineState(derivatorPipeline.GP)
+			let threads: Int = gradientPipeline.GP.threadExecutionWidth
+			encoder.setComputePipelineState(gradientPipeline.GP)
 			encoder.setBuffer(Δθ.μ, offset: 0, at: 0)
 			encoder.setBuffer(j.μ, offset: 0, at: 1)
 			encoder.setBuffer(Δφ.μ, offset: 0, at: 2)
 			encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = "Degenerate.GradientGP(\(count))"
 			encoder.endEncoding()
 		}
 	}
