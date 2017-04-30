@@ -42,7 +42,7 @@ extension Cell {
 			return χ(-1)
 		}
 		if !state {
-			func collector(collector: Collector) {
+			func collect(collector: Collector) {
 				input.forEach {
 					$0.collect(collector: collector, visit: visit.union([self]))
 				}
@@ -55,9 +55,9 @@ extension Cell {
 			let commandBuffer: CommandBuffer = context.make()
 			switch activation {
 			case .Binary:
-				distributor.activate(commandBuffer: commandBuffer, f: χ(0), g: g(0), φ: φ(0), count: width, collector: collector)
+				distributor.activate(commandBuffer: commandBuffer, f: χ(0), g: g(0), φ: φ(0), count: width, collect: collect)
 			case .Identity:
-				distributor.activate(commandBuffer: commandBuffer, v: χ(0), g: g(0), φ: φ(0), count: width, collector: collector)
+				distributor.activate(commandBuffer: commandBuffer, v: χ(0), g: g(0), φ: φ(0), count: width, collect: collect)
 			}
 			commandBuffer.label = "Cell.collect"
 			commandBuffer.commit()
@@ -99,22 +99,20 @@ extension Cell {
 						$0.correct(corrector: corrector, fix: fix, visit: visit.union([self]))
 					}
 					if study {
-						corrector.correct(χ: χ(0), ϝ: ϝ(0))
-//						corrector.correct(φ: φ(0), v: ϝ(0))
+						corrector.correct(φ: φ(0), f: ϝ(0))
 					}
 				}
-				distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), f: χ(0), g: g(0), φ: φ(0), count: width, corrector: corrector)
+				distributor.derivate(commandBuffer: commandBuffer, Δφ: Δ(0), f: χ(0), g: g(0), φ: φ(0), count: width, correct: corrector)
 			case .Identity:
 				func corrector(corrector: Corrector) {
 					output.forEach {
 						$0.correct(corrector: corrector, fix: fix, visit: visit.union([self]))
 					}
 					if study {
-						corrector.correct(χ: χ(0), ϝ: ϝ(0))
-//						corrector.correct(φ: φ(0), v: ϝ(0))
+						corrector.correct(φ: φ(0), v: ϝ(0))
 					}
 				}
-				distributor.activate(commandBuffer: commandBuffer, Δφ: Δ(0), v: χ(0), g: g(0), φ: φ(0), count: width, corrector: corrector)
+				distributor.derivate(commandBuffer: commandBuffer, Δφ: Δ(0), v: χ(0), g: g(0), φ: φ(0), count: width, correct: corrector)
 			}
 			bias.correct(commandBuffer: commandBuffer, fix: fix, Δφ: Δ(0))
 			loop.forEach {
@@ -129,11 +127,11 @@ extension Cell {
 	}
 }
 extension Cell {
-	func jacobian(jacobian: Jacobian, feed: (Int) -> (μ: Buffer, σ: Buffer)) {
+	func connect(connector: Connector, feed: (Int) -> (μ: Buffer, σ: Buffer)) {
 		loop.forEach {
-			$0.jacobian(jacobian: jacobian, feed: feed)
+			$0.connect(connector: connector, feed: feed)
 		}
-		decay?.jacobian(jacobian: jacobian, feed: feed)
+		decay?.connect(connector: connector, feed: feed)
 	}
 }
 extension Cell {

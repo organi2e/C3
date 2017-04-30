@@ -570,8 +570,8 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float const r = 1 / s[k];
 		float const x = u[k] * r;
-		//		float const y = step(float(seq), fma(erf(M_SQRT1_2_F*x), 32767, 32768));
-		float const y = normcdf(x);
+		float const y = step(seq/65536.0, normcdf(x));
+//		float const y = normcdf(x);
 		float const ju = M_SQRT1_2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
 		seq ^= seq << xorshift16.x;

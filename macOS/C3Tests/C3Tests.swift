@@ -22,6 +22,7 @@ class C3Tests: XCTestCase {
 		super.setUp()
 		print(storage.lastPathComponent)
 	}
+	/*
 	func testReinforce() {
 		let source: Array<Array<Float>> = [[1,1,1,1], [1,1,1,0], [1,1,0,0], [1,0,0,0]]
 		let answer: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
@@ -85,12 +86,13 @@ class C3Tests: XCTestCase {
 			XCTFail(String(describing: error))
 		}
 	}
+	*/
 	func testChain() {
-		return
 		do {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
+			let context: Context = try Context(queue: queue,
+			                                   optimizer: .SMORMS3(L2: 1e-8, L1: 0, α: 1e-3, ε: 0))
 			do {
-				let context: Context = try Context(queue: queue, storage: storage)
 				let I: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
 				let H: Cell = try context.make(label: "H", width: 64, distributor: .Gauss, activator: .Binary, input: [I], decay: true, recurrent: [])
 				let G: Cell = try context.make(label: "G", width: 64, distributor: .Gauss, activator: .Binary, input: [H], decay: true, recurrent: [])
@@ -99,16 +101,12 @@ class C3Tests: XCTestCase {
 				try context.save()
 			}
 			do {
-				let context: Context = try Context(queue: queue,
-				                                   storage: storage,
-				                                   optimizer: .SMORMS3(L2: 1e-8, L1: 0, α: 1e-3, ε: 0)
-				)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
 					print("try")
-					(0..<1024).forEach {
-						let ref: Int = ( $0 / 4 ) % 8
+					(0..<4096).forEach {
+						let ref: Int = ( $0 / 8 ) % 8
 						O.collect_refresh()
 						I.correct_refresh()
 						O.target = OS[ref]
@@ -122,14 +120,13 @@ class C3Tests: XCTestCase {
 			}
 			
 			do {
-				let context: Context = try Context(queue: queue, storage: storage)
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				//guard let H: Cell = try context.fetch(label: "H").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				
 				print("gpu")
 				(0..<256).forEach {
-					let k: Int = ( $0 / 4 ) % 8
+					let k: Int = ( $0 / 8 ) % 8
 					O.collect_refresh()
 					I.source = IS[ k ]
 					O.collect()

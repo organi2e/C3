@@ -29,11 +29,11 @@ extension Bias {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: 1)
 		if !fix.contains(cell) {
 			change(commandBuffer: commandBuffer) {
-				cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: j(0), Δφ: Δφ, φ: cell.φ(0), count: count) { jacobian in
+				cell.distributor.gradient(commandBuffer: commandBuffer, Δθ: $0, j: j(0), Δφ: Δφ, φ: cell.φ(0), count: count) { connector in
 					access {
-						jacobian.jacobian(c: $0)
+						connector.connect(c: $0)
 					}
-					cell.jacobian(jacobian: jacobian, feed: j)
+					cell.connect(connector: connector, feed: j)
 				}
 			}
 		}

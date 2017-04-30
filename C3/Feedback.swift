@@ -30,20 +30,20 @@ extension Feedback {
 		let count: (rows: Int, cols: Int) = (rows: cell.width, cols: cell.width)
 		if !fix.contains(cell) {
 			change(commandBuffer: commandBuffer) {
-				cell.distributor.derivate(commandBuffer: commandBuffer, Δθ: $0, j: j(0), Δφ: Δφ, φ: cell.φ(0), count: count) { jacobian in
+				cell.distributor.gradient(commandBuffer: commandBuffer, Δθ: $0, j: j(0), Δφ: Δφ, φ: cell.φ(0), count: count) { connector in
 					access {
-						jacobian.jacobian(a: $0, x: cell.χ(refer))
+						connector.connect(a: $0, x: cell.χ(refer))
 					}
-					cell.jacobian(jacobian: jacobian, feed: j)
+					cell.connect(connector: connector, feed: j)
 				}
 			}
 		}
 	}
 }
 extension Feedback {
-	func jacobian(jacobian: Jacobian, feed: (Int) -> (μ: Buffer, σ: Buffer)) {
+	func connect(connector: Connector, feed: (Int) -> (μ: Buffer, σ: Buffer)) {
 		access {
-			jacobian.jacobian(b: $0, y: cell.χ(refer), g: cell.g(refer), j: feed(refer))
+			connector.connect(b: $0, y: cell.χ(refer), g: cell.g(refer), j: feed(refer))
 		}
 	}
 }
