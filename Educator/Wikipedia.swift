@@ -9,38 +9,57 @@
 import CoreData
 
 extension Educator {
-	internal static let Wikipedia: String = "Wikipedia"
-	public enum WikipediaFamily: String {
-		case abstract = "abstract"
+	private static let name: String = "Wikipedia"
+	public enum Wikipedia: String {
+		case abstract = "Abstract"
 	}
-	public func count(family: WikipediaFamily, title: String = "", offset: Int = 0, limit: Int = 0) throws -> Int {
-		return try count(domain: type(of: self).Wikipedia, family: family.rawValue, option: [:], handle: title, offset: offset, limit: limit)
+	public func count(wikipedia: Wikipedia, title: String = "", offset: Int = 0, limit: Int = 0) throws -> Int {
+		return try count(domain: type(of: self).name, family: wikipedia.rawValue, option: [:], handle: title, offset: offset, limit: limit)
 	}
-	public func fetch(family: WikipediaFamily, title: String = "", offset: Int = 0, limit: Int = 0) throws -> Array<Image> {
+	public func fetch(wikipedia: Wikipedia, title: String = "", offset: Int = 0, limit: Int = 0) throws -> Array<Image> {
 		
-		return try fetch(domain: type(of: self).Wikipedia, family: family.rawValue, option: [:], handle: title, offset: offset, limit: limit)
+		return try fetch(domain: type(of: self).name, family: wikipedia.rawValue, option: [:], handle: title, offset: offset, limit: limit)
 	}
-	public func build(family: WikipediaFamily) throws {
-		switch family {
+	public func build(wikipedia: Wikipedia) throws {
+		switch wikipedia {
 		case .abstract:
 			try buildAbstract()
 		}
 	}
-}
-extension Educator {
 	private class AbstractParserContext: NSManagedObjectContext, XMLParserDelegate {
 		var stack: Array<String> = Array<String>()
 		var title: String = ""
 		var body: String = ""
 		var url: String = ""
+		let domain: String
 		let regexp: NSRegularExpression
-		init(parent context: NSManagedObjectContext) throws {
+		init(name: String, parent context: NSManagedObjectContext) throws {
+			domain = name
 			regexp = try NSRegularExpression(pattern: "^Wikipedia\\:\\s+(.+)$", options: [])
 			super.init(concurrencyType: .privateQueueConcurrencyType)
 			parent = context
 		}
 		func parse(url: URL) throws {
-			guard let parser: XMLParser = XMLParser(contentsOf: url) else { throw ErrorCases.InvalidFormat(of: url, for: "xml") }
+			var error: Error?
+			var store: URL?
+			let semaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
+			URLSession(configuration: .default).downloadTask(with: URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)) {
+				error = $2
+				store = $0
+				semaphore.signal()
+			}.resume()
+			guard let parentContext: Educator = parent as? Educator else {
+				throw ErrorCases.InvalidFormat(of: parent as Any, for: Educator.self)
+			}
+			try fetch(parentContext.make(domain: domain, family: Wikipedia.abstract.rawValue, option: Dictionary<String, Any>(), handle: "", offset: 0, limit: 0)).forEach(delete)
+			semaphore.wait()
+			if let error: Error = error {
+				throw error
+			}
+			guard let file: URL = store else {
+				throw ErrorCases.NoFileDownload(from: url)
+			}
+			guard let parser: XMLParser = XMLParser(contentsOf: file) else { throw ErrorCases.InvalidFormat(of: url, for: "xml") }
 			parser.delegate = self
 			guard parser.parse() else { throw ErrorCases.InvalidFormat(of: url, for: "xml") }
 		}
@@ -89,8 +108,8 @@ extension Educator {
 					parser.abortParsing()
 					return
 				}
-				result.domain = Educator.Wikipedia
-				result.family = Educator.WikipediaFamily.abstract.rawValue
+				result.domain = domain
+				result.family = Wikipedia.abstract.rawValue
 				result.option = Dictionary<String, Any>(dictionaryLiteral: ("url", url))
 				result.handle = title.substring(with: start..<end)
 				result.body = body
@@ -100,17 +119,24 @@ extension Educator {
 		}
 	}
 	internal func buildAbstract() throws {
-		let name: String = String(describing: type(of: self).Wikipedia)
-		let key: String = WikipediaFamily.abstract.rawValue
-		guard let plist: URL = Bundle(for: type(of: self)).url(forResource: name, withExtension: "plist") else { throw ErrorCases.NoPlistFound(name: name) }
-		guard let dictionary: Dictionary<String, String> = try PropertyListSerialization.propertyList(from: try Data(contentsOf: plist), options: [], format: nil) as? Dictionary<String, String> else { throw ErrorCases.InvalidFormat(of: plist, for: "plist") }
-		guard let path: String = dictionary[key] else { throw ErrorCases.NoEntityFound(name: key) }
-		guard let url: URL = URL(string: path) else { throw ErrorCases.InvalidFormat(of: path, for: URL.self) }
-		let context: AbstractParserContext = try AbstractParserContext(parent: self)
+		let name: String = String(describing: type(of: self).name)
+		let key: String = Wikipedia.abstract.rawValue
+		guard let plist: URL = Bundle(for: type(of: self)).url(forResource: name, withExtension: "plist") else {
+			throw ErrorCases.NoPlistFound(name: name)
+		}
+		guard let dictionary: Dictionary<String, String> = try PropertyListSerialization.propertyList(from: try Data(contentsOf: plist), options: [], format: nil) as? Dictionary<String, String> else {
+			throw ErrorCases.InvalidFormat(of: plist, for: "plist")
+		}
+		guard let path: String = dictionary[key] else {
+			throw ErrorCases.NoEntityFound(name: key)
+		}
+		guard let url: URL = URL(string: path) else {
+			throw ErrorCases.InvalidFormat(of: path, for: URL.self)
+		}
+		let context: AbstractParserContext = try AbstractParserContext(name: type(of: self).name, parent: self)
 		do {
 			context.parent = self
 		}
-		try context.fetch(make(domain: type(of: self).Wikipedia, family: WikipediaFamily.abstract.rawValue, option: Dictionary<String, Any>(), handle: "", offset: 0, limit: 0)).forEach(context.delete)
 		try context.parse(url: url)
 		try context.save()
 	}

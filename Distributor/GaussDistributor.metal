@@ -365,7 +365,8 @@ kernel void GaussCorrectP(device float * const dx [[ buffer(0) ]],
 						  uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		dx[idx] += normcdf(u[idx]/s[idx]) - d[idx];
+		float const p = normcdf(u[idx]/s[idx]);
+		dx[idx] += ( p - d[idx] ) / p / ( 1 - p );
 	}
 }
 kernel void GaussCorrectV(device float * const dx [[ buffer(0) ]],
@@ -566,17 +567,17 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   constant uint const & N [[ buffer(6) ]],
 						   uint const t [[ thread_position_in_threadgroup ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
-	ushort seq = seeds[t];
+//	ushort seq = seeds[t];
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float const r = 1 / s[k];
 		float const x = u[k] * r;
-		float const y = step(seq/65536.0, normcdf(x));
-//		float const y = normcdf(x);
+//		float const y = step(seq/65536.0, normcdf(x));
+		float const y = normcdf(x);
 		float const ju = M_SQRT1_2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
-		seq ^= seq << xorshift16.x;
-		seq ^= seq >> xorshift16.y;
-		seq ^= seq << xorshift16.z;
+//		seq ^= seq << xorshift16.x;
+//		seq ^= seq >> xorshift16.y;
+//		seq ^= seq << xorshift16.z;
 		f[k] = y;
 		gu[k] = ju;
 		gs[k] = js;
@@ -593,8 +594,8 @@ kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const p = normcdf(u[idx]/s[idx]);
-		float const g = du[idx] / p / ( 1 - p );
+//		float const p = normcdf(u[idx]/s[idx]);
+		float const g = du[idx];//(p - saturate(p - du[idx])) / p / ( 1 - p );
 		du[idx] = g * gu[idx];
 		ds[idx] = g * gs[idx];
 	}
@@ -610,15 +611,15 @@ kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
 						   constant uint const & N [[ buffer(6) ]],
 						   uint const t [[ thread_position_in_threadgroup ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
-	ushort seq = seeds[t];
+//	ushort seq = seeds[t];
 	for ( int k = t, K = N ; k < K ; k += T ) {
-		float const n = erfinv(fma(float(seq), M_1_INT16MAX_F, -1)) * M_SQRT2_F;
+		float const n = 0;//erfinv(fma(float(seq), M_1_INT16MAX_F, -1)) * M_SQRT2_F;
 		float const y = fma(n, s[k], u[k]);
 		float const ju = 1;
 		float const js = n;
-		seq ^= seq << xorshift16.x;
-		seq ^= seq >> xorshift16.y;
-		seq ^= seq << xorshift16.z;
+//		seq ^= seq << xorshift16.x;
+//		seq ^= seq >> xorshift16.y;
+//		seq ^= seq << xorshift16.z;
 		f[k] = y;
 		gu[k] = ju;
 		gs[k] = js;
@@ -638,7 +639,7 @@ kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 		float const e = du[idx] * gu[idx];
 		float const v = s[idx];
 		du[idx] = e;
-		ds[idx] = v - 0.5 * e * e / v;
+		ds[idx] = v - e * e / v;
 	}
 }
 /*----------------------------------------------------------------*/
@@ -697,16 +698,16 @@ kernel void GaussGradientJV(device float * const d [[ buffer(0) ]],
 	}
 }
 kernel void GaussGradientJP(device float * const du [[ buffer(0) ]],
-						 device float * const ds [[ buffer(1) ]],
-						 device float const * const ju [[ buffer(2) ]],
-						 device float const * const js [[ buffer(3) ]],
-						 device float const * const vu [[ buffer(4) ]],
-						 device float const * const vs [[ buffer(5) ]],
-						 constant uint2 & S [[ buffer(6) ]],
-						 threadgroup float2x4 * shared [[ threadgroup(0) ]],
-						 uint const t [[ thread_position_in_threadgroup ]],
-						 uint const T [[ threads_per_threadgroup ]],
-						 uint const n [[ threadgroup_position_in_grid ]]) {
+							device float * const ds [[ buffer(1) ]],
+							device float const * const ju [[ buffer(2) ]],
+							device float const * const js [[ buffer(3) ]],
+							device float const * const vu [[ buffer(4) ]],
+							device float const * const vs [[ buffer(5) ]],
+							constant uint2 & S [[ buffer(6) ]],
+							threadgroup float2x4 * shared [[ threadgroup(0) ]],
+							uint const t [[ thread_position_in_threadgroup ]],
+							uint const T [[ threads_per_threadgroup ]],
+							uint const n [[ threadgroup_position_in_grid ]]) {
 	
 	int2 const size = int2(S);
 	
@@ -753,13 +754,13 @@ kernel void GaussGradientJP(device float * const du [[ buffer(0) ]],
 	}
 }
 kernel void GaussGradientGP(device float * const du [[ buffer(0) ]],
-						 device float * const ds [[ buffer(1) ]],
-						 device float const * const ju [[ buffer(2) ]],
-						 device float const * const js [[ buffer(3) ]],
-						 device float const * const gu [[ buffer(4) ]],
-						 device float const * const gs [[ buffer(5) ]],
-						 constant uint2 const & N [[ buffer(6) ]],
-						 uint2 const n [[ thread_position_in_grid ]]) {
+							device float * const ds [[ buffer(1) ]],
+							device float const * const ju [[ buffer(2) ]],
+							device float const * const js [[ buffer(3) ]],
+							device float const * const gu [[ buffer(4) ]],
+							device float const * const gs [[ buffer(5) ]],
+							constant uint2 const & N [[ buffer(6) ]],
+							uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -770,12 +771,12 @@ kernel void GaussGradientGP(device float * const du [[ buffer(0) ]],
 	}
 }
 kernel void GaussGradientGV(device float * const d [[ buffer(0) ]],
-						 device float const * const ju [[ buffer(1) ]],
-						 device float const * const js [[ buffer(2) ]],
-						 device float const * const gu [[ buffer(3) ]],
-						 device float const * const gs [[ buffer(4) ]],
-						 constant uint2 const & N [[ buffer(5) ]],
-						 uint2 const n [[ thread_position_in_grid ]]) {
+							device float const * const ju [[ buffer(1) ]],
+							device float const * const js [[ buffer(2) ]],
+							device float const * const gu [[ buffer(3) ]],
+							device float const * const gs [[ buffer(4) ]],
+							constant uint2 const & N [[ buffer(5) ]],
+							uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;

@@ -157,6 +157,7 @@ extension Context {
 		}
 		return entity
 	}
+	
 	/*
 	func count<T: Ground>(predicate: NSPredicate) throws -> Int {
 		let name: String = String(describing: T.self)

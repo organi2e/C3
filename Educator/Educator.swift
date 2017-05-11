@@ -17,6 +17,7 @@ internal enum ErrorCases: Error {
 	case NoResourceFound(name: String, extension: String)
 	case InvalidFormat(of: Any, for: Any)
 	case NoImplemented(feature: String)
+	case NoFileDownload(from: URL)
 	case UnknownError(message: String)
 }
 public class Group: NSManagedObject {
@@ -125,7 +126,10 @@ extension Image {
 	}
 }
 public class Educator: NSManagedObjectContext {
+	internal let session: URLSession
 	public init(storage: URL?) throws {
+		let configuration: URLSessionConfiguration = URLSessionConfiguration.default
+		session = URLSession(configuration: configuration)
 		super.init(concurrencyType: .privateQueueConcurrencyType)
 		let type: String = storage == nil ? NSInMemoryStoreType : ["db", "sqlite"].filter{$0==storage?.pathExtension}.isEmpty ? NSBinaryStoreType : NSSQLiteStoreType
 		let name: String = String(describing: type(of: self))
@@ -157,6 +161,35 @@ extension Educator {
 	}
 	internal func fetch<T: Group>(domain: String, family: String, option: Dictionary<String, Any>, handle: String, offset: Int, limit: Int) throws -> Array<T> {
 		return try fetch(make(domain: domain, family: family, option: option, handle: handle, offset: offset, limit: limit))
+	}
+}
+internal extension Data {
+	internal func untar(handle: (String, Data) throws -> ()) rethrows {
+		guard let ascii: UInt32 = "0".unicodeScalars.first?.value else {
+			assertionFailure()
+			return
+		}
+		var cursor: Int = 0
+		while cursor < count {
+			try autoreleasepool {
+				let head: Data = subdata(in: cursor..<cursor + 512)
+				cursor = cursor + 512
+				
+				let name: String = head.getString()
+				let type: UInt8 = head.advanced(by: 156).get()
+				switch type {
+				case 48:
+					let array: Array<UInt8> = head.subdata(in: 124..<135).toArray()
+					let size: Int = array.reduce(0) {
+						$0.0 * 8 + Int($0.1) - Int(ascii)
+					}
+					try handle(name, subdata(in: cursor..<cursor + size))
+					cursor = cursor + 512 * ( ( size + 511 ) / 512 )
+				default:
+					break
+				}
+			}
+		}
 	}
 }
 internal extension Educator {
@@ -289,18 +322,6 @@ private extension Data {
 		return withUnsafeBytes {
 			Array<T>(UnsafeBufferPointer<T>(start: $0, count: count / MemoryLayout<T>.size))
 		}
-	}
-}
-/*
-public protocol Image {
-	var ciimage: CIImage { get }
-}
-*/
-internal extension FileManager {
-	func download(url: URL) throws -> URL {
-		let cache: URL = temporaryDirectory.appendingPathComponent(UUID().uuidString)
-		try Data(contentsOf: url).write(to: cache)
-		return cache
 	}
 }
 internal extension FileHandle {

@@ -38,12 +38,27 @@ extension Educator {
 		guard let target: String = dictionary[ptb.rawValue] else {
 			throw ErrorCases.NoRecourdFound(name: ptb.rawValue)
 		}
+		var error: Error?
+		var store: URL?
+		let semaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
+		URLSession(configuration: .default).downloadTask(with: URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)) {
+			error = $2
+			store = $0
+			semaphore.signal()
+		}.resume()
 		let context: NSManagedObjectContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
 		do {
 			context.parent = self
 		}
 		try context.fetch(make(domain: type(of: self).name, family: ptb.rawValue, option: Dictionary<String, Any>(), handle: "", offset: 0, limit: 0)).forEach(context.delete)
-		try untar(data: gunzip(data: Data(contentsOf: url, options: .mappedIfSafe))) {
+		semaphore.wait()
+		if let error: Error = error {
+			throw error
+		}
+		guard let file: URL = store else {
+			throw ErrorCases.NoFileDownload(from: url)
+		}
+		try FileHandle(forReadingFrom: file).gunzip().untar {
 			if $0.0 == target {
 				guard let string: String = String(data: $0.1, encoding: .utf8) else {
 					throw ErrorCases.InvalidFormat(of: $0.1, for: String.self)
