@@ -12,6 +12,7 @@ let suffix: String = "v0.3"
 let trainer: URL = FileManager.default.temporaryDirectory.appendingPathComponent("trainer.sqlite")
 let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("storage.sqlite")
 class EducatorTests: XCTestCase {
+	/*
 	func testOnehot() {
 		let string: String = UUID().uuidString
 		let array: ContiguousArray<CChar> = string.utf8CString
@@ -23,6 +24,7 @@ class EducatorTests: XCTestCase {
 		}
 		XCTAssert( string == String(cString: decode) )
 	}
+	*/
 	/*
 	func testPTB() {
 		do {
@@ -107,37 +109,36 @@ class EducatorTests: XCTestCase {
 			XCTFail(String(describing: error))
 		}
 	}
-*/
-	/*
+	*/
 	func testCIFAR10() {
 		do {
 			let educator: Educator = try Educator(storage: trainer)
-			if try 0 == educator.count(family: .databatch1) {
-				try educator.build(family: .databatch1)
+			if try 0 == educator.count(cifar10: .databatch3) {
+				try educator.build(cifar10: .databatch3)
 				try educator.save()
 			}
-			try educator.fetch(family: .databatch1, limit: 10).enumerated().forEach {
+			try educator.fetch(cifar10: .databatch1, limit: 10).enumerated().forEach {
 				try CIContext().writeJPEGRepresentation(of: $0.element.ciimage, to: URL(fileURLWithPath: "/tmp/\($0.offset)\($0.element.handle).jpeg"), colorSpace: CGColorSpaceCreateDeviceRGB(), options: [:])
 			}
 		} catch {
 			XCTFail(String(describing: error))
 		}
 	}
-	*/
 	/*
 	func testMNIST() {
 		do {
+			let educator: Educator = try Educator(storage: trainer)
+			try print(educator.count(mnist: .train))
+			if try 0 == educator.count(family: .train) {
+				try educator.build(mnist: .train)
+				try educator.save()
+				print("build")
+			}
 			guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 			let queue: MTLCommandQueue = device.makeCommandQueue()
 			let context: Context = try Context(queue: queue,
 			                                   storage: storage,
-			                                   optimizer: SMORMS3.factory(L2: 1e-9, α: 1e-3))
-			let educator: Educator = try Educator(storage: trainer)
-			if try 0 == educator.count(family: .train) {
-				try educator.build(family: .train)
-				try educator.save()
-				print("build")
-			}
+			                                   optimizer: .SMORMS3(L2: 1e-9, L1: 0, α: 1e-3, ε: 0))
 			if try 0 == context.count(label: "\(prefix)I\(suffix)") {
 				print("insert")
 				let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 10, distribution: .Gauss, activation: .Binary,
@@ -251,6 +252,7 @@ class EducatorTests: XCTestCase {
 				}
 				print(output)
 			}
+			*/
 			/*
 			do {
 				let context: Context = try Context(queue: queue,
@@ -344,12 +346,22 @@ class EducatorTests: XCTestCase {
 					try Data(bytes: O.source, count: 28 * 28 * MemoryLayout<Float>.size).write(to: URL(fileURLWithPath: "/tmp/dec\($0.offset+3).raw"))
 				}
 			}
-			*/
 		} catch {
 			XCTFail(String(describing: error))
 		}
 	}
-*/
+	*/
+	/*
+	func testWikipedia() {
+		do {
+			let educator: Educator = try Educator(storage: trainer)
+			try educator.build(wikipedia: .abstract)
+			try educator.save()
+		} catch {
+			XCTFail(String(describing: error))
+		}
+	}
+	*/
 }
 private extension MTLBuffer {
 	var ref: UnsafeMutablePointer<Float> {

@@ -161,7 +161,8 @@ kernel void DegenerateCorrectP(device float * const dx [[ buffer(0) ]],
 							   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		dx[idx] += logistic(x[idx]) - d[idx];
+		float const p = logistic(x[idx]);
+		dx[idx] += ( p - d[idx] ) / p / ( 1 - p );
 	}
 }
 kernel void DegenerateCorrectV(device float * const dx [[ buffer(0) ]],
@@ -295,8 +296,9 @@ kernel void DegenerateActivateP(device float * const f [[ buffer(0) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const p = logistic(v[idx]);
-		f[idx] = p;//step(0, x);
+		float const x = v[idx];
+		float const p = logistic(x);
+		f[idx] = step(0, x);
 		g[idx] = p * ( 1 - p );
 	}
 }
@@ -308,8 +310,7 @@ kernel void DegenerateDerivateP(device float * const d [[ buffer(0) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const p = logistic(v[idx]);
-		d[idx] *= g[idx] / p / ( 1 - p );
+		d[idx] *= g[idx];
 	}
 }
 kernel void DegenerateActivateV(device float * const f [[ buffer(0) ]],

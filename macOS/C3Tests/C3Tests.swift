@@ -91,13 +91,14 @@ class C3Tests: XCTestCase {
 		do {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 			let context: Context = try Context(queue: queue,
-			                                   optimizer: .SMORMS3(L2: 1e-8, L1: 0, α: 1e-3, ε: 0))
+//			                                   optimizer: .Adamax(L2: 1e-6, L1: 0, α: 1e-3, β: 0.9, γ: 0.999, ε: 1e-8))
+			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
 			do {
-				let I: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
-				let H: Cell = try context.make(label: "H", width: 64, distributor: .Gauss, activator: .Binary, input: [I], decay: true, recurrent: [])
-				let G: Cell = try context.make(label: "G", width: 64, distributor: .Gauss, activator: .Binary, input: [H], decay: true, recurrent: [])
-//				let F: Cell = try context.make(label: "F", width: 64, distributor: .Gauss, activator: .Binary, input: [G], decay: false, recurrent: [])
-				let _: Cell = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [G], decay: false, recurrent: [])
+				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
+				try (0..<16).forEach {
+					last = try context.make(label: "H\($0)", width: 256, distributor: .Gauss, activator: .Binary, input: [last], decay: true, recurrent: [])
+				}
+				last = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [last], decay: false, recurrent: [])
 				try context.save()
 			}
 			do {

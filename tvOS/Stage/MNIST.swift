@@ -10,7 +10,7 @@ import Educator
 
 private let prefix: String = "GaussAE-"
 //private let prefix: String = "DegenerateAE-"
-private let suffix: String = "v0.999"
+private let suffix: String = "v1.3"
 
 internal class MNIST {
 	let bar: UIProgressView?
@@ -49,39 +49,39 @@ internal class MNIST {
 			if try 0 == context.count(label: "\(prefix)I\(suffix)") {
 				print("insert")
 				try autoreleasepool {
-					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 256, distributor: .Gauss,
-					                               activator: .Identity, adapters: (.Linear, .Softplus))
+					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 64, distributor: .Gauss,
+					                               activator: .Identity, adapters: (.Regular, .RegFloor))
 					
-					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 512, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [I])
+					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 256, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [I])
 					
-					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 1024, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [H])
+					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 512, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [H])
 					
 					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 28 * 28, distributor: .Gauss,
-					                               activator: .Identity, adapters: (.Linear, .Softplus), input: [G])
+					                               activator: .Identity, adapters: (.Regular, .RegFloor), input: [G])
 					
-					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 1024, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [F])
+					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 512, distributor: .Gauss,
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [F])
 					
 					let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 256, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [E])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [E])
 					
 					let C: Cell = try context.make(label: "\(prefix)C\(suffix)", width: 64, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [D])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [D])
 					
 					let _: Cell = try context.make(label: "\(prefix)B\(suffix)", width: 10, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [C])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [C])
 					
 					let _: Cell = try context.make(label: "\(prefix)A\(suffix)", width: 1, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [C])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [C])
 					try context.save()
 					context.reset()
 				}
 			} else {
 				print("fetched")
 			}
-			let batch: Int = 5000
+			let batch: Int = 1000
 			let count: Int = try educator.count(mnist: .train)
 			try (0..<64).forEach {
 				let times: String = String(describing: $0)
@@ -123,7 +123,7 @@ internal class MNIST {
 								
 								A.collect_refresh()
 								B.collect_refresh()
-								I.source = try $0.onehot(count: 10, value: 1) + Array<Void>(repeating: (), count: 246).map {
+								I.source = try $0.onehot(count: 10, value: 1) + Array<Void>(repeating: (), count: 54).map {
 									Float(arc4random_uniform(1024))/1024.0
 								}
 								A.collect()
@@ -154,15 +154,16 @@ internal class MNIST {
 						*/
 						let output: URL = FileManager.default.temporaryDirectory
 						try (0..<60).forEach { index in
+							B.collect_refresh()
 							A.collect_refresh()
 							I.source = (0..<10).map {
 								Float($0 == index % 10 ? 1 : 0)
-								} + Array<Void>(repeating: (), count: 246).map {
+								} + Array<Void>(repeating: (), count: 54).map {
 									Float(arc4random_uniform(1024))/1024.0
 							}
+							B.collect()
 							A.collect()
 							print(A.source, B.source)
-							//							print(E.source)
 							try Data(buffer: UnsafeBufferPointer<Float>(start: F.source, count: 28 * 28))
 								.write(to: output.appendingPathComponent("img\(index).raw"), options: [])
 						}

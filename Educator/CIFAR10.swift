@@ -10,7 +10,7 @@ import Accelerate
 import CoreData
 
 extension Educator {
-	private static let CIFAR10: String = "CIFAR10"
+	private static let domain: String = "CIFAR10"
 	private static let ROWSKey: String = "ROWS"
 	private static let COLSKey: String = "COLS"
 	private static let METAKey: String = "META"
@@ -18,7 +18,7 @@ extension Educator {
 	private static let plist: String = "plist"
 	private static let label: String = "label"
 	private static let image: String = "image"
-	public enum CIFAR10Family: String {
+	public enum CIFAR10: String {
 		case databatch1 = "DATA BATCH 1"
 		case databatch2 = "DATA BATCH 2"
 		case databatch3 = "DATA BATCH 3"
@@ -27,14 +27,14 @@ extension Educator {
 		case databatch6 = "DATA BATCH 6"
 		case testbatch = "TEST BATCH"
 	}
-	public func count(family: CIFAR10Family, handle: String = "", offset: Int = 0, limit: Int = 0) throws -> Int {
-		return try count(domain: type(of: self).CIFAR10, family: family.rawValue, option: [:], handle: handle, offset: offset, limit: limit)
+	public func count(cifar10: CIFAR10, handle: String = "", offset: Int = 0, limit: Int = 0) throws -> Int {
+		return try count(domain: type(of: self).domain, family: cifar10.rawValue, option: [:], handle: handle, offset: offset, limit: limit)
 	}
-	public func fetch(family: CIFAR10Family, handle: String = "", offset: Int = 0, limit: Int = 0) throws -> Array<Image> {
-		return try fetch(domain: type(of: self).CIFAR10, family: family.rawValue, option: [:], handle: handle, offset: offset, limit: limit)
+	public func fetch(cifar10: CIFAR10, handle: String = "", offset: Int = 0, limit: Int = 0) throws -> Array<Image> {
+		return try fetch(domain: type(of: self).domain, family: cifar10.rawValue, option: [:], handle: handle, offset: offset, limit: limit)
 	}
-	public func build(family: CIFAR10Family) throws {
-		let name: String = String(describing: type(of: self).CIFAR10)
+	public func build(cifar10: CIFAR10) throws {
+		let name: String = String(describing: type(of: self).domain)
 		guard let plist: URL = Bundle(for: type(of: self)).url(forResource: name, withExtension: type(of: self).plist) else {
 			throw ErrorCases.NoResourceFound(name: name, extension: type(of: self).plist)
 		}
@@ -50,8 +50,8 @@ extension Educator {
 		guard let meta: String = dictionary[type(of: self).METAKey] as? String else {
 			throw ErrorCases.NoRecourdFound(name: type(of: self).METAKey)
 		}
-		guard let path: String = dictionary[family.rawValue] as? String else {
-			throw ErrorCases.NoRecourdFound(name: family.rawValue)
+		guard let path: String = dictionary[cifar10.rawValue] as? String else {
+			throw ErrorCases.NoRecourdFound(name: cifar10.rawValue)
 		}
 		guard let binaryPath: String = dictionary[type(of: self).PATHKey] as? String else {
 			throw ErrorCases.NoRecourdFound(name: type(of: self).PATHKey)
@@ -59,13 +59,28 @@ extension Educator {
 		guard let binaryURL: URL = URL(string: binaryPath) else {
 			throw ErrorCases.InvalidFormat(of: binaryPath, for: URL.self)
 		}
+		var error: Error?
+		var store: URL?
+		let semaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
+		session.downloadTask(with: URLRequest(url: binaryURL, cachePolicy: .returnCacheDataElseLoad)) {
+			error = $2
+			store = $0
+			semaphore.signal()
+		}.resume()
 		let context: NSManagedObjectContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
 		do {
 			context.parent = self
 		}
-		try context.fetch(make(domain: type(of: self).CIFAR10, family: family.rawValue, option: Dictionary<String, Any>(), handle: "", offset: 0, limit: 0)).forEach(context.delete)
+		try context.fetch(make(domain: type(of: self).domain, family: cifar10.rawValue, option: Dictionary<String, Any>(), handle: "", offset: 0, limit: 0)).forEach(context.delete)
+		semaphore.wait()
+		if let error: Error = error {
+			throw error
+		}
+		guard let file: URL = store else {
+			throw ErrorCases.NoFileDownload(from: binaryURL)
+		}
 		var labels: Dictionary<UInt8, String> = Dictionary<UInt8, String>()
-		try untar(data: gunzip(data: Data(contentsOf: binaryURL, options: .mappedIfSafe))) { (file: String, data: Data) in
+		try FileHandle(forReadingFrom: file).gunzip().untar { (file: String, data: Data) in
 			if file.isEmpty || data.isEmpty {
 			
 			} else if file == meta {
@@ -85,8 +100,8 @@ extension Educator {
 					guard let image: Image = NSEntityDescription.insertNewObject(forEntityName: entityName, into: context) as? Image else {
 						throw ErrorCases.NoEntityFound(name: entityName)
 					}
-					image.domain = type(of: self).CIFAR10
-					image.family = family.rawValue
+					image.domain = type(of: self).domain
+					image.family = cifar10.rawValue
 					image.option = Dictionary<String, Any>(dictionaryLiteral: (type(of: self).label, head.get() as UInt8))
 					
 					image.height = UInt16(rows)

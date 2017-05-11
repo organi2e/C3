@@ -53,25 +53,65 @@ extension Educator {
 		guard let imageURL: URL = URL(string: imageString) else {
 			throw ErrorCases.InvalidFormat(of: imageString, for: URL.self)
 		}
-		let (labelhead, labelbody): (Data, Data) = try gunzip(data: Data(contentsOf: labelURL)).split(cursor: 2 * MemoryLayout<UInt32>.size)
-		let labelheader: Array<Int> = labelhead.toArray().map{Int(UInt32(bigEndian: $0))}
-		let labels: Array<UInt8> = labelbody.toArray()
-		let (imagehead, imagebody): (Data, Data) = try gunzip(data: Data(contentsOf: imageURL)).split(cursor: 4 * MemoryLayout<UInt32>.size)
-		let imageheader: Array<Int> = imagehead.toArray().map{Int(UInt32(bigEndian: $0))}
-		guard imageheader.count == 4 else { throw ErrorCases.UnknownError(message: "") }
-		guard imageheader[1] == labelheader[1] else { throw ErrorCases.InvalidFormat(of: "image.length", for: "label.length") }
-		let length: Int = min(imageheader[1], labelheader[1])
-		let rows: Int = imageheader[2]
-		let cols: Int = imageheader[3]
-		guard length * rows * cols == imagebody.count else { throw ErrorCases.InvalidFormat(of: length * rows * cols, for: imagebody.count) }
-		let pixels: Array<Data> = imagebody.chunk(width: Int(rows*cols))
-		
+		var imageerror: Error?
+		var imagestore: URL?
+		let imagesemaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
+		var labelerror: Error?
+		var labelstore: URL?
+		let labelsemaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
+		session.downloadTask(with: imageURL) {
+			imageerror = $2
+			imagestore = $0
+			imagesemaphore.signal()
+		}.resume()
+		session.downloadTask(with: labelURL) {
+			labelerror = $2
+			labelstore = $0
+			labelsemaphore.signal()
+		}.resume()
 		let context: NSManagedObjectContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
 		do {
 			context.parent = self
 		}
 		try context.fetch(make(domain: type(of: self).name, family: mnist.rawValue, option: Dictionary<String, Any>(), handle: "", offset: 0, limit: 0)).forEach(context.delete)
 		
+		//Parse image file
+		imagesemaphore.wait()
+		if let error: Error = imageerror {
+			throw error
+		}
+		guard let imagefile: URL = imagestore else {
+			throw ErrorCases.NoFileDownload(from: imageURL)
+		}
+		let (imagehead, imagebody): (Data, Data) = try FileHandle(forReadingFrom: imagefile).gunzip().split(cursor: 4 * MemoryLayout<UInt32>.size)
+		let imageheader: Array<Int> = imagehead.toArray().map{Int(UInt32(bigEndian: $0))}
+		assert(imageheader.count == 4)
+		
+		let rows: Int = imageheader[2]
+		let cols: Int = imageheader[3]
+		guard imageheader[1] * rows * cols == imagebody.count else {
+			throw ErrorCases.InvalidFormat(of: imageheader[1] * rows * cols, for: imagebody.count)
+		}
+		let pixels: Array<Data> = imagebody.chunk(width: Int(rows*cols))
+
+		//Parse label file
+		labelsemaphore.wait()
+		if let error: Error = labelerror {
+			throw error
+		}
+		guard let labelfile: URL = labelstore else {
+			throw ErrorCases.NoFileDownload(from: labelURL)
+		}
+		let (labelhead, labelbody): (Data, Data) = try FileHandle(forReadingFrom: labelfile).gunzip().split(cursor: 2 * MemoryLayout<UInt32>.size)
+		let labelheader: Array<Int> = labelhead.toArray().map{Int(UInt32(bigEndian: $0))}
+		let labels: Array<UInt8> = labelbody.toArray()
+		
+		//Check counts
+		guard imageheader[1] == labelheader[1], labels.count == pixels.count else {
+			throw ErrorCases.InvalidFormat(of: "image.length", for: "label.length")
+		}
+
+		//Store
 		let entityName: String = String(describing: Image.self)
 		try zip(labels, pixels).forEach {
 			guard let image: Image = NSEntityDescription.insertNewObject(forEntityName: entityName, into: context) as? Image else {
