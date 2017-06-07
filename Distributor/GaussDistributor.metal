@@ -567,17 +567,17 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   constant uint const & N [[ buffer(6) ]],
 						   uint const t [[ thread_position_in_threadgroup ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
-//	ushort seq = seeds[t];
+	ushort seq = seeds[t];
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float const r = 1 / s[k];
 		float const x = u[k] * r;
-//		float const y = step(seq/65536.0, normcdf(x));
-		float const y = normcdf(x);
+		float const y = step(seq/65536.0, normcdf(x));
+//		float const y = normcdf(x);
 		float const ju = M_SQRT1_2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
-//		seq ^= seq << xorshift16.x;
-//		seq ^= seq >> xorshift16.y;
-//		seq ^= seq << xorshift16.z;
+		seq ^= seq << xorshift16.x;
+		seq ^= seq >> xorshift16.y;
+		seq ^= seq << xorshift16.z;
 		f[k] = y;
 		gu[k] = ju;
 		gs[k] = js;
@@ -611,15 +611,15 @@ kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
 						   constant uint const & N [[ buffer(6) ]],
 						   uint const t [[ thread_position_in_threadgroup ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
-//	ushort seq = seeds[t];
+	ushort seq = seeds[t];
 	for ( int k = t, K = N ; k < K ; k += T ) {
-		float const n = 0;//erfinv(fma(float(seq), M_1_INT16MAX_F, -1)) * M_SQRT2_F;
+		float const n = erfinv(fma(float(seq), M_1_INT16MAX_F, -1)) * M_SQRT2_F;
 		float const y = fma(n, s[k], u[k]);
 		float const ju = 1;
 		float const js = n;
-//		seq ^= seq << xorshift16.x;
-//		seq ^= seq >> xorshift16.y;
-//		seq ^= seq << xorshift16.z;
+		seq ^= seq << xorshift16.x;
+		seq ^= seq >> xorshift16.y;
+		seq ^= seq << xorshift16.z;
 		f[k] = y;
 		gu[k] = ju;
 		gs[k] = js;

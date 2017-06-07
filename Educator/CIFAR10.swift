@@ -62,7 +62,7 @@ extension Educator {
 		var error: Error?
 		var store: URL?
 		let semaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
-		session.downloadTask(with: URLRequest(url: binaryURL, cachePolicy: .returnCacheDataElseLoad)) {
+		URLSession.shared.downloadTask(with: URLRequest(url: binaryURL, cachePolicy: .returnCacheDataElseLoad)) {
 			error = $2
 			store = $0
 			semaphore.signal()
@@ -80,18 +80,18 @@ extension Educator {
 			throw ErrorCases.NoFileDownload(from: binaryURL)
 		}
 		var labels: Dictionary<UInt8, String> = Dictionary<UInt8, String>()
-		try FileHandle(forReadingFrom: file).gunzip().untar { (file: String, data: Data) in
-			if file.isEmpty || data.isEmpty {
+		try FileHandle(forReadingFrom: file).gunzip().untar {
+			if $0.isEmpty || $1.isEmpty {
 			
-			} else if file == meta {
-				guard let text: String = String(data: data, encoding: .utf8) else {
-					throw ErrorCases.InvalidFormat(of: data, for: type(of: self).METAKey)
+			} else if $0 == meta {
+				guard let text: String = String(data: $1, encoding: .utf8) else {
+					throw ErrorCases.InvalidFormat(of: $1, for: type(of: self).METAKey)
 				}
 				text.components(separatedBy: .newlines).enumerated().forEach {
 					labels.updateValue($0.element, forKey: UInt8($0.offset))
 				}
-			} else if file == path {
-				try data.chunk(width: rows * cols * 3 + 1).forEach {
+			} else if $0 == path {
+				try $1.chunk(width: rows * cols * 3 + 1).forEach {
 					let(head, tail): (Data, Data) = $0.split(cursor: 1)
 					guard tail.count == rows * cols * 3 else {
 						throw ErrorCases.InvalidFormat(of: $0.count, for: type(of: self).image)

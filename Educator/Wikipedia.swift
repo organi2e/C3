@@ -43,7 +43,7 @@ extension Educator {
 			var error: Error?
 			var store: URL?
 			let semaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
-			URLSession(configuration: .default).downloadTask(with: URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)) {
+			URLSession.shared.downloadTask(with: URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad)) {
 				error = $2
 				store = $0
 				semaphore.signal()
