@@ -126,10 +126,7 @@ extension Image {
 	}
 }
 public class Educator: NSManagedObjectContext {
-	internal let session: URLSession
 	public init(storage: URL?) throws {
-		let configuration: URLSessionConfiguration = URLSessionConfiguration.default
-		session = URLSession(configuration: configuration)
 		super.init(concurrencyType: .privateQueueConcurrencyType)
 		let type: String = storage == nil ? NSInMemoryStoreType : ["db", "sqlite"].filter{$0==storage?.pathExtension}.isEmpty ? NSBinaryStoreType : NSSQLiteStoreType
 		let name: String = String(describing: type(of: self))

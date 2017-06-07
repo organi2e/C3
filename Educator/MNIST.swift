@@ -59,12 +59,12 @@ extension Educator {
 		var labelerror: Error?
 		var labelstore: URL?
 		let labelsemaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
-		session.downloadTask(with: imageURL) {
+		URLSession.shared.downloadTask(with: imageURL) {
 			imageerror = $2
 			imagestore = $0
 			imagesemaphore.signal()
 		}.resume()
-		session.downloadTask(with: labelURL) {
+		URLSession.shared.downloadTask(with: labelURL) {
 			labelerror = $2
 			labelstore = $0
 			labelsemaphore.signal()
@@ -108,7 +108,7 @@ extension Educator {
 		
 		//Check counts
 		guard imageheader[1] == labelheader[1], labels.count == pixels.count else {
-			throw ErrorCases.InvalidFormat(of: "image.length", for: "label.length")
+			throw ErrorCases.InvalidFormat(of: "image.count", for: "label.count")
 		}
 
 		//Store

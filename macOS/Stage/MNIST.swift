@@ -13,7 +13,7 @@ import C3
 import Educator
 
 private let prefix: String = "MNISTGAN"
-private let suffix: String = "v2.34b"
+private let suffix: String = "v2.35d"
 private let trainer: URL = FileManager.default.temporaryDirectory.appendingPathComponent("trainer.sqlite")
 private let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("storage.sqlite")
 
@@ -35,7 +35,7 @@ internal class MNIST {
 		do {
 			let context: Context = try Context(queue: device.makeCommandQueue(),
 			                                   storage: storage,
-			                                   optimizer: .SMORMS3(L2: 1e-4, L1: 0, α: 1e-2, ε: 1e-8))
+			                                   optimizer: .SMORMS3(L2: 0, L1: 0, α: 1e-3, ε: 1e-9))
 			let educator: Educator = try Educator(storage: trainer)
 			if try 0 == educator.count(mnist: .train) {
 				print("build")
@@ -50,31 +50,31 @@ internal class MNIST {
 				try autoreleasepool {
 					
 					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 64, distributor: .Gauss,
-					                               activator: .Identity, adapters: (.Linear, .Softplus))
+					                               activator: .Identity, adapters: (.Regular, .RegFloor))
 					
 					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 256, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [I])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [I])
 					
 					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 784, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [H])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [H])
 					
 					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 28 * 28, distributor: .Gauss,
-					                               activator: .Identity, adapters: (.Linear, .Softplus), input: [G])
+					                               activator: .Identity, adapters: (.Regular, .RegFloor), input: [G])
 					
 					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 784, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [F])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [F])
 					
 					let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 256, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [E])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [E])
 					
 					let C: Cell = try context.make(label: "\(prefix)C\(suffix)", width: 64, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [D])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [D])
 					
 					let _: Cell = try context.make(label: "\(prefix)B\(suffix)", width: 10, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [C])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [C])
 					
 					let _: Cell = try context.make(label: "\(prefix)A\(suffix)", width: 1, distributor: .Gauss,
-					                               activator: .Binary, adapters: (.Linear, .Softplus), input: [C])
+					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [C])
 					try context.save()
 					context.reset()
 
@@ -82,7 +82,7 @@ internal class MNIST {
 			}
 			let batch: Int = 8000
 			let count: Int = try educator.count(mnist: .train)
-			try (0..<16).forEach {
+			try (0..<64).forEach {
 				let times: String = String(describing: $0)
 				DispatchQueue.main.async {
 					label.stringValue = times

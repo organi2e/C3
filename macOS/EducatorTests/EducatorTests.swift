@@ -113,8 +113,8 @@ class EducatorTests: XCTestCase {
 	func testCIFAR10() {
 		do {
 			let educator: Educator = try Educator(storage: trainer)
-			if try 0 == educator.count(cifar10: .databatch3) {
-				try educator.build(cifar10: .databatch3)
+			if try 0 == educator.count(cifar10: .databatch4) {
+				try educator.build(cifar10: .databatch4)
 				try educator.save()
 			}
 			try educator.fetch(cifar10: .databatch1, limit: 10).enumerated().forEach {
