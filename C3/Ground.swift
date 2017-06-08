@@ -15,7 +15,7 @@ extension Ground {
 }
 extension Ground {
 	var context: Context {
-		guard let context: Context = managedObjectContext as? Context else { fatalError(Context.ErrorCase.InvalidContext.description) }
+		guard let context: Context = managedObjectContext as? Context else { fatalError(Context.ErrorCases.InvalidContext.description) }
 		return context
 	}
 }

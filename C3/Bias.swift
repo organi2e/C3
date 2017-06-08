@@ -122,7 +122,7 @@ extension Context {
 		bias.scaleType = adapters.1.rawValue
 		bias.scale = Data(count: count * MemoryLayout<Float>.size)
 		bias.scale.withUnsafeMutableBytes {
-			vDSP_vfill([1.0], $0, 1, vDSP_Length(count))
+			vDSP_vfill([Float(1)], $0, 1, vDSP_Length(count))
 		}
 		bias.setup(commandBuffer: commandBuffer, count: count)
 		return bias

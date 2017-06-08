@@ -144,7 +144,7 @@ extension Context {
 		edge.scaleType = adapters.1.rawValue
 		edge.scale = Data(count: count * MemoryLayout<Float>.size)
 		edge.scale.withUnsafeMutableBytes {
-			vDSP_vfill([1.0], $0, 1, vDSP_Length(count))
+			vDSP_vfill([Float(1)], $0, 1, vDSP_Length(count))
 		}
 		edge.setup(commandBuffer: commandBuffer, count: count)
 		return edge

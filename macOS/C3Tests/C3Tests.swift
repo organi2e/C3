@@ -95,7 +95,7 @@ class C3Tests: XCTestCase {
 			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
 			do {
 				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
-				try (0..<16).forEach {
+				try (0..<4).forEach {
 					last = try context.make(label: "H\($0)", width: 256, distributor: .Gauss, activator: .Binary, input: [last], decay: true, recurrent: [])
 				}
 				last = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [last], decay: false, recurrent: [])
