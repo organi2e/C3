@@ -332,8 +332,8 @@ extension Context {
 	                 input: Set<Cell> = Set<Cell>(),
 	                 decay: Bool = false,
 	                 recurrent: Array<Int> = Array<Int>()) throws -> Cell {
-		guard 0 < width else { throw ErrorCase.InvalidParameter(key: "width", value: width) }
-		guard recurrent.filter({ 0 <= $0 }).isEmpty else { throw ErrorCase.InvalidParameter(key: "recurrent", value: recurrent) }
+		guard 0 < width else { throw ErrorCases.InvalidParameter(key: "width", value: width) }
+		guard recurrent.filter({ 0 <= $0 }).isEmpty else { throw ErrorCases.InvalidParameter(key: "recurrent", value: recurrent) }
 		let commandBuffer: CommandBuffer = make()
 		let cell: Cell = try make()
 		cell.label = label

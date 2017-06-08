@@ -46,7 +46,7 @@ public class Context: NSManagedObjectContext {
 	let optimizerFactory: (Int) -> Optimizer
 	let adapter: Dictionary<AdapterType, (Int)->Adapter>
 	let distributor: Dictionary<DistributorType, Distributor>
-	enum ErrorCase: Error, CustomStringConvertible {
+	enum ErrorCases: Error, CustomStringConvertible {
 		case InvalidContext
 		case InvalidEntity(name: String)
 		case InvalidParameter(key: String, value: Any)
@@ -106,7 +106,7 @@ public class Context: NSManagedObjectContext {
 			optimizerFactory = try SMORMS3.optimizer(device: device, L2: L2, L1: L1, α: α, ε: ε)
 		}
 		super.init(concurrencyType: concurrencyType)
-		guard let model: NSManagedObjectModel = NSManagedObjectModel.mergedModel(from: [Bundle(for: type(of: self))]) else { throw ErrorCase.NoModelFound }
+		guard let model: NSManagedObjectModel = NSManagedObjectModel.mergedModel(from: [Bundle(for: type(of: self))]) else { throw ErrorCases.NoModelFound }
 		let store: NSPersistentStoreCoordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
 		let storetype: String = storage == nil ? NSInMemoryStoreType : ["sqlite", "db"].filter{$0==storage?.pathExtension}.isEmpty ? NSBinaryStoreType : NSSQLiteStoreType
 		try store.addPersistentStore(ofType: storetype, configurationName: nil, at: storage, options: nil)
@@ -153,7 +153,7 @@ extension Context {
 	func make<T: Ground>() throws -> T {
 		let name: String = String(describing: T.self)
 		guard let entity: T = NSEntityDescription.insertNewObject(forEntityName: name, into: self) as? T else {
-			throw ErrorCase.InvalidEntity(name: name)
+			throw ErrorCases.InvalidEntity(name: name)
 		}
 		return entity
 	}
