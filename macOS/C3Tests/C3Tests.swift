@@ -15,7 +15,7 @@ let file: String = UUID().uuidString
 let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(file).sqlite")
 
 let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [1,0,0,0]]
-let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [0,0,0,0]]
+let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,0,0,1], [9,0,1,0], [0,1,0,0], [1,0,0,0]]
 
 class C3Tests: XCTestCase {
 	override func setUp() {
@@ -92,10 +92,10 @@ class C3Tests: XCTestCase {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 			let context: Context = try Context(queue: queue,
 //			                                   optimizer: .Adamax(L2: 1e-6, L1: 0, α: 1e-3, β: 0.9, γ: 0.999, ε: 1e-8))
-			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
+			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-2, ε: 0))
 			do {
 				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
-				try (0..<4).forEach {
+				try (0..<8).forEach {
 					last = try context.make(label: "H\($0)", width: 256, distributor: .Gauss, activator: .Binary, input: [last], decay: true, recurrent: [])
 				}
 				last = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [last], decay: false, recurrent: [])
@@ -106,14 +106,14 @@ class C3Tests: XCTestCase {
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
 					print("try")
-					(0..<4096).forEach {
+					try!(0..<2048).forEach {
 						let ref: Int = ( $0 / 8 ) % 8
-						O.collect_refresh()
-						I.correct_refresh()
+						try O.collect_refresh()
+						try I.correct_refresh()
 						O.target = OS[ref]
 						I.source = IS[ref]
-						O.collect()
-						I.correct()
+						try O.collect()
+						try I.correct()
 						//						print(O.source)
 					}
 				}
@@ -126,11 +126,11 @@ class C3Tests: XCTestCase {
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				
 				print("gpu")
-				(0..<256).forEach {
+				try!(0..<256).forEach {
 					let k: Int = ( $0 / 8 ) % 8
-					O.collect_refresh()
+					try O.collect_refresh()
 					I.source = IS[ k ]
-					O.collect()
+					try O.collect()
 					//let x = O.source
 					print(k, OS[k], O.source.map(Int.init))//.map{ $0 == x.max() })
 				}

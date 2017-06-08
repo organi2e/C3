@@ -14,14 +14,20 @@ extension Ground {
 	@NSManaged var access: Date
 }
 extension Ground {
-	var context: Context {
-		guard let context: Context = managedObjectContext as? Context else { fatalError(Context.ErrorCases.InvalidContext.description) }
-		return context
+	func eval<T>(block: (Context)->T) throws -> T {
+		guard let context: Context = managedObjectContext as? Context else {
+			throw Context.ErrorCases.InvalidContext
+		}
+		return block(context)
 	}
 }
 extension Ground {
 	public override func awakeFromInsert() {
 		super.awakeFromInsert()
+		access = Date()
+	}
+	public override func awakeFromFetch() {
+		super.awakeFromFetch()
 		access = Date()
 	}
 }

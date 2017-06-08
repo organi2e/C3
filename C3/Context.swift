@@ -138,6 +138,7 @@ extension Context {
 		return optimizerFactory(count)
 	}
 }
+/*
 extension Context {
 	public func connect(output: Cell, input: Cell, adapters: (AdapterType, AdapterType)) throws {
 		guard output.objectID != input.objectID && output.input.filter({$0.input.objectID==input.objectID}).isEmpty else { return }
@@ -149,6 +150,7 @@ extension Context {
 		output.input.filter{$0.input.objectID == input.objectID}.forEach(delete)
 	}
 }
+*/
 extension Context {
 	func make<T: Ground>() throws -> T {
 		let name: String = String(describing: T.self)

@@ -94,23 +94,32 @@ extension Arcane {
 		handler((μ: locationCache.θ, σ: scaleCache.θ))
 		
 	}
-	func setup(commandBuffer: CommandBuffer, count: Int) {
+	func setup(context: Context, count: Int) {
 		
 		assert( count * MemoryLayout<Float>.size <= location.count)
 		assert( count * MemoryLayout<Float>.size <= scale.count)
 		
-		locationCache = Variable(context: context, data: location, adapter: context.make(count: count, type: locationType.adapterType), optimizer: context.optimizerFactory(count))
+		let commandBuffer: CommandBuffer = context.make()
 		
+		locationCache = Variable(context: context, data: location,
+		                         adapter: context.make(count: count, type: locationType.adapterType),
+		                         optimizer: context.optimizerFactory(count))
+			
 		locationCache.reset(commandBuffer: commandBuffer)
 		locationCache.refresh(commandBuffer: commandBuffer)
 		setPrimitiveValue(locationCache.data, forKey: "location")
 		
-		scaleCache = Variable(context: context, data: scale, adapter: context.make(count: count, type: scaleType.adapterType), optimizer: context.optimizerFactory(count))
-		
+		scaleCache = Variable(context: context, data: scale,
+		                      adapter: context.make(count: count, type: scaleType.adapterType),
+		                      optimizer: context.optimizerFactory(count))
+			
 		scaleCache.reset(commandBuffer: commandBuffer)
 		scaleCache.refresh(commandBuffer: commandBuffer)
 		setPrimitiveValue(scaleCache.data, forKey: "scale")
 		
+		commandBuffer.label = "Arcane.setup"
+		commandBuffer.commit()
+
 	}
 	internal func shuffle(commandBuffer: CommandBuffer, count: Int, μ: Float = 0, σ: Float = 1) {
 		func shuffle(_: CommandBuffer) {
@@ -131,7 +140,7 @@ extension Arcane {
 			}
 			assert( count * MemoryLayout<Float>.size <= scale.count )
 			scale.withUnsafeMutableBytes {
-				vDSP_vfill([1.0], $0, 1, vDSP_Length(count))
+				vDSP_vfill([Float(1)], $0, 1, vDSP_Length(count))
 			}
 		}
 		commandBuffer.addCompletedHandler(shuffle)
