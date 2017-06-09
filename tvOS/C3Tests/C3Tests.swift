@@ -6,118 +6,117 @@
 //
 //
 
+import Foundation
 import XCTest
 import Accelerate
 import Metal
 @testable import C3
 
-let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
-//let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(UUID().uuidString).sqlite")
-let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [1,0,0,0]]
-let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,2,0], [0,3,0,0], [0,0,4,0], [0,5,0,0], [6,0,0,0], [0,7,0,0], [0,0,0,0]]
+let file: String = UUID().uuidString
+let storage: URL = FileManager.default.temporaryDirectory.appendingPathComponent("C3\(file).sqlite")
 
-//let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0]]
-//let OS: Array<Array<Float>> = [[0,0,0,10], [0,0,10,0], [0,10,0,0], [10,0,0,0]]
+let IS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,1,0,0], [1,0,0,0]]
+let OS: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0], [0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
 
 class C3Tests: XCTestCase {
+	override func setUp() {
+		super.setUp()
+		print(storage.lastPathComponent)
+	}
 	/*
-	func testSaveLoad() {
-	let label: String = UUID().description
-	let width: Int = 1 + Int(arc4random_uniform(15))
+	func testReinforce() {
+	let source: Array<Array<Float>> = [[1,1,1,1], [1,1,1,0], [1,1,0,0], [1,0,0,0]]
+	let answer: Array<Array<Float>> = [[0,0,0,1], [0,0,1,0], [0,1,0,0], [1,0,0,0]]
+	guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 	do {
-	do {
-	let context: Context = try Context(storage: storage)
-	let _: Cell = try context.make(label: label, width: width)
-	try context.save()
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch()
-	print(XS)
-	XCTAssert(!XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: label)
-	XCTAssert(!XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(width: width)
-	XCTAssert(!XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: label, width: width)
-	XCTAssert(XS.count==1)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: UUID().description, width: width)
-	XCTAssert(XS.isEmpty)
-	}
-	do {
-	let context: Context = try Context(storage: storage)
-	let XS: [Cell] = try context.fetch(label: label, width: width+1)
-	XCTAssert(XS.isEmpty)
-	}
+	let context: Context = try Context(queue: queue, optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
+	let I: Cell = try context.make(label: "I", width:   4, distributor: .Gauss, activator: .Binary)
+	let H1: Cell = try context.make(label: "H1", width: 1024, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [I], decay: false)
+	let H2: Cell = try context.make(label: "H2", width: 1024, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [H1], decay: false)
+	let G: Cell = try context.make(label: "G", width:   4, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [H2], decay: false)
+	let F1: Cell = try context.make(label: "F1", width: 1024, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [G], decay: false)
+	let F2: Cell = try context.make(label: "F2", width: 1024, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [F1], decay: false)
+	let O: Cell = try context.make(label: "O", width:   5, distributor: .Gauss, activator: .Binary, adapters: (.Linear, .Softplus), input: [F2], decay: false)
 	
+	(0..<4096).forEach {
+	print($0)
+	zip(source, answer).forEach {
+	
+	O.collect_refresh()
+	G.correct_refresh()
+	O.target = $0.1 + [0]
+	G.source = $0.0
+	O.collect()
+	G.correct()
+	
+	O.collect_refresh()
+	I.source = $0.1
+	O.collect()
+	
+	I.correct_refresh()
+	O.target = $0.1 + [0]
+	I.correct(fix: [O, F1, F2])
+	
+	G.correct_refresh()
+	O.target = $0.1 + [1]
+	G.correct()
+	
+	/*
+	O.collect_refresh()
+	I.correct_refresh()
+	O.target = $0.1
+	I.source = $0.1
+	O.collect()
+	I.correct()
+	*/
+	}
+	}
+	(source).forEach {
+	O.collect_refresh()
+	G.source = $0
+	O.collect()
+	print(O.source)
+	}
+	(answer).forEach {
+	O.collect_refresh()
+	I.source = $0
+	O.collect()
+	print(O.source, G.source)
+	}
 	} catch {
 	XCTFail(String(describing: error))
 	}
 	}
 	*/
 	func testChain() {
-		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else {
-			XCTFail()
-			return
-		}
-		let queue: MTLCommandQueue = device.makeCommandQueue()
 		do {
-			let context: Context = try Context(queue: queue,
-			                                   storage: storage,
-			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0)
-			)
+			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
+			let context: Context = try Context(queue: queue, optimizer: .SMORMS3(L2: 0, L1: 0, α: 1e-1, ε: 0))
 			do {
-				let I: Cell = try context.make(label: "I", width: 4, distribution: .Gauss, activation: .Identity)
-				let H: Cell = try context.make(label: "H", width: 64, distribution: .Gauss, activation: .Binary, input: [I], decay: true, recurrent: [-1])
-				let G: Cell = try context.make(label: "G", width: 64, distribution: .Gauss, activation: .Binary, input: [H], decay: true, recurrent: [-1])
-//				let F: Cell = try context.make(label: "F", width: 64, distribution: .Gauss, activation: .Binary, input: [G], decay: true, recurrent: [])
-				let _: Cell = try context.make(label: "O", width: 4, distribution: .Gauss, activation: .Binary, input: [G], decay: false)
+				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
+				try (0..<8).forEach {
+					last = try context.make(label: "H\($0)", width: 64, distributor: .Gauss, activator: .Binary, input: [last], decay: true, recurrent: [])
+				}
+				last = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [last], decay: false, recurrent: [])
 				try context.save()
-				context.reset()
 			}
 			do {
 				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
-				measure {//124 sec w/o loop, 
+				measure {
 					print("try")
-					(0..<256).forEach {
+					try!(0..<4096).forEach {
 						let ref: Int = ( $0 / 4 ) % 8
-						O.collect_refresh()
-						I.correct_refresh()
+						try O.collect_refresh()
+						try I.correct_refresh()
 						O.target = OS[ref]
 						I.source = IS[ref]
-						O.collect()
-						I.correct()
-						
-						let command = queue.makeCommandBuffer()
-						command.addCompletedHandler { (_) in
-							var xbuf: Array<Float> = Array<Float>(repeating: Float.pi, count: 256 * 256 * 256)
-							var wbuf: Array<Float> = Array<Float>(repeating: Float.pi, count: 256 * 256)
-							var ybuf: Array<Float> = Array<Float>(repeating: Float.pi, count: 256 * 256 * 256)
-							let x: la_object_t = la_matrix_from_float_buffer_nocopy(&xbuf, 256, 256 * 256, 256 * 256, la_hint_t(LA_NO_HINT), nil, la_attribute_t(LA_ATTRIBUTE_ENABLE_LOGGING))
-							let w: la_object_t = la_matrix_from_float_buffer_nocopy(&wbuf, 256, 256, 256, la_hint_t(LA_NO_HINT), nil, la_attribute_t(LA_ATTRIBUTE_ENABLE_LOGGING))
-							let z: la_object_t = la_matrix_product(w, x)
-							la_matrix_to_float_buffer(&ybuf, 256 * 256, z)
-						}
-						command.commit()
-						
-						//print(O.source)
+						try O.collect()
+						try I.correct()
+						//						print(O.source)
 					}
 				}
 				try context.save()
-				context.reset()
 			}
 			
 			do {
@@ -126,13 +125,45 @@ class C3Tests: XCTestCase {
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				
 				print("gpu")
-				(0..<64).forEach {
-					O.collect_refresh()
-					I.source = IS[ ( $0 / 4 ) % 8 ]
-					O.collect()
+				try!(0..<64).forEach {
+					let k: Int = ( $0 / 4 ) % 8
+					try O.collect_refresh()
+					I.source = IS[ k ]
+					try O.collect()
 					//let x = O.source
-					print(O.source)//.map{ $0 == x.max() })
+					print(k, OS[k], O.source)//.map{$0 > 0.5 ? 1 : 0})//.map{ $0 == x.max() })
 				}
+				/*
+				print("cpu")
+				let (HWμ, HWσ) = context.capture(output: H, input: I)
+				let (HCμ, HCσ) = context.capture(cell: H)
+				
+				let (OWμ, OWσ) = context.capture(output: O, input: H)
+				let (OCμ, OCσ) = context.capture(cell: O)
+				
+				(0..<4).forEach {
+				let Xp: LaObjet = make(array: IS[$0], rows: 4, cols: 1)
+				
+				let Hμ: LaObjet = matrix_product(HWμ, Xp) + HCμ
+				let Hv: LaObjet = matrix_product(HWσ*HWσ, Xp*Xp) + HCσ*HCσ
+				let Hp: LaObjet = 0.5 + 0.5 * erf(Hμ*rsqrt(2*Hv))
+				
+				let Oμ: LaObjet = matrix_product(OWμ, Hp) + OCμ
+				let Ov: LaObjet = matrix_product(OWσ*OWσ, Hp*Hp) + OCσ*OCσ
+				let Op: LaObjet = 0.5 + 0.5 * erf(Oμ*rsqrt(2*Ov))
+				
+				print(Op.array)
+				}
+				
+				try HWμ.write(to: URL(fileURLWithPath: "/tmp/HWu.raw"))
+				try HWσ.write(to: URL(fileURLWithPath: "/tmp/HWs.raw"))
+				try HCμ.write(to: URL(fileURLWithPath: "/tmp/HCu.raw"))
+				try HCσ.write(to: URL(fileURLWithPath: "/tmp/HCs.raw"))
+				try OWμ.write(to: URL(fileURLWithPath: "/tmp/OWu.raw"))
+				try OWσ.write(to: URL(fileURLWithPath: "/tmp/OWs.raw"))
+				try OCμ.write(to: URL(fileURLWithPath: "/tmp/OCu.raw"))
+				try OCσ.write(to: URL(fileURLWithPath: "/tmp/OCs.raw"))
+				*/
 			}
 		} catch {
 			XCTFail(String(describing: error))
@@ -154,7 +185,7 @@ private extension MTLBuffer {
 		return UnsafeMutableBufferPointer<Float>(start: ref, count: count)
 	}
 	var count: Int {
-		return length / MemoryLayout<Float>.size
+		return length / MemoryLayout<Float>.stride
 	}
 }
 private extension la_object_t {

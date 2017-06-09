@@ -110,33 +110,33 @@ internal class MNIST {
 							}
 							try educator.fetch(mnist: .train, offset: Int(arc4random_uniform(UInt32(count))), limit: 1).forEach {
 								
-								A.collect_refresh()
-								B.collect_refresh()
+								try A.collect_refresh()
+								try B.collect_refresh()
 								F.source = $0.source
-								A.collect()
-								B.collect()
+								try A.collect()
+								try B.collect()
 								
-								F.correct_refresh()
+								try F.correct_refresh()
 								A.target = [0]
 								B.target = try $0.onehot(count: 10, value: 1)
-								F.correct()
+								try F.correct()
 								
-								A.collect_refresh()
-								B.collect_refresh()
+								try A.collect_refresh()
+								try B.collect_refresh()
 								I.source = try $0.onehot(count: 10, value: 1) + Array<Void>(repeating: (), count: 54).map {
 									Float(arc4random_uniform(1024))/1024.0
 								}
-								A.collect()
-								B.collect()
+								try A.collect()
+								try B.collect()
 								
-								I.correct_refresh()
+								try I.correct_refresh()
 								A.target = [0]
 								B.target = try $0.onehot(count: 10, value: 1)
-								I.correct(fix: [A, B, C, D, E])
+								try I.correct(ignore: [A, B, C, D, E])
 								
-								F.correct_refresh()
+								try F.correct_refresh()
 								A.target = [1]
-								F.correct()
+								try F.correct()
 								
 							}
 						}
@@ -154,15 +154,15 @@ internal class MNIST {
 						*/
 						let output: URL = FileManager.default.temporaryDirectory
 						try (0..<60).forEach { index in
-							B.collect_refresh()
-							A.collect_refresh()
+							try B.collect_refresh()
+							try A.collect_refresh()
 							I.source = (0..<10).map {
 								Float($0 == index % 10 ? 1 : 0)
 								} + Array<Void>(repeating: (), count: 54).map {
 									Float(arc4random_uniform(1024))/1024.0
 							}
-							B.collect()
-							A.collect()
+							try B.collect()
+							try A.collect()
 							print(A.source, B.source)
 							try Data(buffer: UnsafeBufferPointer<Float>(start: F.source, count: 28 * 28))
 								.write(to: output.appendingPathComponent("img\(index).raw"), options: [])

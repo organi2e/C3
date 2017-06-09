@@ -86,6 +86,8 @@
 		87C3C2781E94C87500A62C11 /* Logistic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C2771E94C87500A62C11 /* Logistic.swift */; };
 		87C3C27A1E94C88600A62C11 /* Logistic.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C2791E94C88600A62C11 /* Logistic.metal */; };
 		87D203F01E9A4FCC0054A34D /* Ground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203EF1E9A4FCC0054A34D /* Ground.swift */; };
+		87E393A11EEA82F500B39B6E /* CauchyDistribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E3939F1EEA82F500B39B6E /* CauchyDistribution.swift */; };
+		87E393A21EEA82F500B39B6E /* CauchyDistribution.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87E393A01EEA82F500B39B6E /* CauchyDistribution.metal */; };
 		87E74B021E9DC1B1006D513A /* Educator.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87E74AF91E9DC1B1006D513A /* Educator.framework */; };
 		87E74B091E9DC1B1006D513A /* EducatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E74B081E9DC1B1006D513A /* EducatorTests.swift */; };
 		87E74B0B1E9DC1B1006D513A /* Educator.h in Headers */ = {isa = PBXBuildFile; fileRef = 87E74AFB1E9DC1B1006D513A /* Educator.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -308,6 +310,8 @@
 		87C3C2771E94C87500A62C11 /* Logistic.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Logistic.swift; path = ../../Adapter/Logistic.swift; sourceTree = "<group>"; };
 		87C3C2791E94C88600A62C11 /* Logistic.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Logistic.metal; path = ../../Adapter/Logistic.metal; sourceTree = "<group>"; };
 		87D203EF1E9A4FCC0054A34D /* Ground.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Ground.swift; path = ../../C3/Ground.swift; sourceTree = "<group>"; };
+		87E3939F1EEA82F500B39B6E /* CauchyDistribution.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = CauchyDistribution.swift; path = ../../Distributor/CauchyDistribution.swift; sourceTree = "<group>"; };
+		87E393A01EEA82F500B39B6E /* CauchyDistribution.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = CauchyDistribution.metal; path = ../../Distributor/CauchyDistribution.metal; sourceTree = "<group>"; };
 		87E74AF91E9DC1B1006D513A /* Educator.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Educator.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		87E74AFB1E9DC1B1006D513A /* Educator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Educator.h; sourceTree = "<group>"; };
 		87E74AFC1E9DC1B1006D513A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -520,6 +524,8 @@
 			children = (
 				87E74B221E9DC2F5006D513A /* DegenerateDistributor.swift */,
 				87E74B211E9DC2F5006D513A /* DegenerateDistributor.metal */,
+				87E3939F1EEA82F500B39B6E /* CauchyDistribution.swift */,
+				87E393A01EEA82F500B39B6E /* CauchyDistribution.metal */,
 				87B8470D1E93B1CE00844835 /* GaussDistributor.swift */,
 				87B8470C1E93B1CE00844835 /* GaussDistributor.metal */,
 				87B8470B1E93B1CE00844835 /* Distributior.swift */,
@@ -1158,6 +1164,8 @@
 			files = (
 				87E74B241E9DC2F5006D513A /* DegenerateDistributor.swift in Sources */,
 				87B8470E1E93B1CE00844835 /* Distributior.swift in Sources */,
+				87E393A21EEA82F500B39B6E /* CauchyDistribution.metal in Sources */,
+				87E393A11EEA82F500B39B6E /* CauchyDistribution.swift in Sources */,
 				87B847101E93B1CE00844835 /* GaussDistributor.swift in Sources */,
 				87B8470F1E93B1CE00844835 /* GaussDistributor.metal in Sources */,
 				87E74B231E9DC2F5006D513A /* DegenerateDistributor.metal in Sources */,

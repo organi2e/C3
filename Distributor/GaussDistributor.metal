@@ -1,6 +1,6 @@
 //
 //  GaussDistributor.metal
-//  DistributorF
+//  Distributor
 //
 //  Created by Kota Nakano on 2017/03/24.
 //  Copyright © 2017 Kota Nakano. All rights reserved.
@@ -366,7 +366,7 @@ kernel void GaussCorrectP(device float * const dx [[ buffer(0) ]],
 	if ( n < N ) {
 		int const idx = n;
 		float const p = normcdf(u[idx]/s[idx]);
-		dx[idx] += ( p - d[idx] ) / p / ( 1 - p );
+		dx[idx] += ( p - d[idx] ); // p / ( 1 - p );
 	}
 }
 kernel void GaussCorrectV(device float * const dx [[ buffer(0) ]],
@@ -570,18 +570,20 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 	ushort seq = seeds[t];
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float const r = 1 / s[k];
-		float const x = u[k] * r;
-		float const y = step(seq/65536.0, normcdf(x));
-//		float const y = normcdf(x);
+		float const x = r * u[k];
 		float const ju = M_SQRT1_2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
+		f[k] = step(seq/65536.0, normcdf(x));
+//		f[k] = normcdf(x);
 		seq ^= seq << xorshift16.x;
 		seq ^= seq >> xorshift16.y;
 		seq ^= seq << xorshift16.z;
-		f[k] = y;
 		gu[k] = ju;
 		gs[k] = js;
 	}
+}
+inline float ln(float const x) {
+	return copysign(log(1+fabs(x)), x);
 }
 kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   device float * const ds [[ buffer(1) ]],
@@ -594,8 +596,8 @@ kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-//		float const p = normcdf(u[idx]/s[idx]);
-		float const g = du[idx];//(p - saturate(p - du[idx])) / p / ( 1 - p );
+		float const p = normcdf(u[idx]/s[idx]);
+		float const g = erf(du[idx]/M_2_SQRTPI_F)/p/(1-p);
 		du[idx] = g * gu[idx];
 		ds[idx] = g * gs[idx];
 	}
