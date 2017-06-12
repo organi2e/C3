@@ -69,9 +69,9 @@ extension Decay {
 				.map{[$0.μ, $0.σ]}
 				.reduce([], +)
 				.forEach{encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)}
-			encoder.label = "Decay.Cache.reset"
+			encoder.label = #function
 			encoder.endEncoding()
-			commandBuffer.label = "Decay.Cache.reset"
+			commandBuffer.label = #function
 			commandBuffer.commit()
 		}
 	}

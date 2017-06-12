@@ -7,38 +7,33 @@
 //
 import Metal
 public protocol Normalizer {
-	func collect(commandBuffer: MTLCommandBuffer, target: MTLBuffer, source: MTLBuffer)
-	func correct(commandBuffer: MTLCommandBuffer, target: MTLBuffer, source: MTLBuffer)
-	func connect(commandBuffer: MTLCommandBuffer, source: MTLBuffer)
-	func reset(commandBuffer: MTLCommandBuffer)
+	func collect(commandBuffer: MTLCommandBuffer, target: MTLBuffer, source: MTLBuffer, parameters: MTLBuffer, count: Int)
+	func correct(commandBuffer: MTLCommandBuffer, target: MTLBuffer, source: MTLBuffer, parameters: MTLBuffer, count: Int)
+	func connect(commandBuffer: MTLCommandBuffer, parameters: MTLBuffer, source: MTLBuffer, count: Int)
 }
 public class PassThrough {
-	let limit: Int
-	public init(count: Int) {
-		limit = count
+	public init() {
+		
 	}
 }
 extension PassThrough: Normalizer {
-	public func collect(commandBuffer: MTLCommandBuffer, target: MTLBuffer, source: MTLBuffer) {
-		assert( commandBuffer.device === target.device && limit * MemoryLayout<Float>.stride <= target.length )
-		assert( commandBuffer.device === source.device && limit * MemoryLayout<Float>.stride <= source.length )
+	public func collect(commandBuffer: MTLCommandBuffer, target: MTLBuffer, source: MTLBuffer, parameters: MTLBuffer, count: Int) {
+		assert( commandBuffer.device === target.device && count * MemoryLayout<Float>.stride <= target.length )
+		assert( commandBuffer.device === source.device && count * MemoryLayout<Float>.stride <= source.length )
 		let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		encoder.copy(from: source, sourceOffset: 0, to: target, destinationOffset: 0, size: limit * MemoryLayout<Float>.stride)
+		encoder.copy(from: source, sourceOffset: 0, to: target, destinationOffset: 0, size: count * MemoryLayout<Float>.stride)
 		encoder.label = #function
 		encoder.endEncoding()
 	}
-	public func correct(commandBuffer: MTLCommandBuffer, target: MTLBuffer, source: MTLBuffer) {
-		assert( commandBuffer.device === target.device && limit * MemoryLayout<Float>.stride <= target.length )
-		assert( commandBuffer.device === source.device && limit * MemoryLayout<Float>.stride <= source.length )
+	public func correct(commandBuffer: MTLCommandBuffer, target: MTLBuffer, source: MTLBuffer, parameters: MTLBuffer, count: Int) {
+		assert( commandBuffer.device === target.device && count * MemoryLayout<Float>.stride <= target.length )
+		assert( commandBuffer.device === source.device && count * MemoryLayout<Float>.stride <= source.length )
 		let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-		encoder.copy(from: source, sourceOffset: 0, to: target, destinationOffset: 0, size: limit * MemoryLayout<Float>.stride)
+		encoder.copy(from: source, sourceOffset: 0, to: target, destinationOffset: 0, size: count * MemoryLayout<Float>.stride)
 		encoder.label = #function
 		encoder.endEncoding()
 	}
-	public func connect(commandBuffer: MTLCommandBuffer, source: MTLBuffer) {
+	public func connect(commandBuffer: MTLCommandBuffer, parameters: MTLBuffer, source: MTLBuffer, count: Int) {
 		
-	}
-	public func reset(commandBuffer: MTLCommandBuffer) {
-	
 	}
 }

@@ -57,9 +57,9 @@ extension Bias {
 				.map{[$0.μ, $0.σ]}
 				.reduce([], +)
 				.forEach{encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)}
-			encoder.label = "Bias.Cache.reset"
+			encoder.label = #function
 			encoder.endEncoding()
-			commandBuffer.label = "Bias.Cache.reset"
+			commandBuffer.label = #function
 			commandBuffer.commit()
 		}
 	}

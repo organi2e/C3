@@ -92,10 +92,10 @@ class C3Tests: XCTestCase {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 			let context: Context = try Context(queue: queue,
 //			                                   optimizer: .Adamax(L2: 1e-6, L1: 0, α: 1e-3, β: 0.9, γ: 0.999, ε: 1e-8))
-			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-1, ε: 0))
+			                                   optimizer: .SMORMS3(L2: 0, L1: 0, α: 1e-2, ε: 0))
 			do {
 				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
-				try (0..<2).forEach {
+				try (0..<12).forEach {
 					last = try context.make(label: "H\($0)", width: 64, distributor: .Gauss, activator: .Binary, input: [last], decay: true, recurrent: [])
 				}
 				last = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [last], decay: false, recurrent: [])

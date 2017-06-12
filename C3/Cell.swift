@@ -9,7 +9,6 @@
 import Accelerate
 import CoreData
 import Distributor
-import Normalizer
 
 public class Cell: Ground {
 	
@@ -231,25 +230,19 @@ extension Cell {
 	@NSManaged private var cache: Cache
 	private class Cache: NSObject {
 		var index: Int
-		let array: Array<(χ: Buffer,
-						  ϝ: Buffer,
-						  φ: (μ: Buffer, σ: Buffer),
-						  g: (μ: Buffer, σ: Buffer),
-						  Δ: (μ: Buffer, σ: Buffer))>
+		let array: Array<(χ: Buffer, ϝ: Buffer, φ: (μ: Buffer, σ: Buffer), g: (μ: Buffer, σ: Buffer), Δ: (μ: Buffer, σ: Buffer))>
 		let distributor: Distributor
 		init(context: Context, distribution: DistributorType, depth: Int, width: Int) {
 			let length: Int = width * MemoryLayout<Float>.size
 			let option: MTLResourceOptions = .storageModePrivate
 			index = 0
 			array = Array<Void>(repeating: (), count: depth)
-				.map{
-					(χ: context.make(length: length, options: option),
-					 ϝ: context.make(length: length, options: option),
-					 φ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
-					 g: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
-					 Δ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)))
+				.map{(χ: context.make(length: length, options: option),
+				      ϝ: context.make(length: length, options: option),
+				      φ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
+				      g: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
+				      Δ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)))
 			}
-			
 			distributor = context.make(type: distribution)
 			super.init()
 			let commandBuffer: CommandBuffer = context.make()

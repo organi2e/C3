@@ -48,9 +48,9 @@ public enum OptimizerType {
 }
 public class Context: NSManagedObjectContext {
 	let mtl: MTLCommandQueue
-	let optimizerFactory: (Int) -> Optimizer
+	let optimizerFactory: (Int)->Optimizer
 	let adapter: Dictionary<AdapterType, (Int)->Adapter>
-	let normalizer: Dictionary<NormalizerType, (Int)->Normalizer>
+	let normalizer: Dictionary<NormalizerType, Normalizer>
 	let distributor: Dictionary<DistributorType, Distributor>
 	enum ErrorCases: Error, CustomStringConvertible {
 		case InvalidContext
@@ -74,7 +74,7 @@ public class Context: NSManagedObjectContext {
 		}
 	}
 	public required init?(coder aDecoder: NSCoder) {
-		assertionFailure("init(coder:) has not been implemented")
+		assertionFailure("\(#function) has not been implemented")
 		return nil
 	}
 	public init(queue: MTLCommandQueue,
@@ -95,9 +95,9 @@ public class Context: NSManagedObjectContext {
 			(.RegFloor, RegFloor.adapter(device: device)),
 			(.Exponential, Exponential.adapter(device: device))
 		)
-		normalizer = try Dictionary<NormalizerType, (Int)->Normalizer>(dictionaryLiteral:
-			(.PassThrough, PassThrough.init),
-			(.Stochastic, Stochastic.make(device: device))
+		normalizer = try Dictionary<NormalizerType, Normalizer>(dictionaryLiteral:
+			(.PassThrough, PassThrough()),
+			(.Stochastic, Stochastic(device: device))
 		)
 		distributor = try Dictionary<DistributorType, Distributor>(dictionaryLiteral:
 			(.Degenerate, DegenerateDistributor(device: device)),
@@ -140,9 +140,9 @@ extension Context {
 		guard let factory: (Int) -> Adapter = adapter[type] else { fatalError(type.rawValue) }
 		return factory(count)
 	}
-	func make(type: NormalizerType, count: Int) -> Normalizer {
-		guard let factory: (Int) -> Normalizer = normalizer[type] else { fatalError(type.rawValue) }
-		return factory(count)
+	func make(type: NormalizerType) -> Normalizer {
+		guard let normalizer: Normalizer = normalizer[type] else { fatalError(type.rawValue) }
+		return normalizer
 	}
 	func make(type: DistributorType) -> Distributor {
 		guard let distributor: Distributor = distributor[type] else { fatalError(type.rawValue) }
@@ -221,7 +221,7 @@ extension Context {
 		}
 		let commandBuffer: CommandBuffer = make()
 		commandBuffer.addCompletedHandler(done)
-		commandBuffer.label = "save"
+		commandBuffer.label = #function
 		commandBuffer.commit()
 		commandBuffer.waitUntilCompleted()
 		if let encounter: Error = encounter {

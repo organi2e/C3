@@ -8,6 +8,10 @@
 import Accelerate
 import CoreData
 import Distributor
+import Normalizer
+
+import simd
+
 internal class Edge: Arcane {
 	
 }
@@ -17,9 +21,12 @@ extension Edge {
 		fixing(commandBuffer: commandBuffer)
 	}
 	func collect(commandBuffer: CommandBuffer, collector: Collector, visit: Set<Cell>) {
-		let x: Buffer = input.collect(commandBuffer: commandBuffer, visit: visit)
+		normalizer.collect(commandBuffer: commandBuffer,
+		                   target: state,
+		                   source: input.collect(commandBuffer: commandBuffer, visit: visit),
+		                   parameters: parameters, count: input.width)
 		access {
-			collector.collect(w: $0, x: x, count: input.width)
+			collector.collect(w: $0, x: state, count: input.width)
 		}
 	}
 }
@@ -36,7 +43,7 @@ extension Edge {
 			change(commandBuffer: corrector.order) {
 				output.distributor.gradient(commandBuffer: corrector.order, Δθ: $0, j: ja(0), Δφ: Δφ, φ: φ, count: count) { connector in
 					access {
-						connector.connect(a: $0, x: input.χ(0))
+						connector.connect(a: $0, x: state)
 					}
 					output.connect(connector: connector, feed: ja)
 				}
@@ -44,37 +51,46 @@ extension Edge {
 		}
 		output.distributor.gradient(commandBuffer: corrector.order, Δx: corrector.Δ, j: jx(0), Δφ: Δφ, φ: φ, count: count) { connector in
 			access {
-				connector.connect(x: input.χ(0), a: $0)
+				connector.connect(x: state, a: $0)
 			}
 			output.connect(connector: connector, feed: jx)
 		}
+		normalizer.correct(commandBuffer: commandBuffer, target: corrector.Δ, source: corrector.Δ, parameters: parameters, count: input.width)
+		normalizer.connect(commandBuffer: commandBuffer, parameters: parameters, source: input.χ(0), count: input.width)
 	}
 }
 extension Edge {
 	@NSManaged private var cache: Cache
 	private class Cache: NSObject {
 		var index: Int
+		let state: Buffer
+		let parameters: Buffer
 		let array: Array<(ja: (μ: Buffer, σ: Buffer), jx: (μ: Buffer, σ: Buffer))>
-		init(context: Context, depth: Int, width: Int) {
-			let length: Int = width * MemoryLayout<Float>.stride
-			let option: MTLResourceOptions = .storageModeShared
+		let normalizer: Normalizer
+		init(context: Context, depth: Int, height: Int, width: Int, transform: Data) {
+			let length: Int = height * width * MemoryLayout<Float>.stride
 			index = 0
 			array = Array<Void>(repeating: (), count: depth)
-				.map{
-					(ja: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
-					 jx: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)))
+				.map{(ja: (μ: context.make(length: length, options: .storageModePrivate), σ: context.make(length: length, options: .storageModePrivate)),
+				      jx: (μ: context.make(length: length, options: .storageModePrivate), σ: context.make(length: length, options: .storageModePrivate)))
 			}
+			state = context.make(length: width * MemoryLayout<Float>.stride, options: .storageModePrivate)
+			parameters = context.make(data: transform, options: .storageModeShared)
+			normalizer = context.make(type: .Stochastic)
 			super.init()
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			array
 				.map{[$0.ja.μ, $0.ja.σ, $0.jx.μ, $0.jx.σ]}
-				.reduce([], +)
+				.reduce([state], +)
 				.forEach{encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)}
-			encoder.label = "Edge.Cache.reset"
+			encoder.label = #function
 			encoder.endEncoding()
-			commandBuffer.label = "Edge.Cache.reset"
+			commandBuffer.label = #function
 			commandBuffer.commit()
+		}
+		var transform: Data {
+			return Data(bytesNoCopy: parameters.contents(), count: parameters.length, deallocator: .none)
 		}
 	}
 	internal func rotate() {
@@ -88,8 +104,18 @@ extension Edge {
 		let cycle: Int = cache.array.count
 		return cache.array[((offset+cache.index)%cycle+cycle)%cycle].jx
 	}
+	internal var state: Buffer {
+		return cache.state
+	}
+	internal var parameters: Buffer {
+		return cache.parameters
+	}
+	internal var normalizer: Normalizer {
+		return cache.normalizer
+	}
 	override internal func setup(context: Context, count: Int) {
-		cache = Cache(context: context, depth: output.depth, width: count)
+		cache = Cache(context: context, depth: output.depth, height: output.width, width: input.width, transform: transform)
+		transform = cache.transform
 		super.setup(context: context, count: count)
 	}
 }
@@ -110,6 +136,7 @@ extension Edge {
 extension Edge {
 	@NSManaged var input: Cell
 	@NSManaged var output: Cell
+	@NSManaged var transform: Data
 }
 extension Context {
 	internal func make(output: Cell, input: Cell, adapters: (AdapterType, AdapterType)) throws -> Edge {
@@ -118,7 +145,7 @@ extension Context {
 		edge.output = output
 		edge.input = input
 		edge.locationType = adapters.0.rawValue
-		edge.location = Data(count: count * MemoryLayout<Float>.size)
+		edge.location = Data(count: count * MemoryLayout<Float>.stride)
 		edge.location.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in
 			assert( MemoryLayout<Float>.size == 4 )
 			assert( MemoryLayout<UInt32>.size == 4 )
@@ -133,10 +160,11 @@ extension Context {
 			vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
 		}
 		edge.scaleType = adapters.1.rawValue
-		edge.scale = Data(count: count * MemoryLayout<Float>.size)
+		edge.scale = Data(count: count * MemoryLayout<Float>.stride)
 		edge.scale.withUnsafeMutableBytes {
 			vDSP_vfill([Float(1)], $0, 1, vDSP_Length(count))
 		}
+		edge.transform = Data(bytes: Array<float2>(repeating: float2(0, 1), count: input.width), count: input.width * MemoryLayout<float2>.stride)
 		edge.setup(context: self, count: count)
 		return edge
 	}
