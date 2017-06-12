@@ -18,7 +18,7 @@ class NormalizerTests: XCTestCase {
 				throw NSError(domain: "", code: 0, userInfo: nil)
 			}
 			let queue: MTLCommandQueue = device.makeCommandQueue()
-			let normalizer: Normalizer = try Normalizer(device: device, count: count, γ: 0.995)
+			let normalizer: Normalizer = try Stochastic.make(device: device, γ: 0.995)(count)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
 			normalizer.reset(commandBuffer: commandBuffer)
 			commandBuffer.commit()

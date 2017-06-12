@@ -103,6 +103,6 @@ extension NonLinear: Adapter {
 private extension MTLLibrary {
 	func make(name: String, constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues())
 		throws -> MTLComputePipelineState {
-			return try device.makeComputePipelineState(function: try makeFunction(name: name, constantValues: constantValues))
+			return try device.makeComputePipelineState(function: makeFunction(name: name, constantValues: constantValues))
 	}
 }

@@ -90,6 +90,8 @@
 		87B8462F1E93985500844835 /* Tanh.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B8462E1E93985500844835 /* Tanh.metal */; };
 		87B846311E93A48500844835 /* Floor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B846301E93A48500844835 /* Floor.swift */; };
 		87B846331E93A49000844835 /* Floor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87B846321E93A49000844835 /* Floor.metal */; };
+		87B8D1921EEE6ED00022583E /* Normalizer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87FAD2441EEAB6F600E6FB3E /* Normalizer.framework */; };
+		87B8D1961EEE7D300022583E /* Normalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B8D1951EEE7D300022583E /* Normalizer.swift */; };
 		87BFC3A11EB0607B002F382F /* CauchyDistribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87BFC3A01EB0607B002F382F /* CauchyDistribution.swift */; };
 		87BFC3A31EB06086002F382F /* CauchyDistribution.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87BFC3A21EB06086002F382F /* CauchyDistribution.metal */; };
 		87C3C2741E94C58C00A62C11 /* Decay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C2731E94C58C00A62C11 /* Decay.swift */; };
@@ -116,8 +118,8 @@
 		87FAD2561EEAB6F700E6FB3E /* Normalizer.h in Headers */ = {isa = PBXBuildFile; fileRef = 87FAD2461EEAB6F600E6FB3E /* Normalizer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		87FAD2591EEAB6F700E6FB3E /* Normalizer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 87FAD2441EEAB6F600E6FB3E /* Normalizer.framework */; };
 		87FAD25A1EEAB6F700E6FB3E /* Normalizer.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 87FAD2441EEAB6F600E6FB3E /* Normalizer.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		87FAD2641EEAB83900E6FB3E /* Normalizer.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87FAD2631EEAB83900E6FB3E /* Normalizer.metal */; };
-		87FAD2661EEAB84600E6FB3E /* Normalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87FAD2651EEAB84600E6FB3E /* Normalizer.swift */; };
+		87FAD2641EEAB83900E6FB3E /* Stochastic.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87FAD2631EEAB83900E6FB3E /* Stochastic.metal */; };
+		87FAD2661EEAB84600E6FB3E /* Stochastic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87FAD2651EEAB84600E6FB3E /* Stochastic.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -334,6 +336,7 @@
 		87B8462E1E93985500844835 /* Tanh.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Tanh.metal; path = ../../Adapter/Tanh.metal; sourceTree = "<group>"; };
 		87B846301E93A48500844835 /* Floor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Floor.swift; path = ../../Adapter/Floor.swift; sourceTree = "<group>"; };
 		87B846321E93A49000844835 /* Floor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Floor.metal; path = ../../Adapter/Floor.metal; sourceTree = "<group>"; };
+		87B8D1951EEE7D300022583E /* Normalizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Normalizer.swift; path = ../../Normalizer/Normalizer.swift; sourceTree = "<group>"; };
 		87BFC3A01EB0607B002F382F /* CauchyDistribution.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = CauchyDistribution.swift; path = ../../Distributor/CauchyDistribution.swift; sourceTree = "<group>"; };
 		87BFC3A21EB06086002F382F /* CauchyDistribution.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = CauchyDistribution.metal; path = ../../Distributor/CauchyDistribution.metal; sourceTree = "<group>"; };
 		87C3C2731E94C58C00A62C11 /* Decay.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Decay.swift; path = ../../C3/Decay.swift; sourceTree = "<group>"; };
@@ -366,8 +369,8 @@
 		87FAD24C1EEAB6F700E6FB3E /* NormalizerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NormalizerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		87FAD2531EEAB6F700E6FB3E /* NormalizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NormalizerTests.swift; sourceTree = "<group>"; };
 		87FAD2551EEAB6F700E6FB3E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		87FAD2631EEAB83900E6FB3E /* Normalizer.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Normalizer.metal; path = ../../Normalizer/Normalizer.metal; sourceTree = "<group>"; };
-		87FAD2651EEAB84600E6FB3E /* Normalizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Normalizer.swift; path = ../../Normalizer/Normalizer.swift; sourceTree = "<group>"; };
+		87FAD2631EEAB83900E6FB3E /* Stochastic.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Stochastic.metal; path = ../../Normalizer/Stochastic.metal; sourceTree = "<group>"; };
+		87FAD2651EEAB84600E6FB3E /* Stochastic.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Stochastic.swift; path = ../../Normalizer/Stochastic.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -375,6 +378,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				87B8D1921EEE6ED00022583E /* Normalizer.framework in Frameworks */,
 				87264DA91E9B89CA00CA7DBF /* Adapter.framework in Frameworks */,
 				87264DAA1E9B89CA00CA7DBF /* Distributor.framework in Frameworks */,
 				87264DAB1E9B89CA00CA7DBF /* Optimizer.framework in Frameworks */,
@@ -724,8 +728,9 @@
 		87FAD2451EEAB6F600E6FB3E /* Normalizer */ = {
 			isa = PBXGroup;
 			children = (
-				87FAD2651EEAB84600E6FB3E /* Normalizer.swift */,
-				87FAD2631EEAB83900E6FB3E /* Normalizer.metal */,
+				87FAD2651EEAB84600E6FB3E /* Stochastic.swift */,
+				87FAD2631EEAB83900E6FB3E /* Stochastic.metal */,
+				87B8D1951EEE7D300022583E /* Normalizer.swift */,
 				87FAD2461EEAB6F600E6FB3E /* Normalizer.h */,
 				87FAD2471EEAB6F600E6FB3E /* Info.plist */,
 			);
@@ -1456,8 +1461,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				87FAD2661EEAB84600E6FB3E /* Normalizer.swift in Sources */,
-				87FAD2641EEAB83900E6FB3E /* Normalizer.metal in Sources */,
+				87FAD2661EEAB84600E6FB3E /* Stochastic.swift in Sources */,
+				87B8D1961EEE7D300022583E /* Normalizer.swift in Sources */,
+				87FAD2641EEAB83900E6FB3E /* Stochastic.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

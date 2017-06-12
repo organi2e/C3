@@ -95,7 +95,7 @@ class C3Tests: XCTestCase {
 			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-1, ε: 0))
 			do {
 				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
-				try (0..<12).forEach {
+				try (0..<2).forEach {
 					last = try context.make(label: "H\($0)", width: 64, distributor: .Gauss, activator: .Binary, input: [last], decay: true, recurrent: [])
 				}
 				last = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [last], decay: false, recurrent: [])
@@ -106,8 +106,8 @@ class C3Tests: XCTestCase {
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
 					print("try")
-					try!(0..<4096).forEach {
-						let ref: Int = ( $0 / 8 ) % 8
+					try!(0..<1024).forEach {
+						let ref: Int = ( $0 / 4 ) % 4
 						try O.collect_refresh()
 						try I.correct_refresh()
 						O.target = OS[ref]
@@ -126,8 +126,8 @@ class C3Tests: XCTestCase {
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				
 				print("gpu")
-				try!(0..<256).forEach {
-					let k: Int = ( $0 / 8 ) % 8
+				try!(0..<64).forEach {
+					let k: Int = ( $0 / 4 ) % 4
 					try O.collect_refresh()
 					I.source = IS[ k ]
 					try O.collect()

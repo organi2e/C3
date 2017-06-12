@@ -9,6 +9,7 @@
 import Accelerate
 import CoreData
 import Distributor
+import Normalizer
 
 public class Cell: Ground {
 	
@@ -18,7 +19,7 @@ extension Cell {
 		try eval {
 			let commandBuffer: CommandBuffer = $0.make()
 			collect_refresh(commandBuffer: commandBuffer)
-			commandBuffer.label = "Cell.collect_refresh"
+			commandBuffer.label = #function
 			commandBuffer.commit()
 		}
 	}
@@ -40,7 +41,7 @@ extension Cell {
 		try eval {
 			let commandBuffer: CommandBuffer = $0.make()
 			let _: Buffer = collect(commandBuffer: commandBuffer, visit: Set<Cell>())
-			commandBuffer.label = "Cell.collect"
+			commandBuffer.label = #function
 			commandBuffer.commit()
 		}
 	}
@@ -75,7 +76,7 @@ extension Cell {
 		try eval {
 			let commandBuffer: CommandBuffer = $0.make()
 			correct_refresh(commandBuffer: commandBuffer)
-			commandBuffer.label = "Cell.correct_refresh"
+			commandBuffer.label = #function
 			commandBuffer.commit()
 		}
 	}
@@ -99,7 +100,7 @@ extension Cell {
 		try eval {
 			let commandBuffer: CommandBuffer = $0.make()
 			let _: (μ: Buffer, σ: Buffer) = correct(commandBuffer: commandBuffer, ignore: ignore.union([self]), visit: [])
-			commandBuffer.label = "Cell.correct"
+			commandBuffer.label = #function
 			commandBuffer.commit()
 		}
 	}
@@ -157,9 +158,9 @@ extension Cell {
 				let commandBuffer: CommandBuffer = $0.make()
 				let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 				encoder.copy(from: χ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(χ(0).length, target.length))
-				encoder.label = "Cell.getSource"
+				encoder.label = #function
 				encoder.endEncoding()
-				commandBuffer.label = "Cell.getSource"
+				commandBuffer.label = #function
 				commandBuffer.commit()
 				commandBuffer.waitUntilCompleted()
 				defer {
@@ -176,12 +177,12 @@ extension Cell {
 				let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 				encoder.copy(from: source, sourceOffset: 0,
 				             to: χ(0), destinationOffset: 0, size: min(source.length, χ(0).length))
-				encoder.label = "Cell.setSource"
+				encoder.label = #function
 				encoder.endEncoding()
 				commandBuffer.addCompletedHandler { (_) in
 					source.setPurgeableState(.empty)
 				}
-				commandBuffer.label = "Cell.setSource"
+				commandBuffer.label = #function
 				commandBuffer.commit()
 				return newValue.isEmpty
 			}) == false
@@ -195,9 +196,9 @@ extension Cell {
 				let commandBuffer: CommandBuffer = $0.make()
 				let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 				encoder.copy(from: ϝ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(ϝ(0).length, target.length))
-				encoder.label = "Cell.getTarget"
+				encoder.label = #function
 				encoder.endEncoding()
-				commandBuffer.label = "Cell.getTarget"
+				commandBuffer.label = #function
 				commandBuffer.commit()
 				commandBuffer.waitUntilCompleted()
 				defer {
@@ -214,12 +215,12 @@ extension Cell {
 				let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 				encoder.copy(from: source, sourceOffset: 0,
 				             to: ϝ(0), destinationOffset: 0, size: min(source.length, ϝ(0).length))
-				encoder.label = "Cell.setTarget"
+				encoder.label = #function
 				encoder.endEncoding()
 				commandBuffer.addCompletedHandler { (_) in
 					source.setPurgeableState(.empty)
 				}
-				commandBuffer.label = "Cell.setTarget"
+				commandBuffer.label = #function
 				commandBuffer.commit()
 				return newValue.isEmpty
 			}) == false
@@ -230,7 +231,11 @@ extension Cell {
 	@NSManaged private var cache: Cache
 	private class Cache: NSObject {
 		var index: Int
-		let array: Array<(χ: Buffer, ϝ: Buffer, φ: (μ: Buffer, σ: Buffer), g: (μ: Buffer, σ: Buffer), Δ: (μ: Buffer, σ: Buffer))>
+		let array: Array<(χ: Buffer,
+						  ϝ: Buffer,
+						  φ: (μ: Buffer, σ: Buffer),
+						  g: (μ: Buffer, σ: Buffer),
+						  Δ: (μ: Buffer, σ: Buffer))>
 		let distributor: Distributor
 		init(context: Context, distribution: DistributorType, depth: Int, width: Int) {
 			let length: Int = width * MemoryLayout<Float>.size
@@ -244,6 +249,7 @@ extension Cell {
 					 g: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
 					 Δ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)))
 			}
+			
 			distributor = context.make(type: distribution)
 			super.init()
 			let commandBuffer: CommandBuffer = context.make()
@@ -252,9 +258,9 @@ extension Cell {
 				.map{[$0.g.μ, $0.g.σ, $0.Δ.μ, $0.Δ.σ, $0.φ.μ, $0.φ.σ, $0.χ, $0.ϝ]}
 				.reduce([], +)
 				.forEach{encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)}
-			encoder.label = "Cell.Cache.reset"
+			encoder.label = #function
 			encoder.endEncoding()
-			commandBuffer.label = "Cell.Cache.reset"
+			commandBuffer.label = #function
 			commandBuffer.commit()
 		}
 	}

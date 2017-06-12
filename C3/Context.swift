@@ -13,6 +13,7 @@ import Metal
 import Adapter
 import Distributor
 import Optimizer
+import Normalizer
 
 public enum DistributorType: String {
 	case Degenerate = "Degenerate"
@@ -34,6 +35,10 @@ public enum AdapterType: String {
 	case RegFloor = "RegFloor"
 	case Exponential = "Exponential"
 }
+public enum NormalizerType: String {
+	case PassThrough = "PassThrough"
+	case Stochastic = "Stochastic"
+}
 public enum OptimizerType {
 	case SGD(L2: Float, L1: Float, η: Float)
 	case AdaDelta(L2: Float, L1: Float, ρ: Float, ε: Float)
@@ -45,6 +50,7 @@ public class Context: NSManagedObjectContext {
 	let mtl: MTLCommandQueue
 	let optimizerFactory: (Int) -> Optimizer
 	let adapter: Dictionary<AdapterType, (Int)->Adapter>
+	let normalizer: Dictionary<NormalizerType, (Int)->Normalizer>
 	let distributor: Dictionary<DistributorType, Distributor>
 	enum ErrorCases: Error, CustomStringConvertible {
 		case InvalidContext
@@ -89,6 +95,10 @@ public class Context: NSManagedObjectContext {
 			(.RegFloor, RegFloor.adapter(device: device)),
 			(.Exponential, Exponential.adapter(device: device))
 		)
+		normalizer = try Dictionary<NormalizerType, (Int)->Normalizer>(dictionaryLiteral:
+			(.PassThrough, PassThrough.init),
+			(.Stochastic, Stochastic.make(device: device))
+		)
 		distributor = try Dictionary<DistributorType, Distributor>(dictionaryLiteral:
 			(.Degenerate, DegenerateDistributor(device: device)),
 			(.Gauss, GaussDistributor(device: device))
@@ -126,8 +136,12 @@ extension Context {
 	func make() -> CommandBuffer {
 		return mtl.makeCommandBuffer()
 	}
-	func make(count: Int, type: AdapterType) -> Adapter {
+	func make(type: AdapterType, count: Int) -> Adapter {
 		guard let factory: (Int) -> Adapter = adapter[type] else { fatalError(type.rawValue) }
+		return factory(count)
+	}
+	func make(type: NormalizerType, count: Int) -> Normalizer {
+		guard let factory: (Int) -> Normalizer = normalizer[type] else { fatalError(type.rawValue) }
 		return factory(count)
 	}
 	func make(type: DistributorType) -> Distributor {

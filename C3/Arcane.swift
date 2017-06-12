@@ -102,7 +102,7 @@ extension Arcane {
 		let commandBuffer: CommandBuffer = context.make()
 		
 		locationCache = Variable(context: context, data: location,
-		                         adapter: context.make(count: count, type: locationType.adapterType),
+		                         adapter: context.make(type: locationType.adapterType, count: count),
 		                         optimizer: context.optimizerFactory(count))
 			
 		locationCache.reset(commandBuffer: commandBuffer)
@@ -110,7 +110,7 @@ extension Arcane {
 		setPrimitiveValue(locationCache.data, forKey: "location")
 		
 		scaleCache = Variable(context: context, data: scale,
-		                      adapter: context.make(count: count, type: scaleType.adapterType),
+		                      adapter: context.make(type: scaleType.adapterType, count: count),
 		                      optimizer: context.optimizerFactory(count))
 			
 		scaleCache.reset(commandBuffer: commandBuffer)
