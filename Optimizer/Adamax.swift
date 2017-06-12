@@ -21,6 +21,7 @@ public class Adamax {
 		threads = MTLSize(width: optimizer.threadExecutionWidth, height: 1, depth: 1)
 		groups = MTLSize(width: (limit-1)/threads.width+1, height: 1, depth: 1)
 		parameters = pipeline.device.makeBuffer(length: limit * MemoryLayout<float2>.size, options: .storageModePrivate)
+		parameters.label = #function
 	}
 	public static func optimizer(device: MTLDevice, L2: Float = 0.0, L1: Float = 0.0, α: Float = 1e-3, β: Float = 0.9, γ: Float = 0.999, ε: Float = 0) throws -> (Int) -> Optimizer {
 		let bundle: Bundle = Bundle(for: self)
@@ -53,12 +54,15 @@ extension Adamax: Optimizer {
 		encoder.setBuffer(Δ, offset: 0, at: 2)
 		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 3)
 		encoder.dispatchThreadgroups(groups, threadsPerThreadgroup: threads)
+		encoder.label = #function
 		encoder.endEncoding()
 		
 	}
 	public func reset(commandBuffer: MTLCommandBuffer) {
+		assert( commandBuffer.device === parameters.device && limit * MemoryLayout<float2>.stride <= parameters.length )
 		let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 		encoder.fill(buffer: parameters, range: NSRange(location: 0, length: parameters.length), value: 0)
+		encoder.label = #function
 		encoder.endEncoding()
 	}
 }

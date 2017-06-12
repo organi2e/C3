@@ -21,7 +21,7 @@ public class SMORMS3 {
 		threads = MTLSize(width: optimizer.threadExecutionWidth, height: 1, depth: 1)
 		groups = MTLSize(width: (limit-1)/threads.width+1, height: 1, depth: 1)
 		parameters = optimizer.device.makeBuffer(length: limit * MemoryLayout<float3>.stride, options: .storageModePrivate)
-		parameters.label = "SMORMS3.Parameters(\(limit))"
+		parameters.label = #function
 	}
 	public static func optimizer(device: MTLDevice, L2: Float = 0.0, L1: Float = 0.0, α: Float = 1e-3, ε: Float = 0.0) throws -> (Int) -> Optimizer {
 		let bundle: Bundle = Bundle(for: self)
@@ -54,7 +54,7 @@ extension SMORMS3: Optimizer {
 		encoder.setBufferOffset(0, at: 1)
 		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 3)
 		encoder.dispatchThreadgroups(groups, threadsPerThreadgroup: threads)
-		encoder.label = "SMORMS3.Optimize(\(limit))"
+		encoder.label = #function
 		encoder.endEncoding()
 		
 	}
@@ -62,7 +62,7 @@ extension SMORMS3: Optimizer {
 		assert( commandBuffer.device === parameters.device && limit * MemoryLayout<float3>.stride <= parameters.length )
 		let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 		encoder.fill(buffer: parameters, range: NSRange(location: 0, length: parameters.length), value: 0)
-		encoder.label = "SMORMS3.Reset(\(limit))"
+		encoder.label = #function
 		encoder.endEncoding()
 	}
 }

@@ -31,7 +31,7 @@ kernel void AdamOptimize(device float * const theta [[ buffer(0) ]],
 	
 		float const r = rsqrt(p.y+epsilon);
 		float const t = theta[idx];
-		theta[idx] -= dot(alpha, float3(t, sign(t), p.x * select(0.0, r, isnormal(r))));
+		theta[idx] -= dot(alpha, float3(t, sign(t), p.x * select(0.0, r, isfinite(r))));
 		
 		parameters[idx] = p;
 	}
