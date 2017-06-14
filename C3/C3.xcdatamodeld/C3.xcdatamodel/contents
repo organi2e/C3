@@ -34,7 +34,6 @@
     </entity>
     <entity name="Edge" representedClassName=".Edge" parentEntity="Arcane" syncable="YES">
         <attribute name="cache" transient="YES" customClassName="." syncable="YES"/>
-        <attribute name="transform" attributeType="Binary" syncable="YES"/>
         <relationship name="input" maxCount="1" deletionRule="Nullify" destinationEntity="Cell" inverseName="output" inverseEntity="Cell" syncable="YES"/>
         <relationship name="output" maxCount="1" deletionRule="Nullify" destinationEntity="Cell" inverseName="input" inverseEntity="Cell" syncable="YES"/>
     </entity>
@@ -51,7 +50,7 @@
         <element name="Bias" positionX="-54" positionY="9" width="128" height="75"/>
         <element name="Cell" positionX="-36" positionY="18" width="128" height="255"/>
         <element name="Decay" positionX="-36" positionY="45" width="128" height="75"/>
-        <element name="Edge" positionX="-18" positionY="54" width="128" height="105"/>
+        <element name="Edge" positionX="-18" positionY="54" width="128" height="90"/>
         <element name="Feedback" positionX="-36" positionY="63" width="128" height="90"/>
         <element name="Ground" positionX="-36" positionY="81" width="128" height="60"/>
     </elements>

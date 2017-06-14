@@ -35,9 +35,9 @@ public enum AdapterType: String {
 	case RegFloor = "RegFloor"
 	case Exponential = "Exponential"
 }
-public enum NormalizerType: String {
-	case PassThrough = "PassThrough"
-	case Stochastic = "Stochastic"
+public enum NormalizerType {
+	case PassThrough
+	case Stochastic(γ: Float)
 }
 public enum OptimizerType {
 	case SGD(L2: Float, L1: Float, η: Float)
@@ -48,9 +48,9 @@ public enum OptimizerType {
 }
 public class Context: NSManagedObjectContext {
 	let mtl: MTLCommandQueue
+	let normalizerFactory: (Int)->Normalizer
 	let optimizerFactory: (Int)->Optimizer
 	let adapter: Dictionary<AdapterType, (Int)->Adapter>
-	let normalizer: Dictionary<NormalizerType, Normalizer>
 	let distributor: Dictionary<DistributorType, Distributor>
 	enum ErrorCases: Error, CustomStringConvertible {
 		case InvalidContext
@@ -79,6 +79,7 @@ public class Context: NSManagedObjectContext {
 	}
 	public init(queue: MTLCommandQueue,
 	            storage: URL? = nil,
+	            normalizer: NormalizerType = .PassThrough,
 	            optimizer: OptimizerType = .SGD(L2: 0, L1: 0, η: 0),
 	            concurrencyType: NSManagedObjectContextConcurrencyType = .privateQueueConcurrencyType) throws {
 		let device: Device = queue.device
@@ -95,14 +96,16 @@ public class Context: NSManagedObjectContext {
 			(.RegFloor, RegFloor.adapter(device: device)),
 			(.Exponential, Exponential.adapter(device: device))
 		)
-		normalizer = try Dictionary<NormalizerType, Normalizer>(dictionaryLiteral:
-			(.PassThrough, PassThrough()),
-			(.Stochastic, Stochastic(device: device))
-		)
 		distributor = try Dictionary<DistributorType, Distributor>(dictionaryLiteral:
 			(.Degenerate, DegenerateDistributor(device: device)),
 			(.Gauss, GaussDistributor(device: device))
 		)
+		switch normalizer {
+		case .PassThrough:
+			normalizerFactory = PassThrough.init
+		case .Stochastic(let γ):
+			normalizerFactory = try Stochastic.normalizer(device: device, γ: γ)
+		}
 		switch optimizer {
 		case let .SGD(L2, L1, η):
 			optimizerFactory = try SGD.optimizer(device: device, L2: L2, L1: L1, η: η)
@@ -140,13 +143,12 @@ extension Context {
 		guard let factory: (Int) -> Adapter = adapter[type] else { fatalError(type.rawValue) }
 		return factory(count)
 	}
-	func make(type: NormalizerType) -> Normalizer {
-		guard let normalizer: Normalizer = normalizer[type] else { fatalError(type.rawValue) }
-		return normalizer
-	}
 	func make(type: DistributorType) -> Distributor {
 		guard let distributor: Distributor = distributor[type] else { fatalError(type.rawValue) }
 		return distributor
+	}
+	func make(count: Int) -> Normalizer {
+		return normalizerFactory(count)
 	}
 	func make(count: Int) -> Optimizer {
 		return optimizerFactory(count)

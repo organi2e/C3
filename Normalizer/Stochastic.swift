@@ -9,139 +9,62 @@
 import Metal
 import simd
 public class Stochastic {
-	let collect: MTLComputePipelineState
-	let correct: MTLComputePipelineState
-	let connect: MTLComputePipelineState
-	let scaling: MTLComputePipelineState
-	let average: MTLComputePipelineState
-	public init(device: MTLDevice, γ: Float = 0.995, ε: Float = 0) throws {
-		
-		let Class: AnyClass = type(of: self)
-		
+	let limit: Int
+	let pipeline: MTLComputePipelineState
+	let momentum: MTLBuffer
+	let gradient: MTLBuffer
+	private init(pipeline state: MTLComputePipelineState, count: Int) {
+		let options: MTLResourceOptions = .storageModePrivate
+		limit = count
+		pipeline = state
+		momentum = pipeline.device.makeBuffer(length: limit * MemoryLayout<float2>.stride, options: options)
+		gradient = pipeline.device.makeBuffer(length: limit * MemoryLayout<float4>.stride, options: options)
+	}
+	public static func normalizer(device: MTLDevice, γ: Float = 0.99, ε: Float = 0) throws -> (Int) -> Normalizer {
 		let constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
 		constantValues.setConstantValue([γ], type: .float, withName: "gamma")
 		constantValues.setConstantValue([ε], type: .float, withName: "epsilon")
 		
-		let bundle: Bundle = Bundle(for: Class)
-		let library: MTLLibrary = try device.makeDefaultLibrary(bundle: bundle)
-		
-		(collect, correct, connect, scaling, average)
-			= try (library.make(name: "\(String(describing: Class))Collect", constantValues: constantValues),
-			       library.make(name: "\(String(describing: Class))Correct", constantValues: constantValues),
-			       library.make(name: "\(String(describing: Class))Connect", constantValues: constantValues),
-			       library.make(name: "\(String(describing: Class))Scaling", constantValues: constantValues),
-			       library.make(name: "\(String(describing: Class))Average", constantValues: constantValues))
+		let pipeline: MTLComputePipelineState =
+			try device.makeDefaultLibrary(bundle: Bundle(for: self)).make(name: "\(String(describing: self))Adjust", constantValues: constantValues)
+		return {
+			Stochastic(pipeline: pipeline, count: $0)
+		}
 	}
-	/*
-	public static func make(device: MTLDevice, γ: Float = 0.999, ε: Float = 0) throws {
-		let constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()
-		constantValues.setConstantValue([γ], type: .float, withName: "gamma")
-		constantValues.setConstantValue([ε], type: .float, withName: "epsilon")
-		
-		let bundle: Bundle = Bundle(for: self)
-		let library: MTLLibrary = try device.makeDefaultLibrary(bundle: bundle)
-		
-		let (collect, correct, connect) = try (library.make(name: "\(String(describing: self))Collect", constantValues: constantValues),
-		                                       library.make(name: "\(String(describing: self))Correct", constantValues: constantValues),
-		                                       library.make(name: "\(String(describing: self))Connect", constantValues: constantValues)
-		)
-		
-	}
-	*/
 }
 extension Stochastic: Normalizer {
-	public func collect(commandBuffer: MTLCommandBuffer, target: MTLBuffer, source: MTLBuffer, parameters: MTLBuffer, count: Int) {
+	public func adjust(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer)) {
 		
-		assert( collect.device === commandBuffer.device )
-		assert( collect.device === parameters.device && count * MemoryLayout<float2>.stride <= parameters.length )
-		assert( collect.device === target.device && count * MemoryLayout<Float>.stride <= target.length )
-		assert( collect.device === source.device && count * MemoryLayout<Float>.stride <= source.length )
+		assert( commandBuffer.device === pipeline.device )
+		assert( commandBuffer.device === Δφ.μ.device && limit * MemoryLayout<Float>.stride <= Δφ.μ.length )
+		assert( commandBuffer.device === Δφ.σ.device && limit * MemoryLayout<Float>.stride <= Δφ.σ.length )
+		assert( commandBuffer.device === momentum.device && limit * MemoryLayout<float2>.stride <= momentum.length )
+		assert( commandBuffer.device === gradient.device && limit * MemoryLayout<float4>.stride <= gradient.length )
+		assert( commandBuffer.device === φ.μ.device && limit * MemoryLayout<Float>.stride <= φ.μ.length )
+		assert( commandBuffer.device === φ.σ.device && limit * MemoryLayout<Float>.stride <= φ.σ.length )
 		
-		let threads: Int = collect.threadExecutionWidth
 		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		encoder.setComputePipelineState(collect)
-		encoder.setBuffer(target, offset: 0, at: 0)
-		encoder.setBuffer(parameters, offset: 0, at: 1)
-		encoder.setBuffer(source, offset: 0, at: 2)
-		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 3)
-		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
+		let threads: Int = pipeline.threadExecutionWidth
+		encoder.setComputePipelineState(pipeline)
+		encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
+		encoder.setBuffer(Δφ.σ, offset: 0, at: 1)
+		encoder.setBuffer(momentum, offset: 0, at: 2)
+		encoder.setBuffer(gradient, offset: 0, at: 3)
+		encoder.setBuffer(φ.μ, offset: 0, at: 4)
+		encoder.setBuffer(φ.σ, offset: 0, at: 5)
+		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 6)
+		encoder.dispatchThreadgroups(MTLSize(width: (limit-1)/threads+1, height: 1, depth: 1),
 		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
 		encoder.label = #function
 		encoder.endEncoding()
+		
 	}
-	public func correct(commandBuffer: MTLCommandBuffer, target: MTLBuffer, source: MTLBuffer, parameters: MTLBuffer, count: Int) {
-		
-		assert( correct.device === commandBuffer.device )
-		assert( correct.device === parameters.device && count * MemoryLayout<float2>.stride <= parameters.length )
-		assert( correct.device === target.device && count * MemoryLayout<Float>.stride <= target.length )
-		assert( correct.device === source.device && count * MemoryLayout<Float>.stride <= source.length )
-		
-		let threads: Int = correct.threadExecutionWidth
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		encoder.setComputePipelineState(correct)
-		encoder.setBuffer(target, offset: 0, at: 0)
-		encoder.setBuffer(parameters, offset: 0, at: 1)
-		encoder.setBuffer(source, offset: 0, at: 2)
-		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 3)
-		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = #function
-		encoder.endEncoding()
-	}
-	public func connect(commandBuffer: MTLCommandBuffer, parameters: MTLBuffer, source: MTLBuffer, count: Int) {
-		
-		assert( connect.device === commandBuffer.device )
-		assert( connect.device === parameters.device && count * MemoryLayout<float2>.stride <= parameters.length )
-		assert( connect.device === source.device && count * MemoryLayout<Float>.stride <= source.length )
-		
-		let threads: Int = connect.threadExecutionWidth
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		encoder.setComputePipelineState(connect)
-		encoder.setBuffer(parameters, offset: 0, at: 0)
-		encoder.setBuffer(source, offset: 0, at: 1)
-		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 2)
-		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = #function
-		encoder.endEncoding()
-	}
-	public func average(commandBuffer: MTLCommandBuffer, parameters: MTLBuffer, source: (μ: MTLBuffer, σ: MTLBuffer), count: Int) {
-		assert( connect.device === commandBuffer.device )
-		assert( connect.device === parameters.device && count * MemoryLayout<float4>.stride <= parameters.length )
-		assert( connect.device === source.μ.device && count * MemoryLayout<Float>.stride <= source.μ.length )
-		assert( connect.device === source.σ.device && count * MemoryLayout<Float>.stride <= source.σ.length )
-		
-		let threads: Int = average.threadExecutionWidth
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		encoder.setComputePipelineState(average)
-		encoder.setBuffer(parameters, offset: 0, at: 0)
-		encoder.setBuffer(source.μ, offset: 0, at: 1)
-		encoder.setBuffer(source.σ, offset: 0, at: 2)
-		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 3)
-		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-		encoder.label = #function
-		encoder.endEncoding()
-	}
-	public func scaling(commandBuffer: MTLCommandBuffer, target: (μ: MTLBuffer, σ: MTLBuffer), source: (μ: MTLBuffer, σ: MTLBuffer), parameters: MTLBuffer, count: Int) {
-		assert( connect.device === commandBuffer.device )
-		assert( connect.device === parameters.device && count * MemoryLayout<float4>.stride <= parameters.length )
-		assert( connect.device === target.μ.device && count * MemoryLayout<Float>.stride <= target.μ.length )
-		assert( connect.device === target.σ.device && count * MemoryLayout<Float>.stride <= target.σ.length )
-		assert( connect.device === source.μ.device && count * MemoryLayout<Float>.stride <= source.μ.length )
-		assert( connect.device === source.σ.device && count * MemoryLayout<Float>.stride <= source.σ.length )
-		
-		let threads: Int = scaling.threadExecutionWidth
-		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-		encoder.setComputePipelineState(scaling)
-		encoder.setBuffer(target.μ, offset: 0, at: 0)
-		encoder.setBuffer(target.σ, offset: 0, at: 1)
-		encoder.setBuffer(source.μ, offset: 0, at: 2)
-		encoder.setBuffer(source.σ, offset: 0, at: 3)
-		encoder.setBuffer(parameters, offset: 0, at: 4)
-		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 5)
-		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
-		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+	public func flush(commandBuffer: MTLCommandBuffer) {
+		let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
+		[momentum, gradient].forEach {
+			assert( $0.device === encoder.device )
+			encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)
+		}
 		encoder.label = #function
 		encoder.endEncoding()
 	}

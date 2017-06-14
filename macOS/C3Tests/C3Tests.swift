@@ -92,7 +92,8 @@ class C3Tests: XCTestCase {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 			let context: Context = try Context(queue: queue,
 //			                                   optimizer: .Adamax(L2: 1e-6, L1: 0, α: 1e-3, β: 0.9, γ: 0.999, ε: 1e-8))
-			                                   optimizer: .SMORMS3(L2: 0, L1: 0, α: 1e-4, ε: 0))
+											   normalizer: .Stochastic(γ: 0.995),
+			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
 			do {
 				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
 				try (0..<4).forEach {
@@ -106,7 +107,7 @@ class C3Tests: XCTestCase {
 				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
 				measure {
 					print("try")
-					try!(0..<1024).forEach {
+					try!(0..<4096).forEach {
 						let ref: Int = ( $0 / 4 ) % 4
 						try O.collect_refresh()
 						try I.correct_refresh()

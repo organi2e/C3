@@ -45,6 +45,7 @@ extension StochasticGradientDescent: Optimizer {
 		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 2)
 		encoder.dispatchThreadgroups(MTLSize(width: (limit-1)/threads+1, height: 1, depth: 1),
 		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.label = #function
 		encoder.endEncoding()
 	}
 	public func reset(commandBuffer: MTLCommandBuffer) {

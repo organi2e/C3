@@ -21,12 +21,6 @@ extension Edge {
 		fixing(commandBuffer: commandBuffer)
 	}
 	func collect(commandBuffer: CommandBuffer, collector: Collector, visit: Set<Cell>) {
-		/*
-		normalizer.collect(commandBuffer: commandBuffer,
-		                   target: state,
-		                   source: input.collect(commandBuffer: commandBuffer, visit: visit),
-		                   parameters: parameters, count: input.width)
-		*/
 		let x: Buffer = input.collect(commandBuffer: commandBuffer, visit: visit)
 		access {
 			collector.collect(w: $0, x: x, count: input.width)
@@ -58,19 +52,14 @@ extension Edge {
 			}
 			output.connect(connector: connector, feed: jx)
 		}
-//		normalizer.correct(commandBuffer: commandBuffer, target: corrector.Δ, source: corrector.Δ, parameters: parameters, count: input.width)
-//		normalizer.connect(commandBuffer: commandBuffer, parameters: parameters, source: input.χ(0), count: input.width)
 	}
 }
 extension Edge {
 	@NSManaged private var cache: Cache
 	private class Cache: NSObject {
 		var index: Int
-		let state: Buffer
-		let parameters: Buffer
 		let array: Array<(ja: (μ: Buffer, σ: Buffer), jx: (μ: Buffer, σ: Buffer))>
-		let normalizer: Normalizer
-		init(context: Context, depth: Int, height: Int, width: Int, transform: Data) {
+		init(context: Context, depth: Int, height: Int, width: Int) {
 			let length: Int = height * width * MemoryLayout<Float>.stride
 			index = 0
 			array = Array<Void>(repeating: (), count: depth)
@@ -79,23 +68,17 @@ extension Edge {
 				      jx: (μ: context.make(length: length, options: .storageModePrivate),
 				           σ: context.make(length: length, options: .storageModePrivate)))
 			}
-			state = context.make(length: width * MemoryLayout<Float>.stride, options: .storageModePrivate)
-			parameters = context.make(data: transform, options: .storageModeShared)
-			normalizer = context.make(type: .Stochastic)
 			super.init()
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			array
 				.map{[$0.ja.μ, $0.ja.σ, $0.jx.μ, $0.jx.σ]}
-				.reduce([state], +)
+				.reduce([], +)
 				.forEach{encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)}
 			encoder.label = #function
 			encoder.endEncoding()
 			commandBuffer.label = #function
 			commandBuffer.commit()
-		}
-		var transform: Data {
-			return Data(bytesNoCopy: parameters.contents(), count: parameters.length, deallocator: .none)
 		}
 	}
 	internal func rotate() {
@@ -109,22 +92,8 @@ extension Edge {
 		let cycle: Int = cache.array.count
 		return cache.array[((offset+cache.index)%cycle+cycle)%cycle].jx
 	}
-	/*
-	internal var state: Buffer {
-		return cache.state
-	}
-	*/
-	/*
-	internal var parameters: Buffer {
-		return cache.parameters
-	}
-	internal var normalizer: Normalizer {
-		return cache.normalizer
-	}
-	*/
 	override internal func setup(context: Context, count: Int) {
-		cache = Cache(context: context, depth: output.depth, height: output.width, width: input.width, transform: transform)
-		transform = cache.transform
+		cache = Cache(context: context, depth: output.depth, height: output.width, width: input.width)
 		super.setup(context: context, count: count)
 	}
 }
@@ -145,7 +114,6 @@ extension Edge {
 extension Edge {
 	@NSManaged var input: Cell
 	@NSManaged var output: Cell
-	@NSManaged var transform: Data
 }
 extension Context {
 	internal func make(output: Cell, input: Cell, adapters: (AdapterType, AdapterType)) throws -> Edge {
@@ -173,7 +141,6 @@ extension Context {
 		edge.scale.withUnsafeMutableBytes {
 			vDSP_vfill([Float(1)], $0, 1, vDSP_Length(count))
 		}
-		edge.transform = Data(bytes: Array<float2>(repeating: float2(0, 1), count: input.width), count: input.width * MemoryLayout<float2>.stride)
 		edge.setup(context: self, count: count)
 		return edge
 	}

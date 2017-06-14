@@ -61,8 +61,6 @@ extension Cell {
 				decay?.collect(commandBuffer: commandBuffer, collector: collector)
 			}
 			distributor.activate(commandBuffer: commandBuffer, φ: φ(0), count: width, collect: collect)
-			normalizer.average(commandBuffer: commandBuffer, parameters: statistics, source: φ(0), count: width)
-//			normalizer.scaling(commandBuffer: commandBuffer, target: φ(0), source: φ(0), parameters: statistics, count: width)
 			switch activation {
 			case .Binary:
 				distributor.activate(commandBuffer: commandBuffer, f: χ(0), g: g(0), φ: φ(0), count: width)
@@ -124,7 +122,7 @@ extension Cell {
 				}
 				distributor.derivate(commandBuffer: commandBuffer, Δ: Δ(0), count: width, correct: corrector)
 				distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ(0), Δ: Δ(0), f: χ(0), g: g(0), φ: φ(0), count: width)
-				normalizer.scaling(commandBuffer: commandBuffer, target: Δφ(0), source: Δφ(0), parameters: statistics, count: width)
+				
 			case .Identity:
 				func corrector(corrector: Corrector) {
 					output.forEach {
@@ -136,8 +134,8 @@ extension Cell {
 				}
 				distributor.derivate(commandBuffer: commandBuffer, Δ: Δ(0), count: width, correct: corrector)
 				distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ(0), Δ: Δ(0), v: χ(0), g: g(0), φ: φ(0), count: width)
-				normalizer.scaling(commandBuffer: commandBuffer, target: Δφ(0), source: Δφ(0), parameters: statistics, count: width)
 			}
+			normalizer.adjust(commandBuffer: commandBuffer, Δφ: Δφ(0), φ: φ(0))
 			bias.correct(commandBuffer: commandBuffer, ignore: ignore, Δφ: Δφ(0))
 			loop.forEach {
 				$0.correct(commandBuffer: commandBuffer, ignore: ignore, Δφ: Δφ(0))
@@ -238,8 +236,7 @@ extension Cell {
 	@NSManaged private var cache: Cache
 	private class Cache: NSObject {
 		var index: Int
-		let array: Array<(χ: Buffer, ϝ: Buffer, Δ: Buffer, υ: (μ: Buffer, σ: Buffer), φ: (μ: Buffer, σ: Buffer), g: (μ: Buffer, σ: Buffer), Δφ: (μ: Buffer, σ: Buffer))>
-		let parameters: Buffer
+		let array: Array<(χ: Buffer, ϝ: Buffer, Δ: Buffer, φ: (μ: Buffer, σ: Buffer), g: (μ: Buffer, σ: Buffer), Δφ: (μ: Buffer, σ: Buffer))>
 		let normalizer: Normalizer
 		let distributor: Distributor
 		init(context: Context, distribution: DistributorType, depth: Int, width: Int) {
@@ -250,13 +247,11 @@ extension Cell {
 				.map{(χ: context.make(length: length, options: option),
 				      ϝ: context.make(length: length, options: option),
 				      Δ: context.make(length: length, options: option),
-				      υ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
 				      φ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
 				      g: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
 				      Δφ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)))
 			}
-			parameters = context.make(length: width * MemoryLayout<float4>.stride)
-			normalizer = context.make(type: .Stochastic)
+			normalizer = context.make(count: width)
 			distributor = context.make(type: distribution)
 			super.init()
 			let commandBuffer: CommandBuffer = context.make()
@@ -267,6 +262,7 @@ extension Cell {
 				.forEach{encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)}
 			encoder.label = #function
 			encoder.endEncoding()
+			normalizer.flush(commandBuffer: commandBuffer)
 			commandBuffer.label = #function
 			commandBuffer.commit()
 		}
@@ -282,11 +278,6 @@ extension Cell {
 		let cycle: Int = cache.array.count
 		return cache.array[((offset+cache.index)%cycle+cycle)%cycle].ϝ
 	}
-	/*
-	internal func υ(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
-		let cycle: Int = cache.array.count
-		return cache.array[((offset+cache.index)%cycle+cycle)%cycle].υ
-	}*/
 	internal func φ(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
 		let cycle: Int = cache.array.count
 		return cache.array[((offset+cache.index)%cycle+cycle)%cycle].φ
@@ -302,9 +293,6 @@ extension Cell {
 	internal func Δφ(_ offset: Int) -> (μ: Buffer, σ: Buffer) {
 		let cycle: Int = cache.array.count
 		return cache.array[((offset+cache.index)%cycle+cycle)%cycle].Δφ
-	}
-	internal var statistics: Buffer {
-		return cache.parameters
 	}
 	internal var normalizer: Normalizer {
 		return cache.normalizer

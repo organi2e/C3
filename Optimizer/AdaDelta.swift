@@ -49,6 +49,7 @@ extension AdaDelta: Optimizer {
 		encoder.setBuffer(Δ, offset: 0, at: 2)
 		encoder.setBytes([uint(limit)], length: MemoryLayout<uint>.size, at: 3)
 		encoder.dispatchThreadgroups(groups, threadsPerThreadgroup: threads)
+		encoder.label = #function
 		encoder.endEncoding()
 		
 	}

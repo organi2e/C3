@@ -99,7 +99,7 @@ template<typename T> T erfinv(T const x) {
 	}
  }
  */
-template<typename T> T const normcdf(T const x) {
+template<typename T> T const cdf(T const x) {
 	return fma(erf(M_SQRT1_2_F*x), 32767.0/65536.0, 0.5);
 }
 
@@ -365,7 +365,7 @@ kernel void GaussCorrectP(device float * const dx [[ buffer(0) ]],
 						  uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const p = normcdf(u[idx]/s[idx]);
+		float const p = cdf(u[idx]/s[idx]);
 		dx[idx] += ( p - d[idx] ); // p / ( 1 - p );
 	}
 }
@@ -573,8 +573,8 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 		float const x = r * u[k];
 		float const ju = M_SQRT1_2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
-//		f[k] = step(seq/65536.0, normcdf(x));
-		f[k] = normcdf(x);
+//		f[k] = step(seq/65536.0, cdf(x));
+		f[k] = cdf(x);
 //		seq ^= seq << xorshift16.x;
 //		seq ^= seq >> xorshift16.y;
 //		seq ^= seq << xorshift16.z;
@@ -594,14 +594,13 @@ kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const p = normcdf(u[idx]/s[idx]);
+		float const p = cdf(u[idx]/s[idx]);
 		float const g = erf(d[idx]/M_2_SQRTPI_F)/p/(1-p);
 		du[idx] = g * gu[idx];
 		ds[idx] = g * gs[idx];
 	}
 }
 constant float M_1_INT16MAX_F = 1 / 32768.0;
-//constant float M_1_UINT16MAX_F = 1 / 65536.0;
 kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
 						   device float * const gu [[ buffer(1) ]],
 						   device float * const gs [[ buffer(2) ]],

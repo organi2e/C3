@@ -20,41 +20,41 @@ public class DegenerateDistributor {
 	public init(device: MTLDevice) throws {
 		let bundle: Bundle = Bundle(for: DegenerateDistributor.self)
 		let library: MTLLibrary = try device.makeDefaultLibrary(bundle: bundle)
-		collectPipeline = CollectPipeline(
-			W: try library.make(name: "DegenerateCollectW"),
-			C: try library.make(name: "DegenerateCollectC"),
-			D: try library.make(name: "DegenerateCollectD"),
-			F: try library.make(name: "DegenerateCollectF")
+		collectPipeline = try CollectPipeline(
+			W: library.make(name: "DegenerateCollectW"),
+			C: library.make(name: "DegenerateCollectC"),
+			D: library.make(name: "DegenerateCollectD"),
+			F: library.make(name: "DegenerateCollectF")
 		)
-		correctPipeline = CorrectPipeline(
-			J: try library.make(name: "DegenerateCorrectJ"),
-			G: try library.make(name: "DegenerateCorrectG"),
-			N: try library.make(name: "DegenerateCorrectN"),
-			P: try library.make(name: "DegenerateCorrectP"),
-			V: try library.make(name: "DegenerateCorrectV")
+		correctPipeline = try CorrectPipeline(
+			J: library.make(name: "DegenerateCorrectJ"),
+			G: library.make(name: "DegenerateCorrectG"),
+			N: library.make(name: "DegenerateCorrectN"),
+			P: library.make(name: "DegenerateCorrectP"),
+			V: library.make(name: "DegenerateCorrectV")
 		)
-		connectPipeline = ConnectPipeline(
-			X: try library.make(name: "DegenerateConnectX"),
-			A: try library.make(name: "DegenerateConnectA"),
-			B: try library.make(name: "DegenerateConnectB"),
-			C: try library.make(name: "DegenerateConnectC"),
-			D: try library.make(name: "DegenerateConnectD"),
-			E: try library.make(name: "DegenerateConnectE"),
-			F: try library.make(name: "DegenerateConnectF")
+		connectPipeline = try ConnectPipeline(
+			X: library.make(name: "DegenerateConnectX"),
+			A: library.make(name: "DegenerateConnectA"),
+			B: library.make(name: "DegenerateConnectB"),
+			C: library.make(name: "DegenerateConnectC"),
+			D: library.make(name: "DegenerateConnectD"),
+			E: library.make(name: "DegenerateConnectE"),
+			F: library.make(name: "DegenerateConnectF")
 		)
-		activatePipeline = ActivatePipeline(
-			P: try library.make(name: "DegenerateActivateP"),
-			V: try library.make(name: "DegenerateActivateV")
+		activatePipeline = try ActivatePipeline(
+			P: library.make(name: "DegenerateActivateP"),
+			V: library.make(name: "DegenerateActivateV")
 		)
-		derivatePipeline = DerivatePipeline(
-			P: try library.make(name: "DegenerateDerivateP"),
-			V: try library.make(name: "DegenerateDerivateV")
+		derivatePipeline = try DerivatePipeline(
+			P: library.make(name: "DegenerateDerivateP"),
+			V: library.make(name: "DegenerateDerivateV")
 		)
-		gradientPipeline = GradientPipeline(
-			JP: try library.make(name: "DegenerateGradientJ"),
-			JV: try library.make(name: "DegenerateGradientJ"),
-			GP: try library.make(name: "DegenerateGradientG"),
-			GV: try library.make(name: "DegenerateGradientG")
+		gradientPipeline = try GradientPipeline(
+			JP: library.make(name: "DegenerateGradientJ"),
+			JV: library.make(name: "DegenerateGradientJ"),
+			GP: library.make(name: "DegenerateGradientG"),
+			GV: library.make(name: "DegenerateGradientG")
 		)
 	}
 
@@ -82,7 +82,7 @@ extension DegenerateDistributor {
 			encoder.setThreadgroupMemoryLength(threads*MemoryLayout<float4>.stride, at: 0)
 			encoder.dispatchThreadgroups(MTLSize(width: (width+3)/4, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.CollectW(\(width, count))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 		public func collect(c: (μ: MTLBuffer, σ: MTLBuffer)) {
@@ -98,7 +98,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 2)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.CollectC(\(width))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 		public func collect(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer)) {
@@ -115,7 +115,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.CollectD(\(width))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 	}
@@ -231,6 +231,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 		public func correct(χ: MTLBuffer) {
@@ -245,6 +246,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 2)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 		public func correct(φ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer) {
@@ -261,7 +263,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.CorrectP(\(width))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 		public func correct(φ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer) {
@@ -278,7 +280,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint(width)], length: MemoryLayout<uint>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.CorrectV(\(width))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 	}
@@ -360,7 +362,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(width), uint(refer))], length: MemoryLayout<uint2>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: refer, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.ConnectX(\(width, refer))"
+			encoder.label = #function
 			encoder.endEncoding()
 			
 		}
@@ -380,7 +382,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(width), uint(refer))], length: MemoryLayout<uint2>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: refer, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.ConnectA(\(width, refer))"
+			encoder.label = #function
 			encoder.endEncoding()
 			
 		}
@@ -401,7 +403,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(width), uint(refer))], length: MemoryLayout<uint2>.size, at: 2)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: refer, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.ConnectC(\(width, refer))"
+			encoder.label = #function
 			encoder.endEncoding()
 			
 		}
@@ -421,7 +423,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(width), uint(refer))], length: MemoryLayout<uint2>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: refer, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.ConnectD(\(width, refer))"
+			encoder.label = #function
 			encoder.endEncoding()
 			
 		}
@@ -443,7 +445,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(width), uint(refer))], length: MemoryLayout<uint2>.size, at: 4)
 			encoder.dispatchThreadgroups(MTLSize(width: (width-1)/threads+1, height: refer, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.ConnectE(\(width, refer))"
+			encoder.label = #function
 			encoder.endEncoding()
 			
 		}
@@ -454,7 +456,7 @@ extension DegenerateDistributor {
 			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.σ.length )
 			let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.fill(buffer: j.μ, range: NSRange(location: 0, length: count.rows * count.cols * MemoryLayout<Float>.stride), value: 0)
-			encoder.label = "Degenerate.GradientJP(\(count))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 		connect(DegenerateConnector(order: commandBuffer, state: connectPipeline, width: count.rows, refer: count.cols, Σ: j))
@@ -480,7 +482,7 @@ extension DegenerateDistributor {
 			encoder.setThreadgroupMemoryLength(threads*MemoryLayout<float4>.stride, at: 0)
 			encoder.dispatchThreadgroups(MTLSize(width: (count.cols+3)/4, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.GradientJV(\(count))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 	}
@@ -504,7 +506,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.GradientGV(\(count))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 	}
@@ -528,7 +530,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint2(arrayLiteral: uint(count.rows), uint(count.cols))], length: MemoryLayout<uint2>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (count.rows-1)/threads+1, height: count.cols, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.GradientGP(\(count))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 	}
