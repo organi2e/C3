@@ -16,7 +16,7 @@ class DegenerateDistributorTests: XCTestCase {
 		let refer: Int = 16 + Int(arc4random_uniform(240))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 		let queue: MTLCommandQueue = device.makeCommandQueue()
-		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: .storageModePrivate)
 		let w: (μ: MTLBuffer, σ: MTLBuffer) = (
 			μ: device.makeBuffer(array: uniform(count: width*refer), options: []),
 			σ: discard
@@ -49,11 +49,12 @@ class DegenerateDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try DegenerateDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.activate(commandBuffer: commandBuffer, f: χ, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, φ: φ, count: width) {
 				$0.collect(w: w, x: x, count: refer)
 				$0.collect(c: c)
 				$0.collect(d: d, φ: p)
 			}
+			distributor.activate(commandBuffer: commandBuffer, f: χ, g: g, φ: φ, count: width)
 			commandBuffer.commit()
 			
 			let la_φ: la_object_t = [
@@ -94,7 +95,7 @@ class DegenerateDistributorTests: XCTestCase {
 		let refer: Int = 16 + Int(arc4random_uniform(240))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 		let queue: MTLCommandQueue = device.makeCommandQueue()
-		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: .storageModePrivate)
 		let w: (μ: MTLBuffer, σ: MTLBuffer) = (
 			μ: device.makeBuffer(array: uniform(count: width*refer), options: []),
 			σ: discard
@@ -127,11 +128,12 @@ class DegenerateDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try DegenerateDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.activate(commandBuffer: commandBuffer, v: χ, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, φ: φ, count: width) {
 				$0.collect(w: w, x: x, count: refer)
 				$0.collect(c: c)
 				$0.collect(d: d, φ: p)
 			}
+			distributor.activate(commandBuffer: commandBuffer, v: χ, g: g, φ: φ, count: width)
 			commandBuffer.commit()
 			
 			let la_φ: la_object_t = [
@@ -166,7 +168,7 @@ class DegenerateDistributorTests: XCTestCase {
 		let refer: Int = 1024// + Int(arc4random_uniform(240))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 		let queue: MTLCommandQueue = device.makeCommandQueue()
-		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: .storageModePrivate)
 		let c: (μ: MTLBuffer, σ: MTLBuffer) = (
 			μ: device.makeBuffer(array: uniform(count: width, α: 0, β: 1), options: []),
 			σ: discard
@@ -183,18 +185,21 @@ class DegenerateDistributorTests: XCTestCase {
 			μ: device.makeBuffer(length: width * MemoryLayout<Float>.size, options: []),
 			σ: discard
 		)
+		let Δ: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		let χ: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		let f: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		let ϝ: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		do {
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
 			let distributor: Distributor = try DegenerateDistributor(device: device)
-			distributor.activate(commandBuffer: commandBuffer, f: f, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, φ: φ, count: width) {
 				$0.collect(c: c)
 			}
-			distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ, f: f, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, f: f, g: g, φ: φ, count: width)
+			distributor.derivate(commandBuffer: commandBuffer, Δ: Δ, count: width) {
 				$0.correct(φ: φ, f: ϝ)
 			}
+			distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ, Δ: Δ, f: f, g: g, φ: φ, count: width)
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
 			
@@ -264,7 +269,7 @@ class DegenerateDistributorTests: XCTestCase {
 		let refer: Int = 16 + Int(arc4random_uniform(240))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 		let queue: MTLCommandQueue = device.makeCommandQueue()
-		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: .storageModePrivate)
 		let c: (μ: MTLBuffer, σ: MTLBuffer) = (
 			μ: device.makeBuffer(array: uniform(count: width, α: 0, β: 1), options: []),
 			σ: discard
@@ -281,18 +286,21 @@ class DegenerateDistributorTests: XCTestCase {
 			μ: device.makeBuffer(length: width * MemoryLayout<Float>.size, options: []),
 			σ: discard
 		)
+		let Δ: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		let χ: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		let v: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		let ϝ: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		do {
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
 			let distributor: Distributor = try DegenerateDistributor(device: device)
-			distributor.activate(commandBuffer: commandBuffer, v: v, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, φ: φ, count: width) {
 				$0.collect(c: c)
 			}
-			distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ, v: v, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, v: v, g: g, φ: φ, count: width)
+			distributor.derivate(commandBuffer: commandBuffer, Δ: Δ, count: width) {
 				$0.correct(χ: χ, ϝ: ϝ)
 			}
+			distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ, Δ: Δ, v: v, g: g, φ: φ, count: width)
 			commandBuffer.commit()
 			
 			let la_g: la_object_t = la_matrix_from_splat(la_splat_from_float(1, attr), la_count_t(width), la_count_t(1))
@@ -350,7 +358,7 @@ class DegenerateDistributorTests: XCTestCase {
 		let refer: Int = 32 + Int(arc4random_uniform(224))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 		let queue: MTLCommandQueue = device.makeCommandQueue()
-		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: .storageModePrivate)
 		let Δx: MTLBuffer = device.makeBuffer(length: refer * MemoryLayout<Float>.size, options: [])
 		let j: (μ: MTLBuffer, σ: MTLBuffer) = (
 			μ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: []),
@@ -472,7 +480,7 @@ class DegenerateDistributorTests: XCTestCase {
 		let refer: Int = 4// + Int(arc4random_uniform(224))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 		let queue: MTLCommandQueue = device.makeCommandQueue()
-		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: .storageModePrivate)
 		let Δθ: (μ: MTLBuffer, σ: MTLBuffer) = (
 			μ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: []),
 			σ: discard
@@ -602,7 +610,7 @@ class DegenerateDistributorTests: XCTestCase {
 		let refer: Int = 1 + Int(arc4random_uniform(255))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 		let queue: MTLCommandQueue = device.makeCommandQueue()
-		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: .storageModePrivate)
 		let Δθ: (μ: MTLBuffer, σ: MTLBuffer) = (
 			μ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: []),
 			σ: discard
@@ -727,7 +735,7 @@ class DegenerateDistributorTests: XCTestCase {
 		let refer: Int = 1 + Int(arc4random_uniform(255))
 		guard let device: MTLDevice = MTLCreateSystemDefaultDevice() else { XCTFail(); return }
 		let queue: MTLCommandQueue = device.makeCommandQueue()
-		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
+		let discard: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: .storageModePrivate)
 		let Δv: MTLBuffer = device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: [])
 		let j: (μ: MTLBuffer, σ: MTLBuffer) = (
 			μ: device.makeBuffer(length: width * refer * MemoryLayout<Float>.size, options: []),

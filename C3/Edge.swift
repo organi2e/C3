@@ -21,12 +21,15 @@ extension Edge {
 		fixing(commandBuffer: commandBuffer)
 	}
 	func collect(commandBuffer: CommandBuffer, collector: Collector, visit: Set<Cell>) {
+		/*
 		normalizer.collect(commandBuffer: commandBuffer,
 		                   target: state,
 		                   source: input.collect(commandBuffer: commandBuffer, visit: visit),
 		                   parameters: parameters, count: input.width)
+		*/
+		let x: Buffer = input.collect(commandBuffer: commandBuffer, visit: visit)
 		access {
-			collector.collect(w: $0, x: state, count: input.width)
+			collector.collect(w: $0, x: x, count: input.width)
 		}
 	}
 }
@@ -43,7 +46,7 @@ extension Edge {
 			change(commandBuffer: corrector.order) {
 				output.distributor.gradient(commandBuffer: corrector.order, Δθ: $0, j: ja(0), Δφ: Δφ, φ: φ, count: count) { connector in
 					access {
-						connector.connect(a: $0, x: state)
+						connector.connect(a: $0, x: input.χ(0))
 					}
 					output.connect(connector: connector, feed: ja)
 				}
@@ -51,12 +54,12 @@ extension Edge {
 		}
 		output.distributor.gradient(commandBuffer: corrector.order, Δx: corrector.Δ, j: jx(0), Δφ: Δφ, φ: φ, count: count) { connector in
 			access {
-				connector.connect(x: state, a: $0)
+				connector.connect(x: input.χ(0), a: $0)
 			}
 			output.connect(connector: connector, feed: jx)
 		}
-		normalizer.correct(commandBuffer: commandBuffer, target: corrector.Δ, source: corrector.Δ, parameters: parameters, count: input.width)
-		normalizer.connect(commandBuffer: commandBuffer, parameters: parameters, source: input.χ(0), count: input.width)
+//		normalizer.correct(commandBuffer: commandBuffer, target: corrector.Δ, source: corrector.Δ, parameters: parameters, count: input.width)
+//		normalizer.connect(commandBuffer: commandBuffer, parameters: parameters, source: input.χ(0), count: input.width)
 	}
 }
 extension Edge {
@@ -71,8 +74,10 @@ extension Edge {
 			let length: Int = height * width * MemoryLayout<Float>.stride
 			index = 0
 			array = Array<Void>(repeating: (), count: depth)
-				.map{(ja: (μ: context.make(length: length, options: .storageModePrivate), σ: context.make(length: length, options: .storageModePrivate)),
-				      jx: (μ: context.make(length: length, options: .storageModePrivate), σ: context.make(length: length, options: .storageModePrivate)))
+				.map{(ja: (μ: context.make(length: length, options: .storageModePrivate),
+				           σ: context.make(length: length, options: .storageModePrivate)),
+				      jx: (μ: context.make(length: length, options: .storageModePrivate),
+				           σ: context.make(length: length, options: .storageModePrivate)))
 			}
 			state = context.make(length: width * MemoryLayout<Float>.stride, options: .storageModePrivate)
 			parameters = context.make(data: transform, options: .storageModeShared)
@@ -104,15 +109,19 @@ extension Edge {
 		let cycle: Int = cache.array.count
 		return cache.array[((offset+cache.index)%cycle+cycle)%cycle].jx
 	}
+	/*
 	internal var state: Buffer {
 		return cache.state
 	}
+	*/
+	/*
 	internal var parameters: Buffer {
 		return cache.parameters
 	}
 	internal var normalizer: Normalizer {
 		return cache.normalizer
 	}
+	*/
 	override internal func setup(context: Context, count: Int) {
 		cache = Cache(context: context, depth: output.depth, height: output.width, width: input.width, transform: transform)
 		transform = cache.transform

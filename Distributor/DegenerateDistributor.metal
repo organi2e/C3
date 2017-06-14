@@ -291,47 +291,50 @@ kernel void DegenerateConnectF(device float * const j [[ buffer(0) ]],
 /*----------------------------------------------------------------*/
 kernel void DegenerateActivateP(device float * const f [[ buffer(0) ]],
 								device float * const g [[ buffer(1) ]],
-								device float const * const v [[ buffer(2) ]],
+								device float const * const u [[ buffer(2) ]],
 								constant uint const & N [[ buffer(3) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const x = v[idx];
+		float const x = u[idx];
 		float const p = logistic(x);
-		f[idx] = step(0, x);
+		f[idx] = p;//step(0, x);
 		g[idx] = p * ( 1 - p );
 	}
 }
-kernel void DegenerateDerivateP(device float * const d [[ buffer(0) ]],
-								device float const * const f [[ buffer(1) ]],
-								device float const * const g [[ buffer(2) ]],
-								device float const * const v [[ buffer(3) ]],
-								constant uint const & N [[ buffer(4) ]],
+kernel void DegenerateDerivateP(device float * const du [[ buffer(0) ]],
+								device float const * const d [[ buffer(1) ]],
+								device float const * const f [[ buffer(2) ]],
+								device float const * const g [[ buffer(3) ]],
+								device float const * const v [[ buffer(4) ]],
+								constant uint const & N [[ buffer(5) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		d[idx] *= g[idx];
+		du[idx] = d[idx] * g[idx];
 	}
 }
-kernel void DegenerateActivateV(device float * const f [[ buffer(0) ]],
+kernel void DegenerateActivateV(device float * const v [[ buffer(0) ]],
 								device float * const g [[ buffer(1) ]],
-								device float const * const v [[ buffer(2) ]],
+								device float const * const u [[ buffer(2) ]],
 								constant uint const & N [[ buffer(3) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		f[idx] = v[idx];
+		v[idx] = u[idx];
 		g[idx] = 1;
 	}
 }
-kernel void DegenerateDerivateV(device float * const d [[ buffer(0) ]],
-								device float const * const f [[ buffer(1) ]],
-								device float const * const g [[ buffer(2) ]],
-								device float const * const u [[ buffer(3) ]],
-								constant uint const & N [[ buffer(4) ]],
+kernel void DegenerateDerivateV(device float * const du [[ buffer(0) ]],
+								device float const * const d [[ buffer(1) ]],
+								device float const * const v [[ buffer(2) ]],
+								device float const * const g [[ buffer(3) ]],
+								device float const * const u [[ buffer(4) ]],
+								constant uint const & N [[ buffer(5) ]],
 								uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
-		
+		int const idx = n;
+		du[idx] = d[idx];
 	}
 }
 /*----------------------------------------------------------------*/

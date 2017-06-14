@@ -567,37 +567,35 @@ kernel void GaussActivateP(device float * const f [[ buffer(0) ]],
 						   constant uint const & N [[ buffer(6) ]],
 						   uint const t [[ thread_position_in_threadgroup ]],
 						   uint const T [[ threadgroups_per_grid ]]) {
-	ushort seq = seeds[t];
+//	ushort seq = seeds[t];
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float const r = 1 / s[k];
 		float const x = r * u[k];
 		float const ju = M_SQRT1_2PI_F * exp( -0.5 * x * x ) * r;
 		float const js = ju * -x;
-		f[k] = step(seq/65536.0, normcdf(x));
-//		f[k] = normcdf(x);
-		seq ^= seq << xorshift16.x;
-		seq ^= seq >> xorshift16.y;
-		seq ^= seq << xorshift16.z;
+//		f[k] = step(seq/65536.0, normcdf(x));
+		f[k] = normcdf(x);
+//		seq ^= seq << xorshift16.x;
+//		seq ^= seq >> xorshift16.y;
+//		seq ^= seq << xorshift16.z;
 		gu[k] = ju;
 		gs[k] = js;
 	}
 }
-inline float ln(float const x) {
-	return copysign(log(1+fabs(x)), x);
-}
 kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 						   device float * const ds [[ buffer(1) ]],
-						   device float const * const f [[ buffer(2) ]],
-						   device float const * const gu [[ buffer(3) ]],
-						   device float const * const gs [[ buffer(4) ]],
-						   device float const * const u [[ buffer(5) ]],
-						   device float const * const s [[ buffer(6) ]],
-						   constant uint const & N [[ buffer(7) ]],
+						   device float const * const d [[ buffer(2) ]],
+						   device float const * const f [[ buffer(3) ]],
+						   device float const * const gu [[ buffer(4) ]],
+						   device float const * const gs [[ buffer(5) ]],
+						   device float const * const u [[ buffer(6) ]],
+						   device float const * const s [[ buffer(7) ]],
+						   constant uint const & N [[ buffer(8) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
 		float const p = normcdf(u[idx]/s[idx]);
-		float const g = erf(du[idx]/M_2_SQRTPI_F)/p/(1-p);
+		float const g = erf(d[idx]/M_2_SQRTPI_F)/p/(1-p);
 		du[idx] = g * gu[idx];
 		ds[idx] = g * gs[idx];
 	}
@@ -629,16 +627,17 @@ kernel void GaussActivateV(device float * const f [[ buffer(0) ]],
 }
 kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 						   device float * const ds [[ buffer(1) ]],
-						   device float const * const f [[ buffer(2) ]],
-						   device float const * const gu [[ buffer(3) ]],
-						   device float const * const gs [[ buffer(4) ]],
-						   device float const * const u [[ buffer(5) ]],
-						   device float const * const s [[ buffer(6) ]],
-						   constant uint const & N [[ buffer(7) ]],
+						   device float const * const d [[ buffer(2) ]],
+						   device float const * const f [[ buffer(3) ]],
+						   device float const * const gu [[ buffer(4) ]],
+						   device float const * const gs [[ buffer(5) ]],
+						   device float const * const u [[ buffer(6) ]],
+						   device float const * const s [[ buffer(7) ]],
+						   constant uint const & N [[ buffer(8) ]],
 						   uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const e = du[idx] * gu[idx];
+		float const e = d[idx] * gu[idx];
 		float const v = s[idx];
 		du[idx] = e;
 		ds[idx] = v - e * e / v;

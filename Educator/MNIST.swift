@@ -120,12 +120,12 @@ extension Educator {
 			image.domain = type(of: self).name
 			image.family = mnist.rawValue
 			image.option = Dictionary<String, Any>()
-			image.handle = String(describing: $0.0)
+			image.handle = String(describing: $0)
 			image.height = UInt16(rows)
 			image.width = UInt16(cols)
 			image.rowBytes = UInt32(cols)
 			image.format = kCIFormatR8
-			image.data = $0.1
+			image.data = $1
 		}
 		try context.save()
 	}

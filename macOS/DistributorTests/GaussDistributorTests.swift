@@ -51,11 +51,12 @@ class GaussDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try GaussDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.activate(commandBuffer: commandBuffer, v: χ, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, φ: φ, count: width) {
 				$0.collect(w: w, x: x, count: refer)
 				$0.collect(c: c)
 				$0.collect(d: d, φ: p)
 			}
+			distributor.activate(commandBuffer: commandBuffer, v: χ, g: g, φ: φ, count: width)
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
 			
@@ -114,9 +115,10 @@ class GaussDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try GaussDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.activate(commandBuffer: commandBuffer, v: χ, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, φ: φ, count: width) {
 				$0.collect(c: c)
 			}
+			distributor.activate(commandBuffer: commandBuffer, v: χ, g: g, φ: φ, count: width)
 			commandBuffer.commit()
 			commandBuffer.waitUntilCompleted()
 			
@@ -172,11 +174,12 @@ class GaussDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try GaussDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.activate(commandBuffer: commandBuffer, f: χ, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, φ: φ, count: width) {
 				$0.collect(w: w, x: x, count: refer)
 				$0.collect(c: c)
 				$0.collect(d: d, φ: p)
 			}
+			distributor.activate(commandBuffer: commandBuffer, f: χ, g: g, φ: φ, count: width)
 			commandBuffer.commit()
 			
 			let la_φμ: la_object_t = [
@@ -255,11 +258,12 @@ class GaussDistributorTests: XCTestCase {
 		do {
 			let distributor: Distributor = try GaussDistributor(device: device)
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
-			distributor.activate(commandBuffer: commandBuffer, f: χ, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, φ: φ, count: width) {
 				$0.collect(w: w, x: x, count: refer)
 				$0.collect(c: c)
 				$0.collect(d: d, φ: p)
 			}
+			distributor.activate(commandBuffer: commandBuffer, f: χ, g: g, φ: φ, count: width)
 			commandBuffer.commit()
 			
 			let la_φμ: la_object_t = [
@@ -323,24 +327,28 @@ class GaussDistributorTests: XCTestCase {
 			μ: device.makeBuffer(length: width * MemoryLayout<Float>.stride, options: []),
 			σ: device.makeBuffer(length: width * MemoryLayout<Float>.stride, options: [])
 		)
+		let Δ: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		let χ: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		let f: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		let ϝ: MTLBuffer = device.makeBuffer(array: uniform(count: width), options: [])
 		do {
 			let commandBuffer: MTLCommandBuffer = queue.makeCommandBuffer()
 			let distributor: Distributor = try GaussDistributor(device: device)
-			distributor.activate(commandBuffer: commandBuffer, f: f, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, φ: φ, count: width) {
 				$0.collect(c: c)
 			}
-			distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ, f: f, g: g, φ: φ, count: width) {
+			distributor.activate(commandBuffer: commandBuffer, f: f, g: g, φ: φ, count: width)
+			distributor.derivate(commandBuffer: commandBuffer, Δ: Δ, count: width) {
 				$0.correct(φ: φ, f: ϝ)
 			}
+			distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ, Δ: Δ, f: f, g: g, φ: φ, count: width)
 			commandBuffer.commit()
 			
 			let buf_p: Array<Float> = zip(c.μ.buf, c.σ.buf).map(Φ)
 			let la_p: la_object_t = la_matrix_from_float_buffer(buf_p, la_count_t(width), 1, 1, hint, attr)
 			
-			let buf_r: Array<Float> = buf_p.map { 1.0 / $0 / ( 1.0 - $0 ) }
+			let buf_r: Array<Float> = Array<Float>(repeating: 1, count: buf_p.count)
+			//buf_p.map { 1.0 / $0 / ( 1.0 - $0 ) }
 			let la_r: la_object_t = la_matrix_from_float_buffer(buf_r, la_count_t(width), 1, 1, hint, attr)
 			
 			let la_gμ: la_object_t = la_matrix_from_float_buffer(zip(c.μ.buf, c.σ.buf).map { exp( -0.5 * ( $0.0 * $0.0 ) / ( $0.1 * $0.1 ) ) * rsqrt(2.0*Float.pi) / $0.1 }, la_count_t(width), 1, 1, hint, attr)
@@ -396,10 +404,10 @@ class GaussDistributorTests: XCTestCase {
 			let rmseΔφμ: Float = la_norm_as_float(la_ΔΔφμ, norm) * rsqrt(Float(width))
 			let rmseΔφσ: Float = la_norm_as_float(la_ΔΔφσ, norm) * rsqrt(Float(width))
 			
+			print(rmseΔφμ,rmseΔφσ)
+			
 			XCTAssert( rmseΔφμ < 1e-2 )
 			XCTAssert( rmseΔφσ < 1e-2 )
-			
-			print(rmseΔφμ,rmseΔφσ)
 			
 		} catch {
 			XCTFail(String(describing: error))

@@ -92,10 +92,10 @@ class C3Tests: XCTestCase {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 			let context: Context = try Context(queue: queue,
 //			                                   optimizer: .Adamax(L2: 1e-6, L1: 0, α: 1e-3, β: 0.9, γ: 0.999, ε: 1e-8))
-			                                   optimizer: .SMORMS3(L2: 0, L1: 0, α: 1e-2, ε: 0))
+			                                   optimizer: .SMORMS3(L2: 0, L1: 0, α: 1e-4, ε: 0))
 			do {
 				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
-				try (0..<12).forEach {
+				try (0..<4).forEach {
 					last = try context.make(label: "H\($0)", width: 64, distributor: .Gauss, activator: .Binary, input: [last], decay: true, recurrent: [])
 				}
 				last = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [last], decay: false, recurrent: [])
@@ -203,10 +203,10 @@ private func uniform(count: Int, α: Float = -1, β: Float = 1) -> Array<Float> 
 	let array: Array<Float> = Array<Float>(repeating: 0, count: count)
 	let seeds: Array<UInt32> = Array<UInt32>(repeating: 0, count: count)
 	
-	arc4random_buf(UnsafeMutablePointer<UInt32>(mutating: seeds), count * MemoryLayout<UInt32>.size)
+	arc4random_buf(UnsafeMutablePointer<UInt32>(mutating: seeds), count * MemoryLayout<UInt32>.stride)
 	
 	vDSP_vfltu32(seeds, 1, UnsafeMutablePointer<Float>(mutating: array), 1, vDSP_Length(count))
-	vDSP_vsmsa(array, 1, [(β-α)/Float(1<<16)/Float(1<<16)], [α], UnsafeMutablePointer<Float>(mutating: array), 1, vDSP_Length(count))
+	vDSP_vsmsa(array, 1, [(β-α)*exp2f(-32.0)], [α], UnsafeMutablePointer<Float>(mutating: array), 1, vDSP_Length(count))
 	
 	return array
 }

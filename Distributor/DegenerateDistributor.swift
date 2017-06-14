@@ -119,16 +119,52 @@ extension DegenerateDistributor {
 			encoder.endEncoding()
 		}
 	}
-	private func activate(commandBuffer: MTLCommandBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector) -> Void) {
+	public func activate(commandBuffer: MTLCommandBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector) -> Void) {
 		do {
 			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
 			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.stride <= φ.σ.length )
 			let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.fill(buffer: φ.μ, range: NSRange(location: 0, length: count * MemoryLayout<Float>.stride), value: 0)
-			encoder.label = "Degenerate.CollectFlush(\(count))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
-		collect(DegenerateCollector(order: commandBuffer, state: collectPipeline, width: count, Σ: φ))
+		do {
+			collect(DegenerateCollector(order: commandBuffer, state: collectPipeline, width: count, Σ: φ))
+		}
+	}
+	public func activate(commandBuffer: MTLCommandBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int) {
+		assert( commandBuffer.device === activatePipeline.P.device )
+		assert( commandBuffer.device === f.device && count * MemoryLayout<Float>.stride <= f.length )
+		assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
+		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
+		let threads: Int = activatePipeline.P.threadExecutionWidth
+		encoder.setComputePipelineState(activatePipeline.P)
+		encoder.setBuffer(f, offset: 0, at: 0)
+		encoder.setBuffer(g.μ, offset: 0, at: 1)
+		encoder.setBuffer(φ.μ, offset: 0, at: 2)
+		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 3)
+		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
+		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.label = #function
+		encoder.endEncoding()
+	}
+	public func activate(commandBuffer: MTLCommandBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int) {
+		assert( commandBuffer.device === activatePipeline.V.device )
+		assert( commandBuffer.device === v.device && count * MemoryLayout<Float>.stride <= v.length )
+		assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
+		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
+		let threads: Int = activatePipeline.V.threadExecutionWidth
+		encoder.setComputePipelineState(activatePipeline.V)
+		encoder.setBuffer(v, offset: 0, at: 0)
+		encoder.setBuffer(g.μ, offset: 0, at: 1)
+		encoder.setBuffer(φ.μ, offset: 0, at: 2)
+		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 3)
+		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
+		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.label = #function
+		encoder.endEncoding()
 	}
 	public func activate(commandBuffer: MTLCommandBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, collect: (Collector) -> Void) {
 		do {
@@ -148,7 +184,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.ActivateP(\(count))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 	}
@@ -170,7 +206,7 @@ extension DegenerateDistributor {
 			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 3)
 			encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
 			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.ActivateV(\(count))"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 	}
@@ -246,62 +282,59 @@ extension DegenerateDistributor {
 			encoder.endEncoding()
 		}
 	}
-	private func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector)->Void) {
+	public func derivate(commandBuffer: MTLCommandBuffer, Δ: MTLBuffer, count: Int, correct: (Corrector)->Void) {
 		do {
-			assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
-			assert( commandBuffer.device === Δφ.σ.device && count * MemoryLayout<Float>.stride <= Δφ.σ.length )
+			assert( commandBuffer.device === Δ.device && count * MemoryLayout<Float>.stride <= Δ.length )
 			let encoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-			encoder.fill(buffer: Δφ.μ, range: NSRange(location: 0, length: count * MemoryLayout<Float>.stride), value: 0)
-			encoder.label = "Degenerate.CorrectFlush(\(count))"
+			encoder.fill(buffer: Δ, range: NSRange(location: 0, length: Δ.length), value: 0)
+			encoder.label = #function
 			encoder.endEncoding()
 		}
-		correct(DegenerateCorrector(order: commandBuffer, state: correctPipeline, width: count, Δ: Δφ.μ))
-	}
-	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector) -> Void) {
 		do {
-			derivate(commandBuffer: commandBuffer, Δφ: Δφ, count: count, correct: correct)
-		}
-		do {
-			assert( commandBuffer.device === derivatePipeline.P.device )
-			assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
-			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
-			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
-			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = derivatePipeline.P.threadExecutionWidth
-			encoder.setComputePipelineState(derivatePipeline.P)
-			encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
-			encoder.setBuffer(f, offset: 0, at: 1)
-			encoder.setBuffer(g.μ, offset: 0, at: 2)
-			encoder.setBuffer(φ.μ, offset: 0, at: 3)
-			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 4)
-			encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
-			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.Derivate(\(count))"
-			encoder.endEncoding()
+			correct(DegenerateCorrector(order: commandBuffer, state: correctPipeline, width: count, Δ: Δ))
 		}
 	}
-	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int, correct: (Corrector) -> Void) {
-		do {
-			derivate(commandBuffer: commandBuffer, Δφ: Δφ, count: count, correct: correct)
-		}
-		do {
-			assert( commandBuffer.device === derivatePipeline.V.device )
-			assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
-			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
-			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
-			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
-			let threads: Int = derivatePipeline.V.threadExecutionWidth
-			encoder.setComputePipelineState(derivatePipeline.V)
-			encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
-			encoder.setBuffer(v, offset: 0, at: 1)
-			encoder.setBuffer(g.μ, offset: 0, at: 2)
-			encoder.setBuffer(φ.μ, offset: 0, at: 3)
-			encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 4)
-			encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
-			                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
-			encoder.label = "Degenerate.Derivate(\(count))"
-			encoder.endEncoding()
-		}
+	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), Δ: MTLBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int) {
+		assert( commandBuffer.device === derivatePipeline.P.device )
+		assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
+		assert( commandBuffer.device === Δ.device && count * MemoryLayout<Float>.stride <= Δ.length )
+		assert( commandBuffer.device === f.device && count * MemoryLayout<Float>.stride <= f.length )
+		assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
+		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
+		let threads: Int = derivatePipeline.P.threadExecutionWidth
+		encoder.setComputePipelineState(derivatePipeline.P)
+		encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
+		encoder.setBuffer(Δ, offset: 0, at: 1)
+		encoder.setBuffer(f, offset: 0, at: 2)
+		encoder.setBuffer(g.μ, offset: 0, at: 3)
+		encoder.setBuffer(φ.μ, offset: 0, at: 4)
+		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 5)
+		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
+		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.label = #function
+		encoder.endEncoding()
+	}
+	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), Δ: MTLBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int) {
+		assert( commandBuffer.device === derivatePipeline.V.device )
+		assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
+		assert( commandBuffer.device === Δ.device && count * MemoryLayout<Float>.stride <= Δ.length )
+		assert( commandBuffer.device === v.device && count * MemoryLayout<Float>.stride <= v.length )
+		assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
+		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
+		let threads: Int = derivatePipeline.V.threadExecutionWidth
+		encoder.setComputePipelineState(derivatePipeline.V)
+		encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
+		encoder.setBuffer(Δ, offset: 0, at: 1)
+		encoder.setBuffer(v, offset: 0, at: 2)
+		encoder.setBuffer(g.μ, offset: 0, at: 3)
+		encoder.setBuffer(φ.μ, offset: 0, at: 4)
+		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 5)
+		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
+		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.label = #function
+		encoder.endEncoding()
 	}
 }
 extension DegenerateDistributor {
