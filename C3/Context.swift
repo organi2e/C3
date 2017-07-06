@@ -13,7 +13,6 @@ import Metal
 import Adapter
 import Distributor
 import Optimizer
-import Normalizer
 
 public enum DistributorType: String {
 	case Degenerate = "Degenerate"
@@ -35,10 +34,6 @@ public enum AdapterType: String {
 	case RegFloor = "RegFloor"
 	case Exponential = "Exponential"
 }
-public enum NormalizerType {
-	case PassThrough
-	case Stochastic(γ: Float)
-}
 public enum OptimizerType {
 	case SGD(L2: Float, L1: Float, η: Float)
 	case AdaDelta(L2: Float, L1: Float, ρ: Float, ε: Float)
@@ -48,7 +43,6 @@ public enum OptimizerType {
 }
 public class Context: NSManagedObjectContext {
 	let mtl: MTLCommandQueue
-	let normalizerFactory: (Int)->Normalizer
 	let optimizerFactory: (Int)->Optimizer
 	let adapter: Dictionary<AdapterType, (Int)->Adapter>
 	let distributor: Dictionary<DistributorType, Distributor>
@@ -79,7 +73,6 @@ public class Context: NSManagedObjectContext {
 	}
 	public init(queue: MTLCommandQueue,
 	            storage: URL? = nil,
-	            normalizer: NormalizerType = .PassThrough,
 	            optimizer: OptimizerType = .SGD(L2: 0, L1: 0, η: 0),
 	            concurrencyType: NSManagedObjectContextConcurrencyType = .privateQueueConcurrencyType) throws {
 		let device: Device = queue.device
@@ -100,12 +93,6 @@ public class Context: NSManagedObjectContext {
 			(.Degenerate, DegenerateDistributor(device: device)),
 			(.Gauss, GaussDistributor(device: device))
 		)
-		switch normalizer {
-		case .PassThrough:
-			normalizerFactory = PassThrough.init
-		case .Stochastic(let γ):
-			normalizerFactory = try Stochastic.normalizer(device: device, γ: γ)
-		}
 		switch optimizer {
 		case let .SGD(L2, L1, η):
 			optimizerFactory = try SGD.optimizer(device: device, L2: L2, L1: L1, η: η)
@@ -121,7 +108,7 @@ public class Context: NSManagedObjectContext {
 		super.init(concurrencyType: concurrencyType)
 		guard let model: NSManagedObjectModel = NSManagedObjectModel.mergedModel(from: [Bundle(for: type(of: self))]) else { throw ErrorCases.NoModelFound }
 		let store: NSPersistentStoreCoordinator = NSPersistentStoreCoordinator(managedObjectModel: model)
-		let storetype: String = storage == nil ? NSInMemoryStoreType : ["sqlite", "db"].filter{$0==storage?.pathExtension}.isEmpty ? NSBinaryStoreType : NSSQLiteStoreType
+		let storetype: String = storage == nil ? NSInMemoryStoreType : ["sqlite", "db"] .filter { $0 == storage?.pathExtension }.isEmpty ? NSBinaryStoreType : NSSQLiteStoreType
 		try store.addPersistentStore(ofType: storetype, configurationName: nil, at: storage, options: nil)
 		persistentStoreCoordinator = store
 	}
@@ -146,9 +133,6 @@ extension Context {
 	func make(type: DistributorType) -> Distributor {
 		guard let distributor: Distributor = distributor[type] else { fatalError(type.rawValue) }
 		return distributor
-	}
-	func make(count: Int) -> Normalizer {
-		return normalizerFactory(count)
 	}
 	func make(count: Int) -> Optimizer {
 		return optimizerFactory(count)
@@ -231,10 +215,3 @@ extension Context {
 		}
 	}
 }
-internal typealias Device = MTLDevice
-internal typealias Buffer = MTLBuffer
-internal typealias CommandQueue = MTLCommandQueue
-internal typealias CommandBuffer = MTLCommandBuffer
-internal typealias ManagedObjectContext = NSManagedObjectContext
-internal typealias BlitCommandEncoder = MTLBlitCommandEncoder
-internal typealias ComputeCommandEncoder = MTLComputeCommandEncoder

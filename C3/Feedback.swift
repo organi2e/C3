@@ -112,24 +112,10 @@ extension Context {
 		feedback.refer = refer
 		feedback.locationType = adapters.0.rawValue
 		feedback.location = Data(count: count * MemoryLayout<Float>.size)
-		feedback.location.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in
-			assert( MemoryLayout<Float>.size == 4 )
-			assert( MemoryLayout<UInt32>.size == 4 )
-			arc4random_buf(ref, feedback.location.count)
-			vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(count))
-			vDSP_vsmsa(ref, 1, [exp2f(-32)], [exp2f(-33)], ref, 1, vDSP_Length(count))
-			cblas_sscal(Int32(count/2), 2*Float.pi, ref.advanced(by: count/2), 1)
-			vvlogf(ref, ref, [Int32(count/2)])
-			cblas_sscal(Int32(count/2), -2, ref, 1)
-			vvsqrtf(ref, ref, [Int32(count/2)])
-			vDSP_vswap(ref.advanced(by: 1), 2, ref.advanced(by: count/2), 2, vDSP_Length(count/4))
-			vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
-		}
+		feedback.location.normal(μ: 0.0, σ: 1.0)
 		feedback.scaleType = adapters.1.rawValue
 		feedback.scale = Data(count: count * MemoryLayout<Float>.size)
-		feedback.scale.withUnsafeMutableBytes {
-			vDSP_vfill([Float(1)], $0, 1, vDSP_Length(count))
-		}
+		feedback.scale.fill(const: 0.0)
 		feedback.setup(context: self, count: count)
 		return feedback
 	}

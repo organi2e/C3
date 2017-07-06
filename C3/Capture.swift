@@ -5,7 +5,7 @@
 //  Created by Kota Nakano on 2017/04/05.
 //
 //
-
+/*
 import Accelerate
 import CoreData
 
@@ -207,3 +207,4 @@ private extension Buffer {
 }
 private let attr: la_attribute_t = la_attribute_t(LA_ATTRIBUTE_ENABLE_LOGGING)
 private let hint: la_hint_t = la_hint_t(LA_NO_HINT)
+*/

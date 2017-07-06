@@ -9,7 +9,6 @@
 import Accelerate
 import CoreData
 import Distributor
-import Normalizer
 import simd
 public class Cell: Ground {
 	
@@ -38,7 +37,7 @@ extension Cell {
 		}
 	}
 	public func collect() throws {
-		try eval {
+		return try eval {
 			let commandBuffer: CommandBuffer = $0.make()
 			let _: Buffer = collect(commandBuffer: commandBuffer, visit: Set<Cell>())
 			commandBuffer.label = #function
@@ -98,7 +97,7 @@ extension Cell {
 		}
 	}
 	public func correct(ignore: Set<Cell> = Set<Cell>()) throws {
-		try eval {
+		return try eval {
 			let commandBuffer: CommandBuffer = $0.make()
 			let _: (μ: Buffer, σ: Buffer) = correct(commandBuffer: commandBuffer, ignore: ignore.union([self]), visit: [])
 			commandBuffer.label = #function
@@ -117,25 +116,28 @@ extension Cell {
 						$0.correct(commandBuffer: commandBuffer, corrector: corrector, ignore: ignore, visit: visit.union([self]))
 					}
 					if study {
+//						corrector.correct(χ: χ(0), ϝ: ϝ(0))
 						corrector.correct(φ: φ(0), f: ϝ(0))
 					}
 				}
 				distributor.derivate(commandBuffer: commandBuffer, Δ: Δ(0), count: width, correct: corrector)
 				distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ(0), Δ: Δ(0), f: χ(0), g: g(0), φ: φ(0), count: width)
-				
 			case .Identity:
 				func corrector(corrector: Corrector) {
 					output.forEach {
 						$0.correct(commandBuffer: commandBuffer, corrector: corrector, ignore: ignore, visit: visit.union([self]))
 					}
 					if study {
+//						corrector.correct(χ: χ(0), ϝ: ϝ(0))
 						corrector.correct(φ: φ(0), v: ϝ(0))
 					}
 				}
 				distributor.derivate(commandBuffer: commandBuffer, Δ: Δ(0), count: width, correct: corrector)
 				distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ(0), Δ: Δ(0), v: χ(0), g: g(0), φ: φ(0), count: width)
 			}
-			normalizer.adjust(commandBuffer: commandBuffer, Δφ: Δφ(0), φ: φ(0))
+			if 0 < regularizer {
+				distributor.derivate(commandBuffer: commandBuffer, Δφ: Δφ(0), θ: θ, φ: φ(0), γ: regularizer, count: width)
+			}
 			bias.correct(commandBuffer: commandBuffer, ignore: ignore, Δφ: Δφ(0))
 			loop.forEach {
 				$0.correct(commandBuffer: commandBuffer, ignore: ignore, Δφ: Δφ(0))
@@ -159,7 +161,7 @@ extension Cell {
 		get {
 			guard state else { return Array<Float>() }
 			return (try?eval {
-				let target: Buffer = $0.make(length: width * MemoryLayout<Float>.size, options: .storageModeShared)
+				let target: Buffer = $0.make(length: width * MemoryLayout<Float>.stride, options: .storageModeShared)
 				let commandBuffer: CommandBuffer = $0.make()
 				let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 				encoder.copy(from: χ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(χ(0).length, target.length))
@@ -171,7 +173,7 @@ extension Cell {
 				defer {
 					target.setPurgeableState(.empty)
 				}
-				return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(target.contents())), count: width))
+				return target.array
 			}) ?? Array<Float>(repeating: 0, count: width)
 		}
 		set {
@@ -197,7 +199,7 @@ extension Cell {
 		get {
 			guard study else { return Array<Float>() }
 			return (try?eval {
-				let target: Buffer = $0.make(length: width * MemoryLayout<Float>.size, options: .storageModeShared)
+				let target: Buffer = $0.make(length: width * MemoryLayout<Float>.stride, options: .storageModeShared)
 				let commandBuffer: CommandBuffer = $0.make()
 				let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 				encoder.copy(from: ϝ(0), sourceOffset: 0, to: target, destinationOffset: 0, size: min(ϝ(0).length, target.length))
@@ -209,7 +211,7 @@ extension Cell {
 				defer {
 					target.setPurgeableState(.empty)
 				}
-				return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(target.contents())), count: width))
+				return target.array
 			}) ?? Array<Float>(repeating: 0, count: width)
 		}
 		set {
@@ -237,10 +239,10 @@ extension Cell {
 	private class Cache: NSObject {
 		var index: Int
 		let array: Array<(χ: Buffer, ϝ: Buffer, Δ: Buffer, φ: (μ: Buffer, σ: Buffer), g: (μ: Buffer, σ: Buffer), Δφ: (μ: Buffer, σ: Buffer))>
-		let normalizer: Normalizer
+		let theta: (μ: Buffer, g: Buffer)
 		let distributor: Distributor
 		init(context: Context, distribution: DistributorType, depth: Int, width: Int) {
-			let length: Int = width * MemoryLayout<Float>.size
+			let length: Int = width * MemoryLayout<Float>.stride
 			let option: MTLResourceOptions = .storageModePrivate
 			index = 0
 			array = Array<Void>(repeating: (), count: depth)
@@ -249,20 +251,20 @@ extension Cell {
 				      Δ: context.make(length: length, options: option),
 				      φ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
 				      g: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)),
-				      Δφ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)))
+						 Δφ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)))
 			}
-			normalizer = context.make(count: width)
+			theta = (μ: context.make(length: width * MemoryLayout<float2>.stride, options: option),
+			         g: context.make(length: width * MemoryLayout<float4>.stride, options: option))
 			distributor = context.make(type: distribution)
 			super.init()
 			let commandBuffer: CommandBuffer = context.make()
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			array
 				.map{[$0.g.μ, $0.g.σ, $0.Δφ.μ, $0.Δφ.σ, $0.φ.μ, $0.φ.σ, $0.χ, $0.ϝ]}
-				.reduce([], +)
+				.reduce([theta.μ, theta.g], +)
 				.forEach{encoder.fill(buffer: $0, range: NSRange(location: 0, length: $0.length), value: 0)}
 			encoder.label = #function
 			encoder.endEncoding()
-			normalizer.flush(commandBuffer: commandBuffer)
 			commandBuffer.label = #function
 			commandBuffer.commit()
 		}
@@ -294,8 +296,8 @@ extension Cell {
 		let cycle: Int = cache.array.count
 		return cache.array[((offset+cache.index)%cycle+cycle)%cycle].Δφ
 	}
-	internal var normalizer: Normalizer {
-		return cache.normalizer
+	internal var θ: (μ: Buffer, g: Buffer) {
+		return cache.theta
 	}
 	internal var distributor: Distributor {
 		return cache.distributor
@@ -331,6 +333,9 @@ extension Cell {
 	}
 }
 extension Cell {
+	@NSManaged var regularizer: Float
+}
+extension Cell {
 	@NSManaged var state: Bool
 	@NSManaged var delta: Bool
 	@NSManaged var study: Bool
@@ -349,6 +354,7 @@ extension Context {
 	public func make(label: String,
 	                 width: Int,
 	                 distributor: DistributorType = .Degenerate,
+	                 regularizer: Float = 0,
 	                 activator: ActivatorType = .Binary,
 	                 adapters: (AdapterType, AdapterType) = (.Linear, .Linear),
 	                 output: Set<Cell> = Set<Cell>(),
@@ -362,6 +368,7 @@ extension Context {
 		cell.width = width
 		cell.depth = recurrent.map{-$0}.reduce(2, max)
 		cell.distributorType = distributor.rawValue
+		cell.regularizer = regularizer
 		cell.activatorType = activator.rawValue
 		cell.output = try Set<Edge>(output.map{try make(output: $0, input: cell, adapters: adapters)})
 		cell.input = try Set<Edge>(input.map{try make(output: cell, input: $0, adapters: adapters)})

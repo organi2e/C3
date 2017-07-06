@@ -26,8 +26,8 @@ public class Group: NSManagedObject {
 extension Group {
 	@NSManaged internal var domain: String
 	@NSManaged internal var family: String
-	@NSManaged internal var option: Dictionary<String, Any>
-	@NSManaged internal var handle: String
+	@NSManaged public internal(set) var option: Dictionary<String, Any>
+	@NSManaged public internal(set) var handle: String
 }
 public extension Group {
 	public func onehot<T>(count: Int, value: T) throws -> Array<T> {

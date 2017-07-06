@@ -31,7 +31,7 @@ extension Arcane {
 		func flush(commandBuffer: CommandBuffer) {
 			let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
 			encoder.fill(buffer: Δ, range: NSRange(location: 0, length: Δ.length), value: 0)
-			encoder.label = "Arcane.Flush"
+			encoder.label = #function
 			encoder.endEncoding()
 		}
 		func refresh(commandBuffer: CommandBuffer) {
@@ -90,9 +90,7 @@ extension Arcane {
 		
 	}
 	func access(handler: ((μ: Buffer, σ: Buffer)) -> Void) {
-		
 		handler((μ: locationCache.θ, σ: scaleCache.θ))
-		
 	}
 	func setup(context: Context, count: Int) {
 		
@@ -104,7 +102,6 @@ extension Arcane {
 		locationCache = Variable(context: context, data: location,
 		                         adapter: context.make(type: locationType.adapterType, count: count),
 		                         optimizer: context.optimizerFactory(count))
-			
 		locationCache.reset(commandBuffer: commandBuffer)
 		locationCache.refresh(commandBuffer: commandBuffer)
 		setPrimitiveValue(locationCache.data, forKey: "location")
@@ -112,38 +109,13 @@ extension Arcane {
 		scaleCache = Variable(context: context, data: scale,
 		                      adapter: context.make(type: scaleType.adapterType, count: count),
 		                      optimizer: context.optimizerFactory(count))
-			
 		scaleCache.reset(commandBuffer: commandBuffer)
 		scaleCache.refresh(commandBuffer: commandBuffer)
 		setPrimitiveValue(scaleCache.data, forKey: "scale")
 		
-		commandBuffer.label = "Arcane.setup"
+		commandBuffer.label = #function
 		commandBuffer.commit()
 
-	}
-	internal func shuffle(commandBuffer: CommandBuffer, count: Int, μ: Float = 0, σ: Float = 1) {
-		func shuffle(_: CommandBuffer) {
-			assert( count * MemoryLayout<Float>.size <= location.count )
-			location.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in
-				assert( MemoryLayout<Float>.size == 4 )
-				assert( MemoryLayout<UInt32>.size == 4 )
-				arc4random_buf(ref, location.count)
-				vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(count))
-				vDSP_vsmsa(ref, 1, [exp2f(-32)], [exp2f(-33)], ref, 1, vDSP_Length(count))
-				cblas_sscal(Int32(count/2), 2*Float.pi, ref.advanced(by: count/2), 1)
-				vvlogf(ref, ref, [Int32(count/2)])
-				cblas_sscal(Int32(count/2), -2, ref, 1)
-				vvsqrtf(ref, ref, [Int32(count/2)])
-				vDSP_vswap(ref.advanced(by: 1), 2, ref.advanced(by: count/2), 2, vDSP_Length(count/4))
-				vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
-				vDSP_vsmsa(ref, 1, [σ], [μ], ref, 1, vDSP_Length(count))
-			}
-			assert( count * MemoryLayout<Float>.size <= scale.count )
-			scale.withUnsafeMutableBytes {
-				vDSP_vfill([Float(1)], $0, 1, vDSP_Length(count))
-			}
-		}
-		commandBuffer.addCompletedHandler(shuffle)
 	}
 	@NSManaged private var locationCache: Variable
 	@NSManaged private var scaleCache: Variable
@@ -156,7 +128,7 @@ extension Arcane {
 }
 private extension String {
 	var adapterType: AdapterType {
-		guard let adapterType: AdapterType = AdapterType(rawValue: self) else { fatalError(self) }
+		guard let adapterType: AdapterType = AdapterType(rawValue: self) else { fatalError(#function) }
 		return adapterType
 	}
 }

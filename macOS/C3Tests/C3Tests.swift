@@ -91,47 +91,67 @@ class C3Tests: XCTestCase {
 		do {
 			guard let queue: MTLCommandQueue = MTLCreateSystemDefaultDevice()?.makeCommandQueue() else { XCTFail(); return }
 			let context: Context = try Context(queue: queue,
-//			                                   optimizer: .Adamax(L2: 1e-6, L1: 0, α: 1e-3, β: 0.9, γ: 0.999, ε: 1e-8))
-											   normalizer: .Stochastic(γ: 0.995),
-			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
+//			                                   normalizer: .Stochastic(γ: 1e-3),
+//																			   optimizer: .Adamax(L2: 1e-6, L1: 0, α: 1e-3, β: 0.9, γ: 0.999, ε: 1e-8)
+//																				 optimizer: .AdaDelta(L2: 0, L1: 0, ρ: 0.99, ε: 0)
+			                                   optimizer: .SMORMS3(L2: 0, L1: 0, α: 1e-2, ε: 0)
+			)
+			
 			do {
 				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
-				try (0..<4).forEach {
-					last = try context.make(label: "H\($0)", width: 64, distributor: .Gauss, activator: .Binary, input: [last], decay: true, recurrent: [])
-				}
+//				try (0..<14).forEach {
+//					last = try context.make(label: "H\($0)", width: 64, distributor: .Gauss, γ: 1e-2, activator: .Identity, input: [last], decay: true, recurrent: [])
+//					last = try context.make(label: "H\($0)", width: 128, distributor: .Gauss, regularizer: 0, activator: .Binary, input: [last], decay: true, recurrent: [])
+//				}
+				last = try context.make(label: "H0", width: 64, distributor: .Gauss, regularizer: 0, activator: .Identity, input: [last], decay: true, recurrent: [])
+				last = try context.make(label: "H1", width: 64, distributor: .Gauss, regularizer: 0, activator: .Binary, input: [last], decay: false, recurrent: [])
+				last = try context.make(label: "H2", width: 64, distributor: .Gauss, regularizer: 0, activator: .Identity, input: [last], decay: true, recurrent: [])
 				last = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [last], decay: false, recurrent: [])
 				try context.save()
 			}
 			do {
-				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
-				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
+				guard
+					let I: Cell = try context.fetch(label: "I").last,
+					let O: Cell = try context.fetch(label: "O").last else {
+						XCTFail()
+						return
+				}
+				let counter: () -> Int = {
+					var count: Int = 0
+					return {
+						count = count + 1
+						return count
+					}
+				}()
 				measure {
-					print("try")
-					try!(0..<4096).forEach {
+					print("try \(counter())")
+					try!(0..<1024).forEach {
 						let ref: Int = ( $0 / 4 ) % 4
 						try O.collect_refresh()
 						try I.correct_refresh()
 						O.target = OS[ref]
 						I.source = IS[ref]
-						try O.collect()
-						try I.correct()
-						//						print(O.source)
+						let _ = try O.collect()
+						let _ = try I.correct()
 					}
 				}
-				try context.save()
 			}
+			try context.save()
 			
 			do {
-				guard let I: Cell = try context.fetch(label: "I").last else { XCTFail(); return }
-				//guard let H: Cell = try context.fetch(label: "H").last else { XCTFail(); return }
-				guard let O: Cell = try context.fetch(label: "O").last else { XCTFail(); return }
+				guard
+					let I: Cell = try context.fetch(label: "I").last,
+					let O: Cell = try context.fetch(label: "O").last else {
+						XCTFail()
+						return
+				}
 				
 				print("gpu")
-				try!(0..<64).forEach {
+				try!(0..<256).forEach {
 					let k: Int = ( $0 / 4 ) % 4
 					try O.collect_refresh()
 					I.source = IS[ k ]
-					try O.collect()
+					let _ = try O.collect()
 					//let x = O.source
 					print(k, OS[k], O.source)//.map{$0 > 0.5 ? 1 : 0})//.map{ $0 == x.max() })
 				}

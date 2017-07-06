@@ -48,7 +48,8 @@ public class DegenerateDistributor {
 		)
 		derivatePipeline = try DerivatePipeline(
 			P: library.make(name: "DegenerateDerivateP"),
-			V: library.make(name: "DegenerateDerivateV")
+			V: library.make(name: "DegenerateDerivateV"),
+			N: library.make(name: "DegenerateDerivateN")
 		)
 		gradientPipeline = try GradientPipeline(
 			JP: library.make(name: "DegenerateGradientJ"),
@@ -332,6 +333,26 @@ extension DegenerateDistributor {
 		encoder.setBuffer(v, offset: 0, at: 2)
 		encoder.setBuffer(g.μ, offset: 0, at: 3)
 		encoder.setBuffer(φ.μ, offset: 0, at: 4)
+		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 5)
+		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
+		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.label = #function
+		encoder.endEncoding()
+	}
+	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), θ: (μ: MTLBuffer, g: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), γ: Float, count: Int) {
+		assert( commandBuffer.device === derivatePipeline.N.device )
+		assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
+		assert( commandBuffer.device === θ.μ.device && count * MemoryLayout<Float>.stride <= θ.μ.length )
+		assert( commandBuffer.device === θ.g.device && count * MemoryLayout<Float>.stride <= θ.g.length )
+		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
+		let threads: Int = derivatePipeline.N.threadExecutionWidth
+		encoder.setComputePipelineState(derivatePipeline.N)
+		encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
+		encoder.setBuffer(θ.μ, offset: 0, at: 1)
+		encoder.setBuffer(θ.g, offset: 0, at: 2)
+		encoder.setBuffer(φ.μ, offset: 0, at: 3)
+		encoder.setBytes([γ], length: MemoryLayout<Float>.size, at: 4)
 		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 5)
 		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
 		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))

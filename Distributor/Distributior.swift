@@ -58,6 +58,7 @@ struct ActivatePipeline {
 struct DerivatePipeline {
 	let P: MTLComputePipelineState
 	let V: MTLComputePipelineState
+	let N: MTLComputePipelineState
 }
 struct GradientPipeline {
 	let JP: MTLComputePipelineState
@@ -74,6 +75,8 @@ public protocol Distributor {
 	func derivate(commandBuffer: MTLCommandBuffer, Δ: MTLBuffer, count: Int, correct: (Corrector)->Void)
 	func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), Δ: MTLBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int)
 	func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), Δ: MTLBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int)
+	
+	func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), θ: (μ: MTLBuffer, g: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), γ: Float, count: Int)
 	
 	func gradient(commandBuffer: MTLCommandBuffer, Δx: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer),
 	              Δφ: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer),

@@ -98,6 +98,7 @@
 		87C3C27D1E94C90100A62C11 /* Logistic.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C27B1E94C90100A62C11 /* Logistic.metal */; };
 		87C3C27E1E94C90100A62C11 /* Logistic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C27C1E94C90100A62C11 /* Logistic.swift */; };
 		87C3C2801E94D06B00A62C11 /* Capture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C3C27F1E94D06B00A62C11 /* Capture.swift */; };
+		87C6010B1F0CAE0F00CD4415 /* Helper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C6010A1F0CAE0F00CD4415 /* Helper.swift */; };
 		87D203D11E99EF3E0054A34D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203D01E99EF3E0054A34D /* AppDelegate.swift */; };
 		87D203D31E99EF3E0054A34D /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D203D21E99EF3E0054A34D /* ViewController.swift */; };
 		87D203D51E99EF3E0054A34D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 87D203D41E99EF3E0054A34D /* Assets.xcassets */; };
@@ -343,6 +344,7 @@
 		87C3C27B1E94C90100A62C11 /* Logistic.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Logistic.metal; path = ../../Adapter/Logistic.metal; sourceTree = "<group>"; };
 		87C3C27C1E94C90100A62C11 /* Logistic.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Logistic.swift; path = ../../Adapter/Logistic.swift; sourceTree = "<group>"; };
 		87C3C27F1E94D06B00A62C11 /* Capture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Capture.swift; path = ../../C3/Capture.swift; sourceTree = "<group>"; };
+		87C6010A1F0CAE0F00CD4415 /* Helper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Helper.swift; path = ../../C3/Helper.swift; sourceTree = "<group>"; };
 		87D203CE1E99EF3E0054A34D /* Stage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Stage.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		87D203D01E99EF3E0054A34D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		87D203D21E99EF3E0054A34D /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -508,6 +510,7 @@
 				87497DE61E9257200013C12C /* Edge.swift */,
 				87263D4A1E97F27500A4B75B /* Feedback.swift */,
 				87D203EB1E9A305E0054A34D /* Ground.swift */,
+				87C6010A1F0CAE0F00CD4415 /* Helper.swift */,
 				87497DE51E9257200013C12C /* Context.swift */,
 				87C3C27F1E94D06B00A62C11 /* Capture.swift */,
 				87497DCB1E9257080013C12C /* C3.h */,
@@ -533,6 +536,8 @@
 				87D203E11E99EF3E0054A34D /* StageUITests */,
 				87497DCA1E9257080013C12C /* C3 */,
 				87497DD51E9257080013C12C /* C3Tests */,
+				87FAD2451EEAB6F600E6FB3E /* Normalizer */,
+				87FAD2521EEAB6F700E6FB3E /* NormalizerTests */,
 				8754F8A21E8B9F0E006B088A /* Adapter */,
 				8754F8AD1E8B9F0E006B088A /* AdapterTests */,
 				8754F8481E8B96AB006B088A /* Distributor */,
@@ -541,8 +546,6 @@
 				8754F8751E8B970E006B088A /* OptimizerTests */,
 				87E74B2B1E9DC4BB006D513A /* Educator */,
 				87E74B381E9DC4BB006D513A /* EducatorTests */,
-				87FAD2451EEAB6F600E6FB3E /* Normalizer */,
-				87FAD2521EEAB6F700E6FB3E /* NormalizerTests */,
 				8754F8471E8B96AB006B088A /* Products */,
 				879EFE4A1E9254380078CDC7 /* Frameworks */,
 			);
@@ -1167,6 +1170,8 @@
 				87D203DD1E99EF3E0054A34D /* StageUITests */,
 				87497DC81E9257080013C12C /* C3 */,
 				87497DD01E9257080013C12C /* C3Tests */,
+				87FAD2431EEAB6F600E6FB3E /* Normalizer */,
+				87FAD24B1EEAB6F700E6FB3E /* NormalizerTests */,
 				8754F8451E8B96AB006B088A /* Distributor */,
 				8754F84E1E8B96AB006B088A /* DistributorTests */,
 				8754F8681E8B970E006B088A /* Optimizer */,
@@ -1175,8 +1180,6 @@
 				8754F8A81E8B9F0E006B088A /* AdapterTests */,
 				87E74B291E9DC4BA006D513A /* Educator */,
 				87E74B311E9DC4BB006D513A /* EducatorTests */,
-				87FAD2431EEAB6F600E6FB3E /* Normalizer */,
-				87FAD24B1EEAB6F700E6FB3E /* NormalizerTests */,
 			);
 		};
 /* End PBXProject section */
@@ -1309,6 +1312,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				87C6010B1F0CAE0F00CD4415 /* Helper.swift in Sources */,
 				87497DE81E9257200013C12C /* Arcane.swift in Sources */,
 				87497DE91E9257200013C12C /* Bias.swift in Sources */,
 				87497DEB1E9257200013C12C /* Cell.swift in Sources */,

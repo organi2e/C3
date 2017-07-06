@@ -21,24 +21,27 @@ kernel void StochasticAdjust(device float * const du [[ buffer(0) ]],
 	if ( n < N ) {
 		int const idx = n;
 		float2 const x = float2(u[idx], s[idx]);
-		float2 const m = mix(float2(x.x, dot(x, x)), momentum[idx], gamma);
-		float4 const g = mix(float4(1, 0, 2 * x), gradient[idx], gamma);
+		float2 const m = mix(momentum[idx], float2(x.x, dot(x, x)), gamma);
+//		float2 const m = float2(gamma * momentum[idx].x + ( 1 - gamma ) * x.x,
+//								gamma * momentum[idx].y + ( 1 - gamma ) * x.y);
+//		float4 const g = mix(float4(1, 0, 2 * x.x, 2 * x.y), gradient[idx], gamma);
+		float4 const g = gamma * float4(1,
+										0,
+										2 * x.x,
+										2 * x.y);// + gamma * float4(0,
+//																		  0,
+//																		  gradient[idx].z,
+//																		  gradient[idx].w);
 		
 		float const v = fma(m.x, -m.x, m.y);
 		float const l = 0.5 * log(v) / v;
 		float const r = select(0.0, l, isfinite(l));
+		float const n = 2 * m.x * g.x;
 		
-		du[idx] += 2 * m.x * g.x + r * ( g.z - 2 * m.x * g.x );
-		ds[idx] +=                 r * ( g.w );
+		du[idx] += n + r * ( g.z - n );
+		ds[idx] +=     r * ( g.w );
 		
-		/*
-		float const s = sqrt(fma(m.x, -m.x, m.y));
-		float const l1 = m.x * g.x;
-		float const l2 = ( s - 1 ) / s;
-		du[idx] += l1 + l2 * fma(l1, -2, g.z);
-		du[idx] +=      l2 * g.w;
 		momentum[idx] = m;
 		gradient[idx] = g;
-		*/
 	}
 }

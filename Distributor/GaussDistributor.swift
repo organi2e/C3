@@ -50,7 +50,8 @@ public class GaussDistributor {
 		)
 		derivatePipeline = try DerivatePipeline(
 			P: library.make(name: "GaussDerivateP"),
-			V: library.make(name: "GaussDerivateV")
+			V: library.make(name: "GaussDerivateV"),
+			N: library.make(name: "GaussDerivateN")
 		)
 		gradientPipeline = try GradientPipeline(
 			JP: library.make(name: "GaussGradientJP"),
@@ -69,11 +70,11 @@ extension GaussDistributor {
 		public func collect(w: (μ: MTLBuffer, σ: MTLBuffer), x: MTLBuffer, count: Int) {
 			
 			assert( order.device === state.W.device )
-			assert( order.device === Σ.μ.device && width * MemoryLayout<Float>.size <= Σ.μ.length )
-			assert( order.device === Σ.σ.device && width * MemoryLayout<Float>.size <= Σ.σ.length )
-			assert( order.device === w.μ.device && width * count * MemoryLayout<Float>.size <= w.μ.length )
-			assert( order.device === w.σ.device && width * count * MemoryLayout<Float>.size <= w.σ.length )
-			assert( order.device === x.device && count * MemoryLayout<Float>.size <= x.length )
+			assert( order.device === Σ.μ.device && width * MemoryLayout<Float>.stride <= Σ.μ.length )
+			assert( order.device === Σ.σ.device && width * MemoryLayout<Float>.stride <= Σ.σ.length )
+			assert( order.device === w.μ.device && width * count * MemoryLayout<Float>.stride <= w.μ.length )
+			assert( order.device === w.σ.device && width * count * MemoryLayout<Float>.stride <= w.σ.length )
+			assert( order.device === x.device && count * MemoryLayout<Float>.stride <= x.length )
 			
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.W.threadExecutionWidth
@@ -92,10 +93,10 @@ extension GaussDistributor {
 		}
 		public func collect(c: (μ: MTLBuffer, σ: MTLBuffer)) {
 			assert( order.device === state.C.device )
-			assert( order.device === Σ.μ.device && width * MemoryLayout<Float>.size <= Σ.μ.length )
-			assert( order.device === Σ.σ.device && width * MemoryLayout<Float>.size <= Σ.σ.length )
-			assert( order.device === c.μ.device && width * MemoryLayout<Float>.size <= c.μ.length )
-			assert( order.device === c.σ.device && width * MemoryLayout<Float>.size <= c.σ.length )
+			assert( order.device === Σ.μ.device && width * MemoryLayout<Float>.stride <= Σ.μ.length )
+			assert( order.device === Σ.σ.device && width * MemoryLayout<Float>.stride <= Σ.σ.length )
+			assert( order.device === c.μ.device && width * MemoryLayout<Float>.stride <= c.μ.length )
+			assert( order.device === c.σ.device && width * MemoryLayout<Float>.stride <= c.σ.length )
 			
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.C.threadExecutionWidth
@@ -112,11 +113,11 @@ extension GaussDistributor {
 		}
 		public func collect(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer)) {
 			assert( order.device === state.D.device )
-			assert( order.device === Σ.μ.device && width * MemoryLayout<Float>.size <= Σ.μ.length )
-			assert( order.device === Σ.σ.device && width * MemoryLayout<Float>.size <= Σ.σ.length )
-			assert( order.device === d.device && width * MemoryLayout<Float>.size <= d.length )
-			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.size <= φ.μ.length )
-			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.size <= φ.σ.length )
+			assert( order.device === Σ.μ.device && width * MemoryLayout<Float>.stride <= Σ.μ.length )
+			assert( order.device === Σ.σ.device && width * MemoryLayout<Float>.stride <= Σ.σ.length )
+			assert( order.device === d.device && width * MemoryLayout<Float>.stride <= d.length )
+			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.stride <= φ.μ.length )
+			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.stride <= φ.σ.length )
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.D.threadExecutionWidth
 			encoder.setComputePipelineState(state.D)
@@ -147,8 +148,8 @@ extension GaussDistributor {
 		}
 		do {
 			assert( commandBuffer.device === collectPipeline.F.device )
-			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.size <= φ.μ.length )
-			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.size <= φ.σ.length )
+			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.stride <= φ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
 			let threads: Int = collectPipeline.F.threadExecutionWidth
 			encoder.setComputePipelineState(collectPipeline.F)
@@ -189,11 +190,11 @@ extension GaussDistributor {
 	}
 	public func activate(commandBuffer: MTLCommandBuffer, v: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int) {
 		assert( commandBuffer.device === activatePipeline.V.device )
-		assert( commandBuffer.device === v.device && count * MemoryLayout<Float>.size <= v.length )
-		assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.size <= g.μ.length )
-		assert( commandBuffer.device === g.σ.device && count * MemoryLayout<Float>.size <= g.σ.length )
-		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.size <= φ.μ.length )
-		assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.size <= φ.σ.length )
+		assert( commandBuffer.device === v.device && count * MemoryLayout<Float>.stride <= v.length )
+		assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
+		assert( commandBuffer.device === g.σ.device && count * MemoryLayout<Float>.stride <= g.σ.length )
+		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+		assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.stride <= φ.σ.length )
 		typealias T = ushort
 		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
 		let threads: Int = activatePipeline.V.threadExecutionWidth
@@ -248,11 +249,11 @@ extension GaussDistributor {
 		}
 		do {
 			assert( commandBuffer.device === activatePipeline.V.device )
-			assert( commandBuffer.device === v.device && count * MemoryLayout<Float>.size <= v.length )
-			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.size <= g.μ.length )
-			assert( commandBuffer.device === g.σ.device && count * MemoryLayout<Float>.size <= g.σ.length )
-			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.size <= φ.μ.length )
-			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.size <= φ.σ.length )
+			assert( commandBuffer.device === v.device && count * MemoryLayout<Float>.stride <= v.length )
+			assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
+			assert( commandBuffer.device === g.σ.device && count * MemoryLayout<Float>.stride <= g.σ.length )
+			assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+			assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.stride <= φ.σ.length )
 			typealias T = ushort
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
 			let threads: Int = activatePipeline.V.threadExecutionWidth
@@ -280,9 +281,9 @@ extension GaussDistributor {
 		let Δ: MTLBuffer
 		public func correct(χ: MTLBuffer, ϝ: MTLBuffer) {
 			assert( order.device === state.G.device )
-			assert( order.device === Δ.device && width * MemoryLayout<Float>.size <= Δ.length)
-			assert( order.device === χ.device && width * MemoryLayout<Float>.size <= χ.length)
-			assert( order.device === ϝ.device && width * MemoryLayout<Float>.size <= ϝ.length)
+			assert( order.device === Δ.device && width * MemoryLayout<Float>.stride <= Δ.length)
+			assert( order.device === χ.device && width * MemoryLayout<Float>.stride <= χ.length)
+			assert( order.device === ϝ.device && width * MemoryLayout<Float>.stride <= ϝ.length)
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.G.threadExecutionWidth
 			encoder.setComputePipelineState(state.G)
@@ -297,8 +298,8 @@ extension GaussDistributor {
 		}
 		public func correct(χ: MTLBuffer) {
 			assert( order.device === state.N.device )
-			assert( order.device === Δ.device && width * MemoryLayout<Float>.size <= Δ.length)
-			assert( order.device === χ.device && width * MemoryLayout<Float>.size <= χ.length)
+			assert( order.device === Δ.device && width * MemoryLayout<Float>.stride <= Δ.length)
+			assert( order.device === χ.device && width * MemoryLayout<Float>.stride <= χ.length)
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.N.threadExecutionWidth
 			encoder.setComputePipelineState(state.N)
@@ -312,10 +313,10 @@ extension GaussDistributor {
 		}
 		public func correct(φ: (μ: MTLBuffer, σ: MTLBuffer), f: MTLBuffer) {
 			assert( order.device === state.G.device )
-			assert( order.device === Δ.device && width * MemoryLayout<Float>.size <= Δ.length )
-			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.size <= φ.μ.length )
-			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.size <= φ.σ.length )
-			assert( order.device === f.device && width * MemoryLayout<Float>.size <= f.length )
+			assert( order.device === Δ.device && width * MemoryLayout<Float>.stride <= Δ.length )
+			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.stride <= φ.μ.length )
+			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.stride <= φ.σ.length )
+			assert( order.device === f.device && width * MemoryLayout<Float>.stride <= f.length )
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.G.threadExecutionWidth
 			encoder.setComputePipelineState(state.P)
@@ -331,10 +332,10 @@ extension GaussDistributor {
 		}
 		public func correct(φ: (μ: MTLBuffer, σ: MTLBuffer), v: MTLBuffer) {
 			assert( order.device === state.V.device )
-			assert( order.device === Δ.device && width * MemoryLayout<Float>.size <= Δ.length )
-			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.size <= φ.μ.length )
-			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.size <= φ.σ.length )
-			assert( order.device === v.device && width * MemoryLayout<Float>.size <= v.length )
+			assert( order.device === Δ.device && width * MemoryLayout<Float>.stride <= Δ.length )
+			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.stride <= φ.μ.length )
+			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.stride <= φ.σ.length )
+			assert( order.device === v.device && width * MemoryLayout<Float>.stride <= v.length )
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.G.threadExecutionWidth
 			encoder.setComputePipelineState(state.V)
@@ -363,14 +364,14 @@ extension GaussDistributor {
 	}
 	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), Δ: MTLBuffer, f: MTLBuffer, g: (μ: MTLBuffer, σ: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int) {
 		assert( commandBuffer.device === derivatePipeline.P.device )
-		assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.size <= Δφ.μ.length )
-		assert( commandBuffer.device === Δφ.σ.device && count * MemoryLayout<Float>.size <= Δφ.σ.length )
+		assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
+		assert( commandBuffer.device === Δφ.σ.device && count * MemoryLayout<Float>.stride <= Δφ.σ.length )
 		assert( commandBuffer.device === Δ.device && count * MemoryLayout<Float>.stride <= Δ.length )
 		assert( commandBuffer.device === f.device && count * MemoryLayout<Float>.stride <= f.length )
-		assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.size <= g.μ.length )
-		assert( commandBuffer.device === g.σ.device && count * MemoryLayout<Float>.size <= g.σ.length )
-		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.size <= φ.μ.length )
-		assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.size <= φ.σ.length )
+		assert( commandBuffer.device === g.μ.device && count * MemoryLayout<Float>.stride <= g.μ.length )
+		assert( commandBuffer.device === g.σ.device && count * MemoryLayout<Float>.stride <= g.σ.length )
+		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+		assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.stride <= φ.σ.length )
 		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
 		let threads: Int = derivatePipeline.P.threadExecutionWidth
 		encoder.setComputePipelineState(derivatePipeline.P)
@@ -415,6 +416,30 @@ extension GaussDistributor {
 		encoder.label = #function
 		encoder.endEncoding()
 	}
+	public func derivate(commandBuffer: MTLCommandBuffer, Δφ: (μ: MTLBuffer, σ: MTLBuffer), θ: (μ: MTLBuffer, g: MTLBuffer), φ: (μ: MTLBuffer, σ: MTLBuffer), γ: Float, count: Int) {
+		assert( commandBuffer.device === derivatePipeline.N.device )
+		assert( commandBuffer.device === Δφ.μ.device && count * MemoryLayout<Float>.stride <= Δφ.μ.length )
+		assert( commandBuffer.device === Δφ.σ.device && count * MemoryLayout<Float>.stride <= Δφ.σ.length )
+		assert( commandBuffer.device === θ.μ.device && count * MemoryLayout<Float>.stride <= θ.μ.length )
+		assert( commandBuffer.device === θ.g.device && count * MemoryLayout<Float>.stride <= θ.g.length )
+		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+		assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.stride <= φ.σ.length )
+		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
+		let threads: Int = derivatePipeline.N.threadExecutionWidth
+		encoder.setComputePipelineState(derivatePipeline.N)
+		encoder.setBuffer(Δφ.μ, offset: 0, at: 0)
+		encoder.setBuffer(Δφ.σ, offset: 0, at: 1)
+		encoder.setBuffer(θ.μ, offset: 0, at: 2)
+		encoder.setBuffer(θ.g, offset: 0, at: 3)
+		encoder.setBuffer(φ.μ, offset: 0, at: 4)
+		encoder.setBuffer(φ.σ, offset: 0, at: 5)
+		encoder.setBytes([γ], length: MemoryLayout<Float>.size, at: 6)
+		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 7)
+		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
+		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.label = #function
+		encoder.endEncoding()
+	}
 }
 extension GaussDistributor {
 	private struct GaussConnector: Connector {
@@ -426,11 +451,11 @@ extension GaussDistributor {
 		func connect(x: MTLBuffer, a: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.X.device )
-			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.size <= Σ.μ.length )
-			assert( order.device === Σ.σ.device && width * refer * MemoryLayout<Float>.size <= Σ.σ.length )
-			assert( order.device === x.device   && refer * MemoryLayout<Float>.size <= x.length )
-			assert( order.device === a.μ.device && width * refer * MemoryLayout<Float>.size <= a.μ.length )
-			assert( order.device === a.σ.device && width * refer * MemoryLayout<Float>.size <= a.σ.length )
+			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.stride <= Σ.μ.length )
+			assert( order.device === Σ.σ.device && width * refer * MemoryLayout<Float>.stride <= Σ.σ.length )
+			assert( order.device === x.device   && refer * MemoryLayout<Float>.stride <= x.length )
+			assert( order.device === a.μ.device && width * refer * MemoryLayout<Float>.stride <= a.μ.length )
+			assert( order.device === a.σ.device && width * refer * MemoryLayout<Float>.stride <= a.σ.length )
 			
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.X.threadExecutionWidth
@@ -477,10 +502,10 @@ extension GaussDistributor {
 		func connect(c: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.C.device )
-			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.size <= Σ.μ.length )
-			assert( order.device === Σ.σ.device && width * refer * MemoryLayout<Float>.size <= Σ.σ.length )
-			assert( order.device === c.μ.device && width * MemoryLayout<Float>.size <= c.μ.length )
-			assert( order.device === c.σ.device && width * MemoryLayout<Float>.size <= c.σ.length )
+			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.stride <= Σ.μ.length )
+			assert( order.device === Σ.σ.device && width * refer * MemoryLayout<Float>.stride <= Σ.σ.length )
+			assert( order.device === c.μ.device && width * MemoryLayout<Float>.stride <= c.μ.length )
+			assert( order.device === c.σ.device && width * MemoryLayout<Float>.stride <= c.σ.length )
 			
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.C.threadExecutionWidth
@@ -499,11 +524,11 @@ extension GaussDistributor {
 		func connect(d: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.D.device )
-			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.size <= Σ.μ.length )
-			assert( order.device === Σ.σ.device && width * refer * MemoryLayout<Float>.size <= Σ.σ.length )
-			assert( order.device === d.device   && width * MemoryLayout<Float>.size <= d.length )
-			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.size <= φ.μ.length )
-			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.size <= φ.σ.length )
+			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.stride <= Σ.μ.length )
+			assert( order.device === Σ.σ.device && width * refer * MemoryLayout<Float>.stride <= Σ.σ.length )
+			assert( order.device === d.device   && width * MemoryLayout<Float>.stride <= d.length )
+			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.stride <= φ.μ.length )
+			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.stride <= φ.σ.length )
 			
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.D.threadExecutionWidth
@@ -523,13 +548,13 @@ extension GaussDistributor {
 		func connect(φ: (μ: MTLBuffer, σ: MTLBuffer), d: MTLBuffer, j: (μ: MTLBuffer, σ: MTLBuffer)) {
 			
 			assert( order.device === state.E.device )
-			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.size <= Σ.μ.length )
-			assert( order.device === Σ.σ.device && width * refer * MemoryLayout<Float>.size <= Σ.σ.length )
-			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.size <= φ.μ.length )
-			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.size <= φ.σ.length )
-			assert( order.device === d.device   && width * MemoryLayout<Float>.size <= d.length )
-			assert( order.device === j.μ.device && width * refer * MemoryLayout<Float>.size <= j.μ.length )
-			assert( order.device === j.σ.device && width * refer * MemoryLayout<Float>.size <= j.σ.length )
+			assert( order.device === Σ.μ.device && width * refer * MemoryLayout<Float>.stride <= Σ.μ.length )
+			assert( order.device === Σ.σ.device && width * refer * MemoryLayout<Float>.stride <= Σ.σ.length )
+			assert( order.device === φ.μ.device && width * MemoryLayout<Float>.stride <= φ.μ.length )
+			assert( order.device === φ.σ.device && width * MemoryLayout<Float>.stride <= φ.σ.length )
+			assert( order.device === d.device   && width * MemoryLayout<Float>.stride <= d.length )
+			assert( order.device === j.μ.device && width * refer * MemoryLayout<Float>.stride <= j.μ.length )
+			assert( order.device === j.σ.device && width * refer * MemoryLayout<Float>.stride <= j.σ.length )
 			
 			let encoder: MTLComputeCommandEncoder = order.makeComputeCommandEncoder()
 			let threads: Int = state.E.threadExecutionWidth
@@ -566,8 +591,8 @@ extension GaussDistributor {
 			assert( commandBuffer.device === connectPipeline.F.device )
 			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.μ.length )
 			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.σ.length )
-			assert( commandBuffer.device === φ.μ.device && count.rows * MemoryLayout<Float>.size <= φ.μ.length )
-			assert( commandBuffer.device === φ.σ.device && count.rows * MemoryLayout<Float>.size <= φ.σ.length )
+			assert( commandBuffer.device === φ.μ.device && count.rows * MemoryLayout<Float>.stride <= φ.μ.length )
+			assert( commandBuffer.device === φ.σ.device && count.rows * MemoryLayout<Float>.stride <= φ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
 			let threads: Int = connectPipeline.F.threadExecutionWidth
 			encoder.setComputePipelineState(connectPipeline.F)
@@ -615,11 +640,11 @@ extension GaussDistributor {
 		gradient(commandBuffer: commandBuffer, j: j, φ: φ, count: count, connect: connect)
 		do {
 			assert( commandBuffer.device === gradientPipeline.GV.device )
-			assert( commandBuffer.device === Δv.device && count.rows * MemoryLayout<Float>.size <= Δv.length )
-			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
-			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
-			assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.size <= Δφ.μ.length )
-			assert( commandBuffer.device === Δφ.σ.device && count.rows * MemoryLayout<Float>.size <= Δφ.σ.length )
+			assert( commandBuffer.device === Δv.device && count.rows * MemoryLayout<Float>.stride <= Δv.length )
+			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.μ.length )
+			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.σ.length )
+			assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.stride <= Δφ.μ.length )
+			assert( commandBuffer.device === Δφ.σ.device && count.rows * MemoryLayout<Float>.stride <= Δφ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
 			let threads: Int = gradientPipeline.GV.threadExecutionWidth
 			encoder.setComputePipelineState(gradientPipeline.GV)
@@ -641,12 +666,12 @@ extension GaussDistributor {
 		gradient(commandBuffer: commandBuffer, j: j, φ: φ, count: count, connect: connect)
 		do {
 			assert( commandBuffer.device === gradientPipeline.GP.device )
-			assert( commandBuffer.device === Δθ.μ.device && count.rows * MemoryLayout<Float>.size <= Δθ.μ.length )
-			assert( commandBuffer.device === Δθ.σ.device && count.rows * MemoryLayout<Float>.size <= Δθ.σ.length )
-			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.μ.length )
-			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.size <= j.σ.length )
-			assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.size <= Δφ.μ.length )
-			assert( commandBuffer.device === Δφ.σ.device && count.rows * MemoryLayout<Float>.size <= Δφ.σ.length )
+			assert( commandBuffer.device === Δθ.μ.device && count.rows * MemoryLayout<Float>.stride <= Δθ.μ.length )
+			assert( commandBuffer.device === Δθ.σ.device && count.rows * MemoryLayout<Float>.stride <= Δθ.σ.length )
+			assert( commandBuffer.device === j.μ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.μ.length )
+			assert( commandBuffer.device === j.σ.device && count.rows * count.cols * MemoryLayout<Float>.stride <= j.σ.length )
+			assert( commandBuffer.device === Δφ.μ.device && count.rows * MemoryLayout<Float>.stride <= Δφ.μ.length )
+			assert( commandBuffer.device === Δφ.σ.device && count.rows * MemoryLayout<Float>.stride <= Δφ.σ.length )
 			let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
 			let threads: Int = gradientPipeline.GP.threadExecutionWidth
 			encoder.setComputePipelineState(gradientPipeline.GP)
@@ -669,6 +694,6 @@ extension GaussDistributor: Distributor {
 }
 private extension MTLLibrary {
 	func make(name: String, constantValues: MTLFunctionConstantValues = MTLFunctionConstantValues()) throws -> MTLComputePipelineState {
-		return try device.makeComputePipelineState(function: try makeFunction(name: name, constantValues: constantValues))
+		return try device.makeComputePipelineState(function: makeFunction(name: name, constantValues: constantValues))
 	}
 }

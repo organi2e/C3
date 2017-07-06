@@ -19,6 +19,7 @@
         <attribute name="depth" attributeType="Integer 64" minValueString="2" usesScalarValueType="YES" syncable="YES"/>
         <attribute name="distributorType" attributeType="String" syncable="YES"/>
         <attribute name="label" attributeType="String" syncable="YES"/>
+        <attribute name="regularizer" attributeType="Float" defaultValueString="0.0" usesScalarValueType="YES" syncable="YES"/>
         <attribute name="state" transient="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES" customClassName="." syncable="YES"/>
         <attribute name="study" transient="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES" customClassName="." syncable="YES"/>
         <attribute name="width" attributeType="Integer 64" minValueString="1" usesScalarValueType="YES" syncable="YES"/>
@@ -48,7 +49,7 @@
     <elements>
         <element name="Arcane" positionX="-63" positionY="-18" width="128" height="135"/>
         <element name="Bias" positionX="-54" positionY="9" width="128" height="75"/>
-        <element name="Cell" positionX="-36" positionY="18" width="128" height="255"/>
+        <element name="Cell" positionX="-36" positionY="18" width="128" height="270"/>
         <element name="Decay" positionX="-36" positionY="45" width="128" height="75"/>
         <element name="Edge" positionX="-18" positionY="54" width="128" height="90"/>
         <element name="Feedback" positionX="-36" positionY="63" width="128" height="90"/>

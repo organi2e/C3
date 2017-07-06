@@ -24,7 +24,8 @@ kernel void AdaDeltaOptimize(device float * const theta [[ buffer(0) ]],
 		float const g = delta[idx];
 		float2 p = parameters[idx];
 		p.x = mix(sq(g), p.x, rho);
-		float const v = g * sqrt((p.y+epsilon)/(p.x+epsilon));
+		float const r = sqrt((p.y+epsilon)/(p.x+epsilon));
+		float const v = g * select(1.0, r, isfinite(r));
 		p.y = mix(sq(v), p.y, rho);
 		theta[idx] -= v;
 		parameters[idx] = p;

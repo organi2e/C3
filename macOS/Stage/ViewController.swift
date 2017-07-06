@@ -20,7 +20,7 @@ class ViewController: NSViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		Thread(block: MNIST(progress: progress, label: label).run).start()
+		Thread(block: MNIST(progress: progress, label: label).gan).start()
 	}
 	override var representedObject: Any? {
 		didSet {

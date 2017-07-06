@@ -5,7 +5,6 @@
 //  Created by Kota Nakano on 2017/03/29.
 //
 //
-import Accelerate
 import CoreData
 import Distributor
 internal class Bias: Arcane {
@@ -45,7 +44,7 @@ extension Bias {
 		var index: Int
 		let array: Array<(μ: Buffer, σ: Buffer)>
 		init(context: Context, depth: Int, width: Int) {
-			let length: Int = width * MemoryLayout<Float>.size
+			let length: Int = width * MemoryLayout<Float>.stride
 			let option: MTLResourceOptions = .storageModePrivate
 			index = 0
 			array = Array<Void>(repeating: (), count: depth)
@@ -98,25 +97,11 @@ extension Context {
 		let bias: Bias = try make()
 		bias.cell = cell
 		bias.locationType = adapters.0.rawValue
-		bias.location = Data(count: count * MemoryLayout<Float>.size)
-		bias.location.withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) -> Void in
-			assert( MemoryLayout<Float>.size == 4 )
-			assert( MemoryLayout<UInt32>.size == 4 )
-			arc4random_buf(ref, bias.location.count)
-			vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(count))
-			vDSP_vsmsa(ref, 1, [exp2f(-32)], [exp2f(-33)], ref, 1, vDSP_Length(count))
-			cblas_sscal(Int32(count/2), 2*Float.pi, ref.advanced(by: count/2), 1)
-			vvlogf(ref, ref, [Int32(count/2)])
-			cblas_sscal(Int32(count/2), -2, ref, 1)
-			vvsqrtf(ref, ref, [Int32(count/2)])
-			vDSP_vswap(ref.advanced(by: 1), 2, ref.advanced(by: count/2), 2, vDSP_Length(count/4))
-			vDSP_rect(ref, 2, ref, 2, vDSP_Length(count/2))
-		}
+		bias.location = Data(count: count * MemoryLayout<Float>.stride)
+		bias.location.normal(μ: 0.0, σ: 1.0)
 		bias.scaleType = adapters.1.rawValue
-		bias.scale = Data(count: count * MemoryLayout<Float>.size)
-		bias.scale.withUnsafeMutableBytes {
-			vDSP_vfill([Float(1)], $0, 1, vDSP_Length(count))
-		}
+		bias.scale = Data(count: count * MemoryLayout<Float>.stride)
+		bias.scale.fill(const: 1.0)
 		bias.setup(context: self, count: count)
 		return bias
 	}

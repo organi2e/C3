@@ -9,8 +9,7 @@ import C3
 import Educator
 
 private let prefix: String = "GaussAE-"
-//private let prefix: String = "DegenerateAE-"
-private let suffix: String = "v1.3"
+private let suffix: String = "v1.4"
 
 internal class MNIST {
 	let bar: UIProgressView?
@@ -36,7 +35,8 @@ internal class MNIST {
 			let trainer: URL = basedir.appendingPathComponent("db.db")
 			let context: Context = try Context(queue: device.makeCommandQueue(),
 			                                   storage: storage,
-			                                   optimizer: .SMORMS3(L2: 1e-6, L1: 0, α: 1e-3, ε: 0))
+			                                   normalizer: .Stochastic(γ: 0.99),
+			                                   optimizer: .SMORMS3(L2: 1e-3, L1: 0, α: 1e-1, ε: 0))
 			let educator: Educator = try Educator(storage: trainer)
 			if try 0 == educator.count(mnist: .train) {
 				print("build")
@@ -52,19 +52,19 @@ internal class MNIST {
 					let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 64, distributor: .Gauss,
 					                               activator: .Identity, adapters: (.Regular, .RegFloor))
 					
-					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 256, distributor: .Gauss,
+					let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 384, distributor: .Gauss,
 					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [I])
 					
-					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 512, distributor: .Gauss,
+					let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 768, distributor: .Gauss,
 					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [H])
 					
 					let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 28 * 28, distributor: .Gauss,
 					                               activator: .Identity, adapters: (.Regular, .RegFloor), input: [G])
 					
-					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 512, distributor: .Gauss,
+					let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 768, distributor: .Gauss,
 					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [F])
 					
-					let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 256, distributor: .Gauss,
+					let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 384, distributor: .Gauss,
 					                               activator: .Binary, adapters: (.Regular, .RegFloor), input: [E])
 					
 					let C: Cell = try context.make(label: "\(prefix)C\(suffix)", width: 64, distributor: .Gauss,

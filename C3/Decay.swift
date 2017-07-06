@@ -109,16 +109,15 @@ extension Context {
 		let count: Int = cell.width
 		let decay: Decay = try make()
 		decay.cell = cell
+		
 		decay.locationType = AdapterType.Logistic.rawValue
 		decay.location = Data(count: count * MemoryLayout<Float>.size)
-		decay.location.withUnsafeMutableBytes {
-			vDSP_vfill([Float(0)], $0, 1, vDSP_Length(count))
-		}
+		decay.location.fill(const: 0.0)
+		
 		decay.scaleType = AdapterType.Discard.rawValue
 		decay.scale = Data(count: count * MemoryLayout<Float>.size)
-		decay.scale.withUnsafeMutableBytes {
-			vDSP_vfill([Float(0)], $0, 1, vDSP_Length(count))
-		}
+		decay.scale.fill(const: 0.0)
+		
 		decay.setup(context: self, count: count)
 		return decay
 	}
