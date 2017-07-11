@@ -8,12 +8,10 @@
 
 import Accelerate
 internal extension Data {
-	private var length: Int {
-		return count / MemoryLayout<Float>.stride
-	}
-	mutating func normal(μ: Float, σ: Float) {
+	mutating func normal(μ: Float = 0, σ: Float = 1) {
 		assert( MemoryLayout<Float>.size == MemoryLayout<UInt32>.size )
 		withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) in
+			let length: Int = count / MemoryLayout<Float>.stride
 			arc4random_buf(ref, count)
 			vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(length))
 			vDSP_vsmsa(ref, 1, [exp2f(-32)], [exp2f(-33)], ref, 1, vDSP_Length(length))
@@ -26,15 +24,17 @@ internal extension Data {
 			vDSP_vsmsa(ref, 1, [σ], [μ], ref, 1, vDSP_Length(length))
 		}
 	}
-	mutating func uniform(α: Float, β: Float) {
+	mutating func uniform(α: Float = 0, β: Float = 1) {
 		assert( MemoryLayout<Float>.stride == MemoryLayout<UInt32>.stride )
 		withUnsafeMutableBytes { (ref: UnsafeMutablePointer<Float>) in
+			let length: Int = count / MemoryLayout<Float>.stride
 			arc4random_buf(ref, count)
 			vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(ref)), 1, ref, 1, vDSP_Length(length))
 			vDSP_vsmsa(ref, 1, [(β-α)*exp2f(-32)], [α], ref, 1, vDSP_Length(length))
 		}
 	}
-	mutating func fill(const value: Float) {
+	mutating func fill(const value: Float = 0) {
+		let length: Int = count / MemoryLayout<Float>.stride
 		withUnsafeMutableBytes {
 			vDSP_vfill([value], $0, 1, vDSP_Length(length))
 		}

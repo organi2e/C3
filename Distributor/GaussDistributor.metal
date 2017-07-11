@@ -636,6 +636,7 @@ kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 		int const idx = n;
 		float const e = d[idx], ee = e * e;
 		float const v = s[idx], vv = v * v;
+//		float const dKLdU = e * ( 2 * ee - vv ) / vv / ee;
 		float const dKLdU = e * ( 2 * ee - 3 * vv ) / vv / ( ee - vv );
 		float const dKLdS = dKLdU * -e / v;
 		du[idx] = select(0.0, dKLdU, isfinite(dKLdU));

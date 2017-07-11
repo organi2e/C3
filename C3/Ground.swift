@@ -7,6 +7,7 @@
 //
 
 import CoreData
+import os.log
 public class Ground: NSManagedObject {
 
 }
@@ -14,8 +15,9 @@ extension Ground {
 	@NSManaged var access: Date
 }
 extension Ground {
-	func eval<T>(block: (Context)->T) throws -> T {
+	func eval<T>(caller: String = #function, block: (Context)->T) throws -> T {
 		guard let context: Context = managedObjectContext as? Context else {
+			os_log("%s from %s has error with %s context", log: .default, type: .error, #function, caller, String(describing: managedObjectContext))
 			throw Context.ErrorCases.InvalidContext
 		}
 		return block(context)

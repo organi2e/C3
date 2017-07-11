@@ -99,13 +99,9 @@ class C3Tests: XCTestCase {
 			
 			do {
 				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, activator: .Binary)
-//				try (0..<14).forEach {
-//					last = try context.make(label: "H\($0)", width: 64, distributor: .Gauss, γ: 1e-2, activator: .Identity, input: [last], decay: true, recurrent: [])
-//					last = try context.make(label: "H\($0)", width: 128, distributor: .Gauss, regularizer: 0, activator: .Binary, input: [last], decay: true, recurrent: [])
-//				}
-				last = try context.make(label: "H0", width: 64, distributor: .Gauss, regularizer: 0, activator: .Identity, input: [last], decay: true, recurrent: [])
-				last = try context.make(label: "H1", width: 64, distributor: .Gauss, regularizer: 0, activator: .Binary, input: [last], decay: false, recurrent: [])
-				last = try context.make(label: "H2", width: 64, distributor: .Gauss, regularizer: 0, activator: .Identity, input: [last], decay: true, recurrent: [])
+				try (0..<2).forEach {
+					last = try context.make(label: "H\($0)", width: 32, distributor: .Gauss, regularizer: 0, activator: .Binary, input: [last], decay: true, recurrent: [])
+				}
 				last = try context.make(label: "O", width: 4, distributor: .Gauss, activator: .Binary, input: [last], decay: false, recurrent: [])
 				try context.save()
 			}
@@ -220,13 +216,13 @@ private extension la_object_t {
 		return la_diagonal_matrix_from_vector(self, 0)
 	}
 }
-private func uniform(count: Int, α: Float = -1, β: Float = 1) -> Array<Float> {
+private func uniform(count: Int, α: Float = 0, β: Float = 1) -> Array<Float> {
+	assert( MemoryLayout<Float>.stride == MemoryLayout<UInt32>.stride )
 	let array: Array<Float> = Array<Float>(repeating: 0, count: count)
-	let seeds: Array<UInt32> = Array<UInt32>(repeating: 0, count: count)
 	
-	arc4random_buf(UnsafeMutablePointer<UInt32>(mutating: seeds), count * MemoryLayout<UInt32>.stride)
+	arc4random_buf(UnsafeMutablePointer<Float>(mutating: array), count * MemoryLayout<Float>.stride)
 	
-	vDSP_vfltu32(seeds, 1, UnsafeMutablePointer<Float>(mutating: array), 1, vDSP_Length(count))
+	vDSP_vfltu32(UnsafePointer<UInt32>(OpaquePointer(array)), 1, UnsafeMutablePointer<Float>(mutating: array), 1, vDSP_Length(count))
 	vDSP_vsmsa(array, 1, [(β-α)*exp2f(-32.0)], [α], UnsafeMutablePointer<Float>(mutating: array), 1, vDSP_Length(count))
 	
 	return array
