@@ -130,15 +130,15 @@ internal class MNIST {
 			}
 			if try 0 == context.count(label: "\(prefix)I\(suffix)") {
 				print("insert")
-				let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 10, distributor: .Gauss, γ: 0, activator: .Binary)
-				let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 768, distributor: .Gauss, γ: 1e-3, activator: .Binary, input: [I])
-				let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 768, distributor: .Gauss, γ: 1e-3, activator: .Binary, input: [H])
-				let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 768, distributor: .Gauss, γ: 1e-3, activator: .Binary, input: [G])
-				let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 784, distributor: .Gauss, γ: 0, activator: .Identity, input: [F])
-				let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 768, distributor: .Gauss, γ: 1e-3, activator: .Binary, input: [E])
-				let C: Cell = try context.make(label: "\(prefix)C\(suffix)", width: 768, distributor: .Gauss, γ: 1e-3, activator: .Binary, input: [D])
-				let B: Cell = try context.make(label: "\(prefix)B\(suffix)", width: 768, distributor: .Gauss, γ: 1e-3, activator: .Binary, input: [C])
-				let _: Cell = try context.make(label: "\(prefix)A\(suffix)", width: 64, distributor: .Gauss, γ: 0, activator: .Binary, input: [B])
+				let I: Cell = try context.make(label: "\(prefix)I\(suffix)", width: 10, distributor: .Gauss, regularizer: 0, activator: .Binary)
+				let H: Cell = try context.make(label: "\(prefix)H\(suffix)", width: 768, distributor: .Gauss, regularizer: 1e-3, activator: .Binary, input: [I])
+				let G: Cell = try context.make(label: "\(prefix)G\(suffix)", width: 768, distributor: .Gauss, regularizer: 1e-3, activator: .Binary, input: [H])
+				let F: Cell = try context.make(label: "\(prefix)F\(suffix)", width: 768, distributor: .Gauss, regularizer: 1e-3, activator: .Binary, input: [G])
+				let E: Cell = try context.make(label: "\(prefix)E\(suffix)", width: 784, distributor: .Gauss, regularizer: 0, activator: .Identity, input: [F])
+				let D: Cell = try context.make(label: "\(prefix)D\(suffix)", width: 768, distributor: .Gauss, regularizer: 1e-3, activator: .Binary, input: [E])
+				let C: Cell = try context.make(label: "\(prefix)C\(suffix)", width: 768, distributor: .Gauss, regularizer: 1e-3, activator: .Binary, input: [D])
+				let B: Cell = try context.make(label: "\(prefix)B\(suffix)", width: 768, distributor: .Gauss, regularizer: 1e-3, activator: .Binary, input: [C])
+				let _: Cell = try context.make(label: "\(prefix)A\(suffix)", width: 64, distributor: .Gauss, regularizer: 0, activator: .Binary, input: [B])
 				try context.save()
 			}
 			let batch: Int = 3000
