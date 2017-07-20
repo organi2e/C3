@@ -8,9 +8,6 @@
 import Accelerate
 import CoreData
 import Distributor
-import Normalizer
-
-import simd
 
 internal class Edge: Arcane {
 	
