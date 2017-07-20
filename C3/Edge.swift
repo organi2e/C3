@@ -126,7 +126,7 @@ extension Context {
 		edge.location.normal(μ: 0.0, σ: 1.0)
 		edge.scaleType = adapters.1.rawValue
 		edge.scale = Data(count: count * MemoryLayout<Float>.stride)
-		edge.scale.fill(const: 1.0)
+		edge.scale.normal(μ: 0.0, σ: 1.0)
 		edge.setup(context: self, count: count)
 		return edge
 	}

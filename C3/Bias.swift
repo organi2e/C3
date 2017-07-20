@@ -101,7 +101,7 @@ extension Context {
 		bias.location.normal(μ: 0.0, σ: 1.0)
 		bias.scaleType = adapters.1.rawValue
 		bias.scale = Data(count: count * MemoryLayout<Float>.stride)
-		bias.scale.fill(const: 1.0)
+		bias.scale.normal(μ: 0.0, σ: 1.0)
 		bias.setup(context: self, count: count)
 		return bias
 	}

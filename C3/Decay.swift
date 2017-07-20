@@ -111,11 +111,11 @@ extension Context {
 		decay.cell = cell
 		
 		decay.locationType = AdapterType.Logistic.rawValue
-		decay.location = Data(count: count * MemoryLayout<Float>.size)
-		decay.location.fill(const: 0.0)
+		decay.location = Data(count: count * MemoryLayout<Float>.stride)
+		decay.location.normal(μ: 0, σ: 1)
 		
 		decay.scaleType = AdapterType.Discard.rawValue
-		decay.scale = Data(count: count * MemoryLayout<Float>.size)
+		decay.scale = Data(count: count * MemoryLayout<Float>.stride)
 		decay.scale.fill(const: 0.0)
 		
 		decay.setup(context: self, count: count)

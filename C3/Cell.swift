@@ -356,7 +356,7 @@ extension Context {
 	                 distributor: DistributorType = .Degenerate,
 	                 regularizer: Float = 0,
 	                 activator: ActivatorType = .Binary,
-	                 adapters: (AdapterType, AdapterType) = (.Linear, .Linear),
+	                 adapters: (AdapterType, AdapterType) = (.Linear, .Softplus),
 	                 output: Set<Cell> = Set<Cell>(),
 	                 input: Set<Cell> = Set<Cell>(),
 	                 decay: Bool = false,
@@ -366,7 +366,7 @@ extension Context {
 		let cell: Cell = try make()
 		cell.label = label
 		cell.width = width
-		cell.depth = recurrent.map{-$0}.reduce(2, max)
+		cell.depth = -recurrent.reduce(-2, min)
 		cell.distributorType = distributor.rawValue
 		cell.regularizer = regularizer
 		cell.activatorType = activator.rawValue

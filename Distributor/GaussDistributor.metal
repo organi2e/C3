@@ -636,9 +636,8 @@ kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 		int const idx = n;
 		float const e = d[idx], ee = e * e;
 		float const v = s[idx], vv = v * v;
-//		float const dKLdU = e * ( 2 * ee - vv ) / vv / ee;
-		float const dKLdU = e * ( 2 * ee - 3 * vv ) / vv / ( ee - vv );
-		float const dKLdS = dKLdU * -e / v;
+		float const dKLdU = e / vv;
+		float const dKLdS = ( vv - ee ) / vv / v;
 		du[idx] = select(0.0, dKLdU, isfinite(dKLdU));
 		ds[idx] = select(0.0, dKLdS, isfinite(dKLdS));
 	}
@@ -658,21 +657,22 @@ kernel void GaussDerivateN(device float * const du [[ buffer(0) ]],
 		
 		float const r = gamma;
 		
-		float2 const s = float2(u[idx], s[idx]);
+		float2 const x = float2(u[idx], s[idx]);
 		
-		float2 const m = mix(momentum[idx], float2(s.x, length_squared(s)), r);
-		float4 const g = mix(gradient[idx], float4(1, 0, 2 * s.x, 2 * s.y), r);
+		float2 const m = mix(momentum[idx], float2(x.x, length_squared(x)), r);
+		float4 const g = mix(gradient[idx], float4(1, 0, 2 * x.x, 2 * x.y), r);
 		
-		float const v = m.y - m.x * m.x;
-		
+		float const v = m.y - m.x * m.x, vv = v * v;
 		float const uu = m.x * m.x + 1;
-		float const vv = v * v;
 		
-		float const dKLdu = 0.5 * g.z * ( v - uu ) / vv + g.x * m.x * uu / vv;
-		float const dKLds = 0.5 * g.w * ( v - uu ) / vv;
+		float const dKLdU = g.z * ( v - uu ) / vv + 2 * g.x * m.x * uu / vv;
+		float const dKLdS = g.w * ( v - uu ) / vv;
 		
-		du[idx] += select(0.0, dKLdu, isfinite(dKLdu));
-		ds[idx] += select(0.0, dKLds, isfinite(dKLds));
+//		float const dKLdU = g.x * ( m.y - 2 * m.x * m.x - 1 ) / v / v + g.z * 2 * m.x * ( m.x * m.x + 1 ) / v / v;
+//		float const dKLdS = g.w * ( m.y - 2 * m.x * m.x - 1 ) / v / v;
+		
+		du[idx] += select(0.0, dKLdU, isfinite(dKLdU));
+		ds[idx] += select(0.0, dKLdS, isfinite(dKLdS));
 		
 		momentum[idx] = m;
 		gradient[idx] = g;

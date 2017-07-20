@@ -111,11 +111,11 @@ extension Context {
 		feedback.cell = cell
 		feedback.refer = refer
 		feedback.locationType = adapters.0.rawValue
-		feedback.location = Data(count: count * MemoryLayout<Float>.size)
+		feedback.location = Data(count: count * MemoryLayout<Float>.stride)
 		feedback.location.normal(μ: 0.0, σ: 1.0)
 		feedback.scaleType = adapters.1.rawValue
-		feedback.scale = Data(count: count * MemoryLayout<Float>.size)
-		feedback.scale.fill(const: 0.0)
+		feedback.scale = Data(count: count * MemoryLayout<Float>.stride)
+		feedback.scale.normal(μ: 0.0, σ: 1.0)
 		feedback.setup(context: self, count: count)
 		return feedback
 	}
