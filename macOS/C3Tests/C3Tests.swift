@@ -94,15 +94,18 @@ class C3Tests: XCTestCase {
 //			                                   normalizer: .Stochastic(γ: 1e-3),
 //																			   optimizer: .Adamax(L2: 1e-6, L1: 0, α: 1e-3, β: 0.9, γ: 0.999, ε: 1e-8)
 //																				 optimizer: .AdaDelta(L2: 0, L1: 0, ρ: 0.99, ε: 0)
-			                                   optimizer: .SMORMS3(L2: 0, L1: 0, α: 1e-3, ε: 0)
+			                                   optimizer: .SMORMS3(L2: 0, L1: 0, α: 1e-2, ε: 0)
 			)
 			
 			do {
 				var last: Cell = try context.make(label: "I", width: 4, distributor: .Gauss, regularizer: 0, activator: .Binary)
 				try (0..<2).forEach {
 					last = try context.make(label: "H\($0)", width: 64,
-					                        distributor: .Gauss, regularizer: 1e-3, activator: .Binary,
-					                        input: [last], decay: false, recurrent: [-1, -2])
+					                        distributor: .Gauss, regularizer: 1e-2, activator: .Binary,
+					                        input: [last], decay: false, recurrent: [])
+					last = try context.make(label: "H\($0)", width: 64,
+					                        distributor: .Gauss, regularizer: 1e-2, activator: .Identity,
+					                        input: [last], decay: true, recurrent: [])
 				}
 				last = try context.make(label: "O", width: 4, distributor: .Gauss, regularizer: 0, activator: .Binary, input: [last], decay: false, recurrent: [])
 				try context.save()

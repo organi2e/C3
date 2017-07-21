@@ -642,6 +642,16 @@ kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 		ds[idx] = select(0.0, dKLdS, isfinite(dKLdS));
 	}
 }
+kernel void GaussActivateX(device float * const p [[ buffer(0) ]],
+													 device float const * const u [[ buffer(1) ]],
+													 device float const * const s [[ buffer(2) ]],
+													 constant uint const & N [[ buffer(3) ]],
+													 uint const n [[ thread_position_in_grid ]]) {
+	if ( n < N ) {
+		int const idx = n;
+		p[idx] = cdf(u[idx]/s[idx]);
+	}
+}
 kernel void GaussDerivateN(device float * const du [[ buffer(0) ]],
 													 device float * const ds [[ buffer(1) ]],
 													 device float2 * const momentum [[ buffer(2) ]],

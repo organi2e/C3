@@ -46,7 +46,8 @@ public class GaussDistributor {
 		)
 		activatePipeline = try ActivatePipeline(
 			P: library.make(name: "GaussActivateP", constantValues: xorshiftValues),
-			V: library.make(name: "GaussActivateV", constantValues: xorshiftValues)
+			V: library.make(name: "GaussActivateV", constantValues: xorshiftValues),
+			X: library.make(name: "GaussActivateX")
 		)
 		derivatePipeline = try DerivatePipeline(
 			P: library.make(name: "GaussDerivateP"),
@@ -271,6 +272,23 @@ extension GaussDistributor {
 			encoder.label = #function
 			encoder.endEncoding()
 		}
+	}
+	public func activate(commandBuffer: MTLCommandBuffer, p: MTLBuffer, φ: (μ: MTLBuffer, σ: MTLBuffer), count: Int) {
+		assert( commandBuffer.device === activatePipeline.X.device )
+		assert( commandBuffer.device === p.device && count * MemoryLayout<Float>.stride <= p.length )
+		assert( commandBuffer.device === φ.μ.device && count * MemoryLayout<Float>.stride <= φ.μ.length )
+		assert( commandBuffer.device === φ.σ.device && count * MemoryLayout<Float>.stride <= φ.σ.length )
+		let encoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()
+		let threads: Int = activatePipeline.X.threadExecutionWidth
+		encoder.setComputePipelineState(activatePipeline.X)
+		encoder.setBuffer(p, offset: 0, at: 0)
+		encoder.setBuffer(φ.μ, offset: 0, at: 1)
+		encoder.setBuffer(φ.σ, offset: 0, at: 2)
+		encoder.setBytes([uint(count)], length: MemoryLayout<uint>.size, at: 3)
+		encoder.dispatchThreadgroups(MTLSize(width: (count-1)/threads+1, height: 1, depth: 1),
+		                             threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+		encoder.label = #function
+		encoder.endEncoding()
 	}
 }
 extension GaussDistributor {

@@ -48,7 +48,8 @@ extension Array where Element == Float {
 extension LaObjet {
 	var array: Array<Float> {
 		let array: Array<Float> = Array<Float>(repeating: 0, count: Int(la_vector_length(self)))
-		la_matrix_to_float_buffer(UnsafeMutablePointer<Float>(mutating: array), 1, self)
+		let status: la_status_t = la_matrix_to_float_buffer(UnsafeMutablePointer<Float>(mutating: array), 1, self)
+		assert( status == succ )
 		return array
 	}
 }
@@ -60,6 +61,21 @@ extension Buffer {
 		return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(contents())), count: length/MemoryLayout<Float>.stride))
 	}
 }
+public func logit(p: Array<Float>) -> Array<Float> {
+	let count: Int = p.count
+	let logit: Array<Float> = Array<Float>(repeating: 0, count: count)
+	vDSP_vsmsa(p, 1, [Float(-1)], [Float(1)], UnsafeMutablePointer<Float>(mutating: logit), 1, vDSP_Length(count))
+	vDSP_vdiv(logit, 1, p, 1, UnsafeMutablePointer<Float>(mutating: logit), 1, vDSP_Length(count))
+	vvlogf(UnsafeMutablePointer<Float>(mutating: logit), logit, [Int32(count)])
+	return logit
+}
+public func softmax(v: Array<Float>) -> Array<Float> {
+	let count: Int = v.count
+	let softmax: Array<Float> = Array<Float>(repeating: 0, count: count)
+	vvexpf(UnsafeMutablePointer<Float>(mutating: softmax), v, [Int32(count)])
+	vDSP_vsdiv(softmax, 1, [cblas_sasum(Int32(count), softmax, 1)], UnsafeMutablePointer<Float>(mutating: softmax), 1, vDSP_Length(count))
+	return softmax
+}
 internal typealias LaObjet = la_object_t
 internal typealias Device = MTLDevice
 internal typealias Buffer = MTLBuffer
@@ -70,3 +86,4 @@ internal typealias BlitCommandEncoder = MTLBlitCommandEncoder
 internal typealias ComputeCommandEncoder = MTLComputeCommandEncoder
 private let hint: la_hint_t = la_hint_t(LA_NO_HINT)
 private let attr: la_attribute_t = la_attribute_t(LA_DEFAULT_ATTRIBUTES)
+private let succ: la_status_t = la_status_t(LA_SUCCESS)

@@ -70,9 +70,7 @@ extension Educator {
 			labelsemaphore.signal()
 		}.resume()
 		let context: NSManagedObjectContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
-		do {
-			context.parent = self
-		}
+		context.parent = self
 		try context.fetch(make(domain: type(of: self).name, family: mnist.rawValue, option: Dictionary<String, Any>(), handle: "", offset: 0, limit: 0)).forEach(context.delete)
 		
 		//Parse image file

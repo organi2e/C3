@@ -68,9 +68,7 @@ extension Educator {
 			semaphore.signal()
 		}.resume()
 		let context: NSManagedObjectContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
-		do {
-			context.parent = self
-		}
+		context.parent = self
 		try context.fetch(make(domain: type(of: self).domain, family: cifar10.rawValue, option: Dictionary<String, Any>(), handle: "", offset: 0, limit: 0)).forEach(context.delete)
 		semaphore.wait()
 		if let error: Error = error {

@@ -22,15 +22,15 @@ inline float4x4 const abs(float4x4 const x) {
 constant int4 const M_INC = int4(0, 1, 2, 3);
 /*----------------------------------------------------------------*/
 kernel void CauchyCollectX(device float * const m [[ buffer(0) ]],
-						   device float * const v [[ buffer(1) ]],
-						   device float const * const w [[ buffer(2) ]],
-						   device float const * const u [[ buffer(3) ]],
-						   device float const * const s [[ buffer(4) ]],
-						   constant uint2 & S [[ buffer(5) ]],
-						   threadgroup float2x4 * shared [[ threadgroup(0) ]],
-						   uint const t [[ thread_position_in_threadgroup ]],
-						   uint const T [[ threads_per_threadgroup ]],
-						   uint const n [[ threadgroup_position_in_grid ]]) {
+													 device float * const v [[ buffer(1) ]],
+													 device float const * const w [[ buffer(2) ]],
+													 device float const * const u [[ buffer(3) ]],
+													 device float const * const s [[ buffer(4) ]],
+													 constant uint2 & S [[ buffer(5) ]],
+													 threadgroup float2x4 * shared [[ threadgroup(0) ]],
+													 uint const t [[ thread_position_in_threadgroup ]],
+													 uint const T [[ threads_per_threadgroup ]],
+													 uint const n [[ threadgroup_position_in_grid ]]) {
 	
 	int2 const size = int2(S);
 	
@@ -55,11 +55,11 @@ kernel void CauchyCollectX(device float * const m [[ buffer(0) ]],
 		 */
 		int4 const idx = row * size.y + k;
 		float4x4 const x = float4x4(select(0, *(device float4*)(w+idx.x), rows_mask.x && cols_mask),
-									select(0, *(device float4*)(w+idx.y), rows_mask.y && cols_mask),
-									select(0, *(device float4*)(w+idx.z), rows_mask.z && cols_mask),
-									select(0, *(device float4*)(w+idx.w), rows_mask.w && cols_mask));
+																select(0, *(device float4*)(w+idx.y), rows_mask.y && cols_mask),
+																select(0, *(device float4*)(w+idx.z), rows_mask.z && cols_mask),
+																select(0, *(device float4*)(w+idx.w), rows_mask.w && cols_mask));
 		value += float2x4(    select(0, *(device float4*)(u+k), cols_mask)  *     x,
-						  abs(select(0, *(device float4*)(s+k), cols_mask)) * abs(x));
+											abs(select(0, *(device float4*)(s+k), cols_mask)) * abs(x));
 	}
 	
 	int const a = t;
@@ -83,15 +83,15 @@ kernel void CauchyCollectX(device float * const m [[ buffer(0) ]],
 	}
 }
 kernel void CauchyCollectW(device float * const m [[ buffer(0) ]],
-						   device float * const v [[ buffer(1) ]],
-						   device float const * const u [[ buffer(2) ]],
-						   device float const * const s [[ buffer(3) ]],
-						   device float const * const x [[ buffer(4) ]],
-						   constant uint2 & S [[ buffer(5) ]],
-						   threadgroup float2x4 * shared [[ threadgroup(0) ]],
-						   uint const t [[ thread_position_in_threadgroup ]],
-						   uint const T [[ threads_per_threadgroup ]],
-						   uint const n [[ threadgroup_position_in_grid ]]) {
+													 device float * const v [[ buffer(1) ]],
+													 device float const * const u [[ buffer(2) ]],
+													 device float const * const s [[ buffer(3) ]],
+													 device float const * const x [[ buffer(4) ]],
+													 constant uint2 & S [[ buffer(5) ]],
+													 threadgroup float2x4 * shared [[ threadgroup(0) ]],
+													 uint const t [[ thread_position_in_threadgroup ]],
+													 uint const T [[ threads_per_threadgroup ]],
+													 uint const n [[ threadgroup_position_in_grid ]]) {
 	
 	int2 const size = int2(S);
 	
@@ -119,13 +119,13 @@ kernel void CauchyCollectW(device float * const m [[ buffer(0) ]],
 		float4 const f = select(0, *(device float4*)(x + k), cols_mask);
 		
 		value += float2x4(    f *      float4x4(select(0, *(device float4*)(u+idx.x), rows_mask.x && cols_mask),
-												select(0, *(device float4*)(u+idx.y), rows_mask.y && cols_mask),
-												select(0, *(device float4*)(u+idx.z), rows_mask.z && cols_mask),
-												select(0, *(device float4*)(u+idx.w), rows_mask.w && cols_mask)),
-						  abs(f) * abs(float4x4(select(0, *(device float4*)(s+idx.x), rows_mask.x && cols_mask),
-												select(0, *(device float4*)(s+idx.y), rows_mask.y && cols_mask),
-												select(0, *(device float4*)(s+idx.z), rows_mask.z && cols_mask),
-												select(0, *(device float4*)(s+idx.w), rows_mask.w && cols_mask))));
+																						select(0, *(device float4*)(u+idx.y), rows_mask.y && cols_mask),
+																						select(0, *(device float4*)(u+idx.z), rows_mask.z && cols_mask),
+																						select(0, *(device float4*)(u+idx.w), rows_mask.w && cols_mask)),
+											abs(f) * abs(float4x4(select(0, *(device float4*)(s+idx.x), rows_mask.x && cols_mask),
+																						select(0, *(device float4*)(s+idx.y), rows_mask.y && cols_mask),
+																						select(0, *(device float4*)(s+idx.z), rows_mask.z && cols_mask),
+																						select(0, *(device float4*)(s+idx.w), rows_mask.w && cols_mask))));
 	}
 	
 	int const a = t;
@@ -149,11 +149,11 @@ kernel void CauchyCollectW(device float * const m [[ buffer(0) ]],
 	}
 }
 kernel void CauchyCollectC(device float * const m [[ buffer(0) ]],
-						   device float * const v [[ buffer(1) ]],
-						   device float const * const u [[ buffer(2) ]],
-						   device float const * const s [[ buffer(3) ]],
-						   constant uint const & N [[ buffer(4) ]],
-						   uint const n [[ thread_position_in_grid ]]) {
+													 device float * const v [[ buffer(1) ]],
+													 device float const * const u [[ buffer(2) ]],
+													 device float const * const s [[ buffer(3) ]],
+													 constant uint const & N [[ buffer(4) ]],
+													 uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
 		m[idx] +=     u[idx];
@@ -161,12 +161,12 @@ kernel void CauchyCollectC(device float * const m [[ buffer(0) ]],
 	}
 }
 kernel void CauchyCollectD(device float * const m [[ buffer(0) ]],
-						   device float * const v [[ buffer(1) ]],
-						   device float const * const d [[ buffer(2) ]],
-						   device float const * const u [[ buffer(3) ]],
-						   device float const * const s [[ buffer(4) ]],
-						   constant uint const & N [[ buffer(5) ]],
-						   uint const n [[ thread_position_in_grid ]]) {
+													 device float * const v [[ buffer(1) ]],
+													 device float const * const d [[ buffer(2) ]],
+													 device float const * const u [[ buffer(3) ]],
+													 device float const * const s [[ buffer(4) ]],
+													 constant uint const & N [[ buffer(5) ]],
+													 uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
 		float const r = d[idx];
@@ -175,25 +175,25 @@ kernel void CauchyCollectD(device float * const m [[ buffer(0) ]],
 	}
 }
 kernel void CauchyCollectF(device float * const u [[ buffer(0) ]],
-						   device float * const s [[ buffer(1) ]],
-						   constant uint const & N [[ buffer(2) ]],
-						   uint const n [[ thread_position_in_grid ]]) {
+													 device float * const s [[ buffer(1) ]],
+													 constant uint const & N [[ buffer(2) ]],
+													 uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
-//		int const idx = n;
-//		s[idx] = sign(s[idx]);
+		//		int const idx = n;
+		//		s[idx] = sign(s[idx]);
 	}
 }
 /*----------------------------------------------------------------*/
 kernel void CauchyCorrectJ(device float * const dx [[ buffer(0) ]],
-						   device float const * const ju [[ buffer(1) ]],
-						   device float const * const js [[ buffer(2) ]],
-						   device float const * const gu [[ buffer(3) ]],
-						   device float const * const gs [[ buffer(4) ]],
-						   constant uint2 const & S [[ buffer(5) ]],
-						   threadgroup float4 * shared [[ threadgroup(0) ]],
-						   uint const t [[ thread_position_in_threadgroup ]],
-						   uint const T [[ threads_per_threadgroup ]],
-						   uint const n [[ threadgroup_position_in_grid ]]) {
+													 device float const * const ju [[ buffer(1) ]],
+													 device float const * const js [[ buffer(2) ]],
+													 device float const * const gu [[ buffer(3) ]],
+													 device float const * const gs [[ buffer(4) ]],
+													 constant uint2 const & S [[ buffer(5) ]],
+													 threadgroup float4 * shared [[ threadgroup(0) ]],
+													 uint const t [[ thread_position_in_threadgroup ]],
+													 uint const T [[ threads_per_threadgroup ]],
+													 uint const n [[ threadgroup_position_in_grid ]]) {
 	
 	int2 const size = int2(S);
 	
@@ -211,14 +211,14 @@ kernel void CauchyCorrectJ(device float * const dx [[ buffer(0) ]],
 		
 		value +=
 		float4x4(select(0, *(device float4*)(ju+idx.x), rows_mask && cols_mask.x),
-				 select(0, *(device float4*)(ju+idx.y), rows_mask && cols_mask.y),
-				 select(0, *(device float4*)(ju+idx.z), rows_mask && cols_mask.z),
-				 select(0, *(device float4*)(ju+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gu+k), cols_mask)
+						 select(0, *(device float4*)(ju+idx.y), rows_mask && cols_mask.y),
+						 select(0, *(device float4*)(ju+idx.z), rows_mask && cols_mask.z),
+						 select(0, *(device float4*)(ju+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gu+k), cols_mask)
 		+
 		float4x4(select(0, *(device float4*)(js+idx.x), rows_mask && cols_mask.x),
-				 select(0, *(device float4*)(js+idx.y), rows_mask && cols_mask.y),
-				 select(0, *(device float4*)(js+idx.z), rows_mask && cols_mask.z),
-				 select(0, *(device float4*)(js+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gs+k), cols_mask);
+						 select(0, *(device float4*)(js+idx.y), rows_mask && cols_mask.y),
+						 select(0, *(device float4*)(js+idx.z), rows_mask && cols_mask.z),
+						 select(0, *(device float4*)(js+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gs+k), cols_mask);
 	}
 	
 	int const a = t;
@@ -241,30 +241,30 @@ kernel void CauchyCorrectJ(device float * const dx [[ buffer(0) ]],
 	}
 }
 kernel void CauchyCorrectG(device float * const dx [[ buffer(0) ]],
-						   device float const * const x [[ buffer(1) ]],
-						   device float const * const d [[ buffer(2) ]],
-						   constant uint const & N [[ buffer(3) ]],
-						   uint const n [[ thread_position_in_grid ]]) {
+													 device float const * const x [[ buffer(1) ]],
+													 device float const * const d [[ buffer(2) ]],
+													 constant uint const & N [[ buffer(3) ]],
+													 uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		dx[idx] += (x[idx] - d[idx]);
+		dx[idx] += x[idx] - d[idx];
 	}
 }
 kernel void CauchyCorrectN(device float * const dx [[ buffer(0) ]],
-						   device float const * const x [[ buffer(1) ]],
-						   constant uint const & N [[ buffer(2) ]],
-						   uint const n [[ thread_position_in_grid ]]) {
+													 device float const * const x [[ buffer(1) ]],
+													 constant uint const & N [[ buffer(2) ]],
+													 uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
 		dx[idx] += 2 * x[idx] - 1;
 	}
 }
 kernel void CauchyCorrectP(device float * const dx [[ buffer(0) ]],
-						   device float const * const u [[ buffer(1) ]],
-						   device float const * const s [[ buffer(2) ]],
-						   device float const * const d [[ buffer(3) ]],
-						   constant uint const & N [[ buffer(4) ]],
-						   uint const n [[ thread_position_in_grid ]]) {
+													 device float const * const u [[ buffer(1) ]],
+													 device float const * const s [[ buffer(2) ]],
+													 device float const * const d [[ buffer(3) ]],
+													 constant uint const & N [[ buffer(4) ]],
+													 uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
 		float const p = cdf( u[idx] / s[idx] );
@@ -272,11 +272,11 @@ kernel void CauchyCorrectP(device float * const dx [[ buffer(0) ]],
 	}
 }
 kernel void CauchyCorrectV(device float * const dx [[ buffer(0) ]],
-						   device float const * const u [[ buffer(1) ]],
-						   device float const * const s [[ buffer(2) ]],
-						   device float const * const d [[ buffer(3) ]],
-						   constant uint const & N [[ buffer(4) ]],
-						   uint const n [[ thread_position_in_grid ]]) {
+													 device float const * const u [[ buffer(1) ]],
+													 device float const * const s [[ buffer(2) ]],
+													 device float const * const d [[ buffer(3) ]],
+													 constant uint const & N [[ buffer(4) ]],
+													 uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
 		dx[idx] += u[idx] - d[idx];
@@ -284,12 +284,12 @@ kernel void CauchyCorrectV(device float * const dx [[ buffer(0) ]],
 }
 /*----------------------------------------------------------------*/
 kernel void CauchyConnectX(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const x [[ buffer(2) ]],
-						   device float const * const u [[ buffer(3) ]],
-						   device float const * const s [[ buffer(4) ]],
-						   constant uint2 const & N [[ buffer(5) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+													 device float * const js [[ buffer(1) ]],
+													 device float const * const x [[ buffer(2) ]],
+													 device float const * const u [[ buffer(3) ]],
+													 device float const * const s [[ buffer(4) ]],
+													 constant uint2 const & N [[ buffer(5) ]],
+													 uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -300,12 +300,12 @@ kernel void CauchyConnectX(device float * const ju [[ buffer(0) ]],
 	}
 }
 kernel void CauchyConnectA(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const u [[ buffer(2) ]],
-						   device float const * const s [[ buffer(3) ]],
-						   device float const * const x [[ buffer(4) ]],
-						   constant uint2 const & N [[ buffer(5) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+													 device float * const js [[ buffer(1) ]],
+													 device float const * const u [[ buffer(2) ]],
+													 device float const * const s [[ buffer(3) ]],
+													 device float const * const x [[ buffer(4) ]],
+													 constant uint2 const & N [[ buffer(5) ]],
+													 uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -316,19 +316,19 @@ kernel void CauchyConnectA(device float * const ju [[ buffer(0) ]],
 	}
 }
 kernel void CauchyConnectB(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const Bu [[ buffer(2) ]],
-						   device float const * const Bs [[ buffer(3) ]],
-						   device float const * const Y [[ buffer(4) ]],
-						   device float const * const Ju [[ buffer(5) ]],
-						   device float const * const Js [[ buffer(6) ]],
-						   device float const * const Pu [[ buffer(7) ]],
-						   device float const * const Ps [[ buffer(8) ]],
-						   constant uint4 const & mnkl [[ buffer(9) ]],
-						   threadgroup float4x4 * const sharedB [[ threadgroup(0) ]],
-						   threadgroup float4x4 * const sharedP [[ threadgroup(1) ]],
-						   uint2 const t [[ thread_position_in_threadgroup ]],
-						   uint2 const g [[ threadgroup_position_in_grid ]]) {
+													 device float * const js [[ buffer(1) ]],
+													 device float const * const Bu [[ buffer(2) ]],
+													 device float const * const Bs [[ buffer(3) ]],
+													 device float const * const Y [[ buffer(4) ]],
+													 device float const * const Ju [[ buffer(5) ]],
+													 device float const * const Js [[ buffer(6) ]],
+													 device float const * const Pu [[ buffer(7) ]],
+													 device float const * const Ps [[ buffer(8) ]],
+													 constant uint4 const & mnkl [[ buffer(9) ]],
+													 threadgroup float4x4 * const sharedB [[ threadgroup(0) ]],
+													 threadgroup float4x4 * const sharedP [[ threadgroup(1) ]],
+													 uint2 const t [[ thread_position_in_threadgroup ]],
+													 uint2 const g [[ threadgroup_position_in_grid ]]) {
 	int const M = mnkl.x;
 	int const N = mnkl.y;
 	int const K = mnkl.z;
@@ -398,11 +398,11 @@ kernel void CauchyConnectB(device float * const ju [[ buffer(0) ]],
 	}
 }
 kernel void CauchyConnectC(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const u [[ buffer(2) ]],
-						   device float const * const s [[ buffer(3) ]],
-						   constant uint2 const & N [[ buffer(4) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+													 device float * const js [[ buffer(1) ]],
+													 device float const * const u [[ buffer(2) ]],
+													 device float const * const s [[ buffer(3) ]],
+													 constant uint2 const & N [[ buffer(4) ]],
+													 uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -412,12 +412,12 @@ kernel void CauchyConnectC(device float * const ju [[ buffer(0) ]],
 	}
 }
 kernel void CauchyConnectD(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const d [[ buffer(2) ]],
-						   device float const * const u [[ buffer(3) ]],
-						   device float const * const s [[ buffer(4) ]],
-						   constant uint2 const & N [[ buffer(5) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+													 device float * const js [[ buffer(1) ]],
+													 device float const * const d [[ buffer(2) ]],
+													 device float const * const u [[ buffer(3) ]],
+													 device float const * const s [[ buffer(4) ]],
+													 constant uint2 const & N [[ buffer(5) ]],
+													 uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -427,14 +427,14 @@ kernel void CauchyConnectD(device float * const ju [[ buffer(0) ]],
 	}
 }
 kernel void CauchyConnectE(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const u [[ buffer(2) ]],
-						   device float const * const s [[ buffer(3) ]],
-						   device float const * const d [[ buffer(4) ]],
-						   device float const * const pu [[ buffer(5) ]],
-						   device float const * const ps [[ buffer(6) ]],
-						   constant uint2 const & N [[ buffer(7) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+													 device float * const js [[ buffer(1) ]],
+													 device float const * const u [[ buffer(2) ]],
+													 device float const * const s [[ buffer(3) ]],
+													 device float const * const d [[ buffer(4) ]],
+													 device float const * const pu [[ buffer(5) ]],
+													 device float const * const ps [[ buffer(6) ]],
+													 constant uint2 const & N [[ buffer(7) ]],
+													 uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -445,11 +445,11 @@ kernel void CauchyConnectE(device float * const ju [[ buffer(0) ]],
 	}
 }
 kernel void CauchyConnectF(device float * const ju [[ buffer(0) ]],
-						   device float * const js [[ buffer(1) ]],
-						   device float const * const u [[ buffer(2) ]],
-						   device float const * const s [[ buffer(3) ]],
-						   constant uint2 const & N [[ buffer(4) ]],
-						   uint2 const n [[ thread_position_in_grid ]]) {
+													 device float * const js [[ buffer(1) ]],
+													 device float const * const u [[ buffer(2) ]],
+													 device float const * const s [[ buffer(3) ]],
+													 constant uint2 const & N [[ buffer(4) ]],
+													 uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -460,14 +460,14 @@ kernel void CauchyConnectF(device float * const ju [[ buffer(0) ]],
 /*----------------------------------------------------------------*/
 constant uint3 xorshift16 [[ function_constant(0) ]];
 kernel void CauchyActivateP(device float * const f [[ buffer(0) ]],
-							device float * const gu [[ buffer(1) ]],
-							device float * const gs [[ buffer(2) ]],
-							device float const * const u [[ buffer(3) ]],
-							device float const * const s [[ buffer(4) ]],
-							constant ushort const * const seeds [[ buffer(5) ]],
-							constant uint const & N [[ buffer(6) ]],
-							uint const t [[ thread_position_in_threadgroup ]],
-							uint const T [[ threadgroups_per_grid ]]) {
+														device float * const gu [[ buffer(1) ]],
+														device float * const gs [[ buffer(2) ]],
+														device float const * const u [[ buffer(3) ]],
+														device float const * const s [[ buffer(4) ]],
+														constant ushort const * const seeds [[ buffer(5) ]],
+														constant uint const & N [[ buffer(6) ]],
+														uint const t [[ thread_position_in_threadgroup ]],
+														uint const T [[ threadgroups_per_grid ]]) {
 	ushort seq = seeds[t];
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float2 const x = float2(u[k], s[k]);
@@ -482,14 +482,14 @@ kernel void CauchyActivateP(device float * const f [[ buffer(0) ]],
 	}
 }
 kernel void CauchyDerivateP(device float * const du [[ buffer(0) ]],
-							device float * const ds [[ buffer(1) ]],
-							device float const * const f [[ buffer(2) ]],
-							device float const * const gu [[ buffer(3) ]],
-							device float const * const gs [[ buffer(4) ]],
-							device float const * const u [[ buffer(5) ]],
-							device float const * const s [[ buffer(6) ]],
-							constant uint const & N [[ buffer(7) ]],
-							uint const n [[ thread_position_in_grid ]]) {
+														device float * const ds [[ buffer(1) ]],
+														device float const * const f [[ buffer(2) ]],
+														device float const * const gu [[ buffer(3) ]],
+														device float const * const gs [[ buffer(4) ]],
+														device float const * const u [[ buffer(5) ]],
+														device float const * const s [[ buffer(6) ]],
+														constant uint const & N [[ buffer(7) ]],
+														uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
 		float const p = cdf(u[idx]/s[idx]);
@@ -501,14 +501,14 @@ kernel void CauchyDerivateP(device float * const du [[ buffer(0) ]],
 constant float M_1_INT16MAX_F = 1 / 32768.0;
 //constant float M_1_UINT16MAX_F = 1 / 65536.0;
 kernel void CauchyActivateV(device float * const f [[ buffer(0) ]],
-							device float * const gu [[ buffer(1) ]],
-							device float * const gs [[ buffer(2) ]],
-							device float const * const u [[ buffer(3) ]],
-							device float const * const s [[ buffer(4) ]],
-							constant ushort const * const seeds [[ buffer(5) ]],
-							constant uint const & N [[ buffer(6) ]],
-							uint const t [[ thread_position_in_threadgroup ]],
-							uint const T [[ threadgroups_per_grid ]]) {
+														device float * const gu [[ buffer(1) ]],
+														device float * const gs [[ buffer(2) ]],
+														device float const * const u [[ buffer(3) ]],
+														device float const * const s [[ buffer(4) ]],
+														constant ushort const * const seeds [[ buffer(5) ]],
+														constant uint const & N [[ buffer(6) ]],
+														uint const t [[ thread_position_in_threadgroup ]],
+														uint const T [[ threadgroups_per_grid ]]) {
 	ushort seq = seeds[t];
 	for ( int k = t, K = N ; k < K ; k += T ) {
 		float const n = tan(M_PI_2_F*fma(float(seq), M_1_INT16MAX_F, -1));
@@ -524,14 +524,14 @@ kernel void CauchyActivateV(device float * const f [[ buffer(0) ]],
 	}
 }
 kernel void CauchyDerivateV(device float * const du [[ buffer(0) ]],
-							device float * const ds [[ buffer(1) ]],
-							device float const * const f [[ buffer(2) ]],
-							device float const * const gu [[ buffer(3) ]],
-							device float const * const gs [[ buffer(4) ]],
-							device float const * const u [[ buffer(5) ]],
-							device float const * const s [[ buffer(6) ]],
-							constant uint const & N [[ buffer(7) ]],
-							uint const n [[ thread_position_in_grid ]]) {
+														device float * const ds [[ buffer(1) ]],
+														device float const * const f [[ buffer(2) ]],
+														device float const * const gu [[ buffer(3) ]],
+														device float const * const gs [[ buffer(4) ]],
+														device float const * const u [[ buffer(5) ]],
+														device float const * const s [[ buffer(6) ]],
+														constant uint const & N [[ buffer(7) ]],
+														uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
 		float const e = du[idx] * gu[idx];
@@ -540,17 +540,27 @@ kernel void CauchyDerivateV(device float * const du [[ buffer(0) ]],
 		ds[idx] = v - e * e / v;
 	}
 }
+kernel void CauchyActivateX(device float * const p [[ buffer(0) ]],
+														device float const * const u [[ buffer(1) ]],
+														device float const * const s [[ buffer(2) ]],
+														constant uint const & N [[ buffer(3) ]],
+														uint const n [[ thread_position_in_grid ]]) {
+	if ( n < N ) {
+		int const idx = n;
+		p[idx] = cdf(u[idx]/s[idx]);
+	}
+}
 /*----------------------------------------------------------------*/
 kernel void CauchyGradientJV(device float * const d [[ buffer(0) ]],
-							 device float const * const ju [[ buffer(1) ]],
-							 device float const * const js [[ buffer(2) ]],
-							 device float const * const gu [[ buffer(3) ]],
-							 device float const * const gs [[ buffer(4) ]],
-							 constant uint2 const & S [[ buffer(5) ]],
-							 threadgroup float4 * shared [[ threadgroup(0) ]],
-							 uint const t [[ thread_position_in_threadgroup ]],
-							 uint const T [[ threads_per_threadgroup ]],
-							 uint const n [[ threadgroup_position_in_grid ]]) {
+														 device float const * const ju [[ buffer(1) ]],
+														 device float const * const js [[ buffer(2) ]],
+														 device float const * const gu [[ buffer(3) ]],
+														 device float const * const gs [[ buffer(4) ]],
+														 constant uint2 const & S [[ buffer(5) ]],
+														 threadgroup float4 * shared [[ threadgroup(0) ]],
+														 uint const t [[ thread_position_in_threadgroup ]],
+														 uint const T [[ threads_per_threadgroup ]],
+														 uint const n [[ threadgroup_position_in_grid ]]) {
 	
 	int2 const size = int2(S);
 	
@@ -567,13 +577,13 @@ kernel void CauchyGradientJV(device float * const d [[ buffer(0) ]],
 		int4 const idx = col * size.x + row.x;
 		
 		value += float4x4(select(0, *(device float4*)(ju+idx.x), rows_mask && cols_mask.x),
-						  select(0, *(device float4*)(ju+idx.y), rows_mask && cols_mask.y),
-						  select(0, *(device float4*)(ju+idx.z), rows_mask && cols_mask.z),
-						  select(0, *(device float4*)(ju+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gu+k), cols_mask) +
+											select(0, *(device float4*)(ju+idx.y), rows_mask && cols_mask.y),
+											select(0, *(device float4*)(ju+idx.z), rows_mask && cols_mask.z),
+											select(0, *(device float4*)(ju+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gu+k), cols_mask) +
 		float4x4(select(0, *(device float4*)(js+idx.x), rows_mask && cols_mask.x),
-				 select(0, *(device float4*)(js+idx.y), rows_mask && cols_mask.y),
-				 select(0, *(device float4*)(js+idx.z), rows_mask && cols_mask.z),
-				 select(0, *(device float4*)(js+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gs+k), cols_mask);
+						 select(0, *(device float4*)(js+idx.y), rows_mask && cols_mask.y),
+						 select(0, *(device float4*)(js+idx.z), rows_mask && cols_mask.z),
+						 select(0, *(device float4*)(js+idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(gs+k), cols_mask);
 	}
 	
 	int const a = t;
@@ -596,16 +606,16 @@ kernel void CauchyGradientJV(device float * const d [[ buffer(0) ]],
 	}
 }
 kernel void CauchyGradientJP(device float * const du [[ buffer(0) ]],
-							 device float * const ds [[ buffer(1) ]],
-							 device float const * const ju [[ buffer(2) ]],
-							 device float const * const js [[ buffer(3) ]],
-							 device float const * const vu [[ buffer(4) ]],
-							 device float const * const vs [[ buffer(5) ]],
-							 constant uint2 & S [[ buffer(6) ]],
-							 threadgroup float2x4 * shared [[ threadgroup(0) ]],
-							 uint const t [[ thread_position_in_threadgroup ]],
-							 uint const T [[ threads_per_threadgroup ]],
-							 uint const n [[ threadgroup_position_in_grid ]]) {
+														 device float * const ds [[ buffer(1) ]],
+														 device float const * const ju [[ buffer(2) ]],
+														 device float const * const js [[ buffer(3) ]],
+														 device float const * const vu [[ buffer(4) ]],
+														 device float const * const vs [[ buffer(5) ]],
+														 constant uint2 & S [[ buffer(6) ]],
+														 threadgroup float2x4 * shared [[ threadgroup(0) ]],
+														 uint const t [[ thread_position_in_threadgroup ]],
+														 uint const T [[ threads_per_threadgroup ]],
+														 uint const n [[ threadgroup_position_in_grid ]]) {
 	
 	int2 const size = int2(S);
 	
@@ -622,13 +632,13 @@ kernel void CauchyGradientJP(device float * const du [[ buffer(0) ]],
 		int4 const idx = col * size.x + row.x;
 		
 		value += float2x4(float4x4(select(0, *(device float4*)(ju + idx.x), rows_mask && cols_mask.x),
-								   select(0, *(device float4*)(ju + idx.y), rows_mask && cols_mask.y),
-								   select(0, *(device float4*)(ju + idx.z), rows_mask && cols_mask.z),
-								   select(0, *(device float4*)(ju + idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(vu+k), cols_mask),
-						  float4x4(select(0, *(device float4*)(js + idx.x), rows_mask && cols_mask.x),
-								   select(0, *(device float4*)(js + idx.y), rows_mask && cols_mask.y),
-								   select(0, *(device float4*)(js + idx.z), rows_mask && cols_mask.z),
-								   select(0, *(device float4*)(js + idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(vs+k), cols_mask));
+															 select(0, *(device float4*)(ju + idx.y), rows_mask && cols_mask.y),
+															 select(0, *(device float4*)(ju + idx.z), rows_mask && cols_mask.z),
+															 select(0, *(device float4*)(ju + idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(vu+k), cols_mask),
+											float4x4(select(0, *(device float4*)(js + idx.x), rows_mask && cols_mask.x),
+															 select(0, *(device float4*)(js + idx.y), rows_mask && cols_mask.y),
+															 select(0, *(device float4*)(js + idx.z), rows_mask && cols_mask.z),
+															 select(0, *(device float4*)(js + idx.w), rows_mask && cols_mask.w)) * select(0, *(device float4*)(vs+k), cols_mask));
 	}
 	
 	int const a = t;
@@ -652,13 +662,13 @@ kernel void CauchyGradientJP(device float * const du [[ buffer(0) ]],
 	}
 }
 kernel void CauchyGradientGP(device float * const du [[ buffer(0) ]],
-							 device float * const ds [[ buffer(1) ]],
-							 device float const * const ju [[ buffer(2) ]],
-							 device float const * const js [[ buffer(3) ]],
-							 device float const * const gu [[ buffer(4) ]],
-							 device float const * const gs [[ buffer(5) ]],
-							 constant uint2 const & N [[ buffer(6) ]],
-							 uint2 const n [[ thread_position_in_grid ]]) {
+														 device float * const ds [[ buffer(1) ]],
+														 device float const * const ju [[ buffer(2) ]],
+														 device float const * const js [[ buffer(3) ]],
+														 device float const * const gu [[ buffer(4) ]],
+														 device float const * const gs [[ buffer(5) ]],
+														 constant uint2 const & N [[ buffer(6) ]],
+														 uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;
@@ -669,12 +679,12 @@ kernel void CauchyGradientGP(device float * const du [[ buffer(0) ]],
 	}
 }
 kernel void CauchyGradientGV(device float * const d [[ buffer(0) ]],
-							 device float const * const ju [[ buffer(1) ]],
-							 device float const * const js [[ buffer(2) ]],
-							 device float const * const gu [[ buffer(3) ]],
-							 device float const * const gs [[ buffer(4) ]],
-							 constant uint2 const & N [[ buffer(5) ]],
-							 uint2 const n [[ thread_position_in_grid ]]) {
+														 device float const * const ju [[ buffer(1) ]],
+														 device float const * const js [[ buffer(2) ]],
+														 device float const * const gu [[ buffer(3) ]],
+														 device float const * const gs [[ buffer(4) ]],
+														 constant uint2 const & N [[ buffer(5) ]],
+														 uint2 const n [[ thread_position_in_grid ]]) {
 	if ( n.x < N.x ) {
 		int const rows = n.x;
 		int const cols = n.y;

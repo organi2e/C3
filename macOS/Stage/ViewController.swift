@@ -7,11 +7,6 @@
 //
 
 import Cocoa
-import Metal
-
-import C3
-import Optimizer
-import Educator
 
 class ViewController: NSViewController {
 
@@ -20,7 +15,8 @@ class ViewController: NSViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		Thread(block: MNIST(progress: progress, label: label).gan).start()
+//		try!Thread(block: MNIST(progress: progress, label: label).gan).start()
+		try!Thread(block: MNIST(progress: progress, label: label).semisupervised).start()
 	}
 	override var representedObject: Any? {
 		didSet {

@@ -338,6 +338,15 @@ kernel void DegenerateDerivateV(device float * const du [[ buffer(0) ]],
 		du[idx] = d[idx];
 	}
 }
+kernel void DegenerateActivateX(device float * const p [[ buffer(0) ]],
+																device float const * const u [[ buffer(1) ]],
+																constant uint const & N [[ buffer(2) ]],
+																uint const n [[ thread_position_in_grid ]]) {
+	if ( n < N ) {
+		int const idx = n;
+		p[idx] = step(0, u[idx]);
+	}
+}
 kernel void DegenerateDerivateN(device float * const du [[ buffer(0) ]],
 																device float2 * const momentum [[ buffer(1) ]],
 																device float4 * const gradient [[ buffer(2) ]],

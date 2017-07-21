@@ -157,6 +157,30 @@ extension Cell {
 	}
 }
 extension Cell {
+	public var expect: Array<Float> {
+		return (try?eval {
+			let e: Buffer = $0.make(length: width * MemoryLayout<Float>.stride, options: .storageModeShared)
+			let commandBuffer: CommandBuffer = $0.make()
+			switch activation {
+			case .Binary:
+				distributor.activate(commandBuffer: commandBuffer, p: e, φ: φ(0), count: width)
+			case .Identity:
+				let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
+				encoder.copy(from: φ(0).μ, sourceOffset: 0, to: e, destinationOffset: 0, size: min(φ(0).μ.length, e.length))
+				encoder.label = #function
+				encoder.endEncoding()
+			}
+			commandBuffer.label = #function
+			commandBuffer.commit()
+			commandBuffer.waitUntilCompleted()
+			defer {
+				e.setPurgeableState(.empty)
+			}
+			return e.array
+		}) ?? Array<Float>(repeating: 0, count: width)
+	}
+}
+extension Cell {
 	public var source: Array<Float> {
 		get {
 			guard state else { return Array<Float>() }
