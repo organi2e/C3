@@ -39,6 +39,7 @@ public enum OptimizerType {
 	case AdaDelta(L2: Float, L1: Float, ρ: Float, ε: Float)
 	case Adam(L2: Float, L1: Float, α: Float, β: Float, γ: Float, ε: Float)
 	case Adamax(L2: Float, L1: Float, α: Float, β: Float, γ: Float, ε: Float)
+	case RMSProp(L2: Float, L1: Float, α: Float, γ: Float, ε: Float)
 	case SMORMS3(L2: Float, L1: Float, α: Float, ε: Float)
 }
 public class Context: NSManagedObjectContext {
@@ -50,20 +51,27 @@ public class Context: NSManagedObjectContext {
 		case InvalidContext
 		case InvalidEntity(name: String)
 		case InvalidParameter(key: String, value: Any)
+		case NoEntryFound
 		case NoModelFound
 		case NoDeviceFound
 		var description: String {
 			switch self {
+				/*
 			case .InvalidEntity(let name):
 				return "Invalid entity\(name)"
 			case .InvalidContext:
 				return "This context is invalid"
 			case .InvalidParameter(let key, let value):
 				return "Invalid value \(value) for \(key)"
+			case .NoEntryFound:
+				return String(describing: self)
 			case .NoModelFound:
 				return "No CoreData definition was found"
 			case .NoDeviceFound:
 				return "No available Metal device found"
+				*/
+			default:
+				return String(describing: self)
 			}
 		}
 	}
@@ -102,6 +110,8 @@ public class Context: NSManagedObjectContext {
 			optimizerFactory = try Adam.optimizer(device: device, L2: L2, L1: L1, α: α, β: β, γ: γ, ε: ε)
 		case let .Adamax(L2, L1, α, β, γ, ε):
 			optimizerFactory = try Adamax.optimizer(device: device, L2: L2, L1: L1, α: α, β: β, γ: γ, ε: ε)
+		case let .RMSProp(L2, L1, α, γ, ε):
+			optimizerFactory = try RMSProp.optimizer(device: device, L2: L2, L1: L1, α: α, γ: γ, ε: ε)
 		case let .SMORMS3(L2, L1, α, ε):
 			optimizerFactory = try SMORMS3.optimizer(device: device, L2: L2, L1: L1, α: α, ε: ε)
 		}

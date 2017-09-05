@@ -55,10 +55,12 @@ extension LaObjet {
 }
 extension Buffer {
 	var objet: LaObjet {
-		return la_matrix_from_float_buffer_nocopy(UnsafeMutablePointer<Float>(OpaquePointer(contents())), la_count_t(length/MemoryLayout<Float>.stride), 1, 1, hint, nil, attr)
+		return la_matrix_from_float_buffer_nocopy(contents().assumingMemoryBound(to: Float.self),
+		                                          la_count_t(length/MemoryLayout<Float>.stride), 1, 1, hint, nil, attr)
 	}
 	var array: Array<Float> {
-		return Array<Float>(UnsafeBufferPointer<Float>(start: UnsafePointer<Float>(OpaquePointer(contents())), count: length/MemoryLayout<Float>.stride))
+		return Array<Float>(UnsafeBufferPointer<Float>(start: contents().assumingMemoryBound(to: Float.self),
+		                                               count: length/MemoryLayout<Float>.stride))
 	}
 }
 public func logit(p: Array<Float>) -> Array<Float> {
@@ -67,6 +69,14 @@ public func logit(p: Array<Float>) -> Array<Float> {
 	vDSP_vsmsa(p, 1, [Float(-1)], [Float(1)], UnsafeMutablePointer<Float>(mutating: logit), 1, vDSP_Length(count))
 	vDSP_vdiv(logit, 1, p, 1, UnsafeMutablePointer<Float>(mutating: logit), 1, vDSP_Length(count))
 	vvlogf(UnsafeMutablePointer<Float>(mutating: logit), logit, [Int32(count)])
+	return logit
+}
+public func logitmax(p: Array<Float>) -> Array<Float> {
+	let count: Int = p.count
+	let logit: Array<Float> = Array<Float>(repeating: 0, count: count)	
+	vDSP_vsmsa(p, 1, [Float(-1)], [Float(1)], UnsafeMutablePointer<Float>(mutating: logit), 1, vDSP_Length(count))
+	vDSP_vdiv(logit, 1, p, 1, UnsafeMutablePointer<Float>(mutating: logit), 1, vDSP_Length(count))
+	vDSP_vsdiv(logit, 1, [cblas_sasum(Int32(count), logit, 1)], UnsafeMutablePointer<Float>(mutating: logit), 1, vDSP_Length(count))
 	return logit
 }
 public func softmax(v: Array<Float>) -> Array<Float> {

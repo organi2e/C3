@@ -365,7 +365,7 @@ kernel void GaussCorrectP(device float * const dx [[ buffer(0) ]],
 													uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		dx[idx] += cdf( u[idx] / s[idx] ) - d[idx];
+		dx[idx] += 1 - d[idx] / cdf(u[idx]/s[idx]);
 	}
 }
 kernel void GaussCorrectV(device float * const dx [[ buffer(0) ]],
@@ -593,9 +593,9 @@ kernel void GaussDerivateP(device float * const du [[ buffer(0) ]],
 													 uint const n [[ thread_position_in_grid ]]) {
 	if ( n < N ) {
 		int const idx = n;
-		float const p = cdf( u[idx] / s[idx] );
-//		float const g = d[idx] / p / ( 1 - p );
-		float const g = erf( d[idx] / M_2_SQRTPI_F ) / p / ( 1 - p );
+//		float const p = cdf( u[idx] / s[idx] );
+		float const g = d[idx];// / p / ( 1 - p );
+//		float const g = erf( d[idx] / M_2_SQRTPI_F ) / p / ( 1 - p );
 		du[idx] = g * gu[idx];
 		ds[idx] = g * gs[idx];
 	}
@@ -638,8 +638,8 @@ kernel void GaussDerivateV(device float * const du [[ buffer(0) ]],
 		float const v = s[idx], vv = v * v;
 		float const dKLdU = e / vv;
 		float const dKLdS = ( vv - ee ) / vv / v;
-		du[idx] = select(0.0, dKLdU, isfinite(dKLdU));
-		ds[idx] = select(0.0, dKLdS, isfinite(dKLdS));
+		du[idx] = select(0.0, dKLdU, isnormal(dKLdU));
+		ds[idx] = select(0.0, dKLdS, isnormal(dKLdS));
 	}
 }
 kernel void GaussActivateX(device float * const p [[ buffer(0) ]],
@@ -655,7 +655,7 @@ kernel void GaussActivateX(device float * const p [[ buffer(0) ]],
 kernel void GaussDerivateN(device float * const du [[ buffer(0) ]],
 													 device float * const ds [[ buffer(1) ]],
 													 device float2 * const momentum [[ buffer(2) ]],
-													 device float4 * const gradient [[ buffer(3) ]],
+													 device float2 * const gradient [[ buffer(3) ]],
 													 device float const * const u [[ buffer(4) ]],
 													 device float const * const s [[ buffer(5) ]],
 													 constant float const & gamma [[ buffer(6) ]],
@@ -666,26 +666,40 @@ kernel void GaussDerivateN(device float * const du [[ buffer(0) ]],
 		int const idx = n;
 		
 		float const r = gamma;
+		float const g = 2 * r;
 		
 		float2 const x = float2(u[idx], s[idx]);
-		
 		float2 const m = mix(momentum[idx], float2(x.x, length_squared(x)), r);
-		float4 const g = mix(gradient[idx], float4(1, 0, 2 * x.x, 2 * x.y), r);
 		
-		float const v = m.y - m.x * m.x, vv = v * v;
-		float const uu = m.x * m.x + 1;
+		float const mm = fma(m.x, m.x, 1);
+		float const v = -fma(m.x, m.x, -m.y), vv = v * v;
 		
-		float const dKLdU = g.z * ( v - uu ) / vv + 2 * g.x * m.x * uu / vv;
-		float const dKLdS = g.w * ( v - uu ) / vv;
+		float const dKLdU = g * x.x * ( v - mm ) / vv + g * m.x * mm / vv;
+		float const dKLdS = g * x.y * ( v - mm ) / vv;
 		
-//		float const dKLdU = g.x * ( m.y - 2 * m.x * m.x - 1 ) / v / v + g.z * 2 * m.x * ( m.x * m.x + 1 ) / v / v;
-//		float const dKLdS = g.w * ( m.y - 2 * m.x * m.x - 1 ) / v / v;
+//		float2 const g = mix(gradient[idx], 2 * x, r);
 		
-		du[idx] += select(0.0, dKLdU, isfinite(dKLdU));
-		ds[idx] += select(0.0, dKLdS, isfinite(dKLdS));
+//		float const v = m.y - m.x * m.x, vv = v * v;
+//		float const uu = m.x * m.x + 1;
+		
+//		float const dKLdU = g.x * ( v - uu ) / vv + 2 * m.x * uu / vv;
+//		float const dKLdS = g.y * ( v - uu ) / vv;
+		
+//		float const dKLdU = g.z * ( m.y - 2 * m.x * m.x - 1 ) / vv + g.x * 2 * m.x * ( m.x * m.x + 1 ) / vv;
+//		float const dKLdS = g.w * ( m.y - 2 * m.x * m.x - 1 ) / vv;
+		
+//		instant sample
+//		float const uu = sq(u[idx]);
+//		float const vv = sq(s[idx]);
+		
+//		float const dKLdU = 2 * u[idx] / vv;
+//		float const dKLdS = 2 * ( vv - uu - 1 ) / s[idx] / vv;
+		
+		du[idx] += select(0.0, dKLdU, isnormal(dKLdU));
+		ds[idx] += select(0.0, dKLdS, isnormal(dKLdS));
 		
 		momentum[idx] = m;
-		gradient[idx] = g;
+//		gradient[idx] = g;
 		
 	}
 }

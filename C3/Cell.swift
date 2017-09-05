@@ -24,6 +24,7 @@ extension Cell {
 	}
 	internal func collect_refresh(commandBuffer: CommandBuffer) {
 		if state {
+			state = false
 			input.forEach {
 				$0.collect_refresh(commandBuffer: commandBuffer)
 			}
@@ -33,7 +34,6 @@ extension Cell {
 			}
 			decay?.collect_refresh(commandBuffer: commandBuffer)
 			rotate()
-			state = false
 		}
 	}
 	public func collect() throws {
@@ -49,6 +49,7 @@ extension Cell {
 			return χ(-1)
 		}
 		if !state {
+			state = true
 			func collect(collector: Collector) {
 				input.forEach {
 					$0.collect(commandBuffer: commandBuffer, collector: collector, visit: visit.union([self]))
@@ -66,7 +67,6 @@ extension Cell {
 			case .Identity:
 				distributor.activate(commandBuffer: commandBuffer, v: χ(0), g: g(0), φ: φ(0), count: width)
 			}
-			state = true
 		}
 		return χ(0)
 	}
@@ -82,6 +82,7 @@ extension Cell {
 	}
 	internal func correct_refresh(commandBuffer: CommandBuffer) {
 		if delta {
+			delta = false
 			output.forEach {
 				$0.correct_refresh(commandBuffer: commandBuffer)
 			}
@@ -90,7 +91,6 @@ extension Cell {
 				$0.correct_refresh(commandBuffer: commandBuffer)
 			}
 			decay?.correct_refresh(commandBuffer: commandBuffer)
-			delta = false
 		}
 		if study {
 			study = false
@@ -109,6 +109,7 @@ extension Cell {
 			return Δφ(-1)
 		}
 		if !delta {
+			delta = true
 			switch activation {
 			case .Binary:
 				func corrector(corrector: Corrector) {
@@ -143,7 +144,6 @@ extension Cell {
 				$0.correct(commandBuffer: commandBuffer, ignore: ignore, Δφ: Δφ(0))
 			}
 			decay?.correct(commandBuffer: commandBuffer, ignore: ignore, Δφ: Δφ(0))
-			delta = true
 		}
 		return Δφ(0)
 	}
@@ -267,7 +267,7 @@ extension Cell {
 		let distributor: Distributor
 		init(context: Context, distribution: DistributorType, depth: Int, width: Int) {
 			let length: Int = width * MemoryLayout<Float>.stride
-			let option: MTLResourceOptions = .storageModePrivate
+			let option: MTLResourceOptions = .storageModeShared
 			index = 0
 			array = Array<Void>(repeating: (), count: depth)
 				.map{(χ: context.make(length: length, options: option),
@@ -278,7 +278,7 @@ extension Cell {
 						 Δφ: (μ: context.make(length: length, options: option), σ: context.make(length: length, options: option)))
 			}
 			theta = (μ: context.make(length: width * MemoryLayout<float2>.stride, options: option),
-			         g: context.make(length: width * MemoryLayout<float4>.stride, options: option))
+			         g: context.make(length: width * MemoryLayout<float2>.stride, options: option))
 			distributor = context.make(type: distribution)
 			super.init()
 			let commandBuffer: CommandBuffer = context.make()
@@ -380,7 +380,7 @@ extension Context {
 	                 distributor: DistributorType = .Degenerate,
 	                 regularizer: Float = 0,
 	                 activator: ActivatorType = .Binary,
-	                 adapters: (AdapterType, AdapterType) = (.Linear, .Softplus),
+	                 adapters: (AdapterType, AdapterType) = (.Linear, .Exponential),
 	                 output: Set<Cell> = Set<Cell>(),
 	                 input: Set<Cell> = Set<Cell>(),
 	                 decay: Bool = false,
@@ -406,13 +406,10 @@ extension Context {
 extension Context {
 	private func make<T: NSManagedObject>(label: String? = nil, width: Int? = nil) -> NSFetchRequest<T> {
 		let formats: Array<(String, Any)> = Array<(String, Any?)>(arrayLiteral: ("label = %@", label), ("width = %@", width))
-			.flatMap {
-				guard let value: Any = $1 else {
-					return nil
-				}
-				return Array<(String, Any)>(arrayLiteral: ($0, value))
-			}
-			.reduce(Array<(String, Any)>(), +)
+		.reduce(Array<(String, Any)>()) {
+			guard let value: Any = $1.1 else { return $0 }
+			return $0 + Array<(String, Any)>(repeating: ($1.0, value), count: 1)
+		}
 		let request: NSFetchRequest<T> = NSFetchRequest<T>(entityName: String(describing: T.self))
 		request.predicate = NSPredicate(format: formats.map{$0.0}.joined(separator: " and "), argumentArray: formats.map{$0.1})
 		return request
@@ -424,6 +421,41 @@ extension Context {
 	public func fetch(label: String? = nil, width: Int? = nil) throws -> [Cell] {
 		let request: NSFetchRequest<Cell> = make(label: label, width: width)
 		return try fetch(request)
+	}
+}
+extension Context {
+	private func dump(value: (μ: Buffer, σ: Buffer), reply:@escaping(Data, Data)->Void) {
+		let μ: Buffer = make(length: value.μ.length, options: .storageModeShared)
+		let σ: Buffer = make(length: value.σ.length, options: .storageModeShared)
+		let commandBuffer: CommandBuffer = mtl.makeCommandBuffer()
+		let encoder: BlitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
+		encoder.copy(from: value.μ, sourceOffset: 0, to: μ, destinationOffset: 0, size: min(value.μ.length, μ.length))
+		encoder.copy(from: value.σ, sourceOffset: 0, to: σ, destinationOffset: 0, size: min(value.σ.length, σ.length))
+		encoder.endEncoding()
+		commandBuffer.addCompletedHandler { (_) in
+			reply(Data(bytesNoCopy: μ.contents(), count: μ.length, deallocator: .none),
+			      Data(bytesNoCopy: σ.contents(), count: σ.length, deallocator: .none))
+		}
+		commandBuffer.commit()
+	}
+	public func getFFWeight(output: Cell, input: Cell, reply: @escaping(Data, Data)->Void) {
+		output.input.intersection(input.output).forEach { edge in
+			edge.access {
+				dump(value: $0, reply: reply)
+			}
+		}
+	}
+	public func getFBWeight(cell: Cell, reply: @escaping(Data, Data)->Void) {
+		cell.loop.forEach { edge in
+			edge.access {
+				dump(value: $0, reply: reply)
+			}
+		}
+	}
+	public func getC(cell: Cell, reply: @escaping(Data, Data)->Void) {
+		cell.bias.access {
+			dump(value: $0, reply: reply)
+		}
 	}
 }
 private extension String {

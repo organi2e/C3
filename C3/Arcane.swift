@@ -21,8 +21,8 @@ extension Arcane {
 		private let a: Adapter
 		private let o: Optimizer
 		init(context: Context, data: Data, adapter: Adapter, optimizer: Optimizer) {
-			Δ = context.make(length: data.count, options: .storageModePrivate)
-			θ = context.make(length: data.count, options: .storageModePrivate)
+			Δ = context.make(length: data.count, options: .storageModeShared)
+			θ = context.make(length: data.count, options: .storageModeShared)
 			φ = context.make(data: data, options: .storageModeShared)
 			a = adapter
 			o = optimizer

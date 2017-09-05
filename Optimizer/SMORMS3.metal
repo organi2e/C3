@@ -31,7 +31,7 @@ kernel void SMORMS3Optimize(device float * const theta [[ buffer(0) ]],
 //		p.y = ( 1 - r ) * p.y + r * g * g;
 		
 		float const s = rsqrt(p.x+epsilon);
-		float const r = select(0.0, s, isfinite(s));//Avoid epsilon
+		float const r = select(0.0, s, isnormal(s));//Avoid epsilon
 		float const u = p.y * r;
 		float const x = u * u;
 		float const t = theta[idx];

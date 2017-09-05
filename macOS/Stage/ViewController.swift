@@ -15,14 +15,18 @@ class ViewController: NSViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
-//		try!Thread(block: MNIST(progress: progress, label: label).gan).start()
-		try!Thread(block: MNIST(progress: progress, label: label).semisupervised).start()
+		do {
+			try Thread(block: MNIST(progress: progress, label: label).gan).start()
+//			try Thread(block: MNIST(progress: progress, label: label).semisupervised).start()
+//			try Thread(block: MNIST(progress: progress, label: label).supervised).start()
+		} catch {
+			assertionFailure(String(describing: error))
+		}
 	}
 	override var representedObject: Any? {
 		didSet {
 		// Update the view, if already loaded.
+			
 		}
 	}
-	
-
 }

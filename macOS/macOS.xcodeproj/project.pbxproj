@@ -81,6 +81,8 @@
 		875BA1ED1E9DEBBF0076A39C /* Wikipedia.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875BA1E91E9DEBBF0076A39C /* Wikipedia.swift */; };
 		875CC7771E9B401200E08CA6 /* DegenerateDistributor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875CC7761E9B401200E08CA6 /* DegenerateDistributor.swift */; };
 		875CC7791E9B402900E08CA6 /* DegenerateDistributor.metal in Sources */ = {isa = PBXBuildFile; fileRef = 875CC7781E9B402900E08CA6 /* DegenerateDistributor.metal */; };
+		87A22D651F558FDA00BD7ED5 /* RMSProp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A22D641F558FDA00BD7ED5 /* RMSProp.swift */; };
+		87A22D671F558FF700BD7ED5 /* RMSProp.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87A22D661F558FF700BD7ED5 /* RMSProp.metal */; };
 		87A79E961EA26126007C3E92 /* Adamax.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87A79E941EA26126007C3E92 /* Adamax.metal */; };
 		87A79E971EA26126007C3E92 /* Adamax.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A79E951EA26126007C3E92 /* Adamax.swift */; };
 		87A79E9A1EA26FBA007C3E92 /* Educator.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 87A79E981EA26FBA007C3E92 /* Educator.xcdatamodeld */; };
@@ -304,6 +306,8 @@
 		875CC7781E9B402900E08CA6 /* DegenerateDistributor.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = DegenerateDistributor.metal; path = ../../Distributor/DegenerateDistributor.metal; sourceTree = "<group>"; };
 		879EFE4B1E9254380078CDC7 /* libswiftsimd.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libswiftsimd.tbd; path = System/Library/PrivateFrameworks/Swift/libswiftsimd.tbd; sourceTree = SDKROOT; };
 		879EFE4D1E9255AC0078CDC7 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		87A22D641F558FDA00BD7ED5 /* RMSProp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RMSProp.swift; path = ../../Optimizer/RMSProp.swift; sourceTree = "<group>"; };
+		87A22D661F558FF700BD7ED5 /* RMSProp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = RMSProp.metal; path = ../../Optimizer/RMSProp.metal; sourceTree = "<group>"; };
 		87A79E941EA26126007C3E92 /* Adamax.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Adamax.metal; path = ../../Optimizer/Adamax.metal; sourceTree = "<group>"; };
 		87A79E951EA26126007C3E92 /* Adamax.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Adamax.swift; path = ../../Optimizer/Adamax.swift; sourceTree = "<group>"; };
 		87A79E991EA26FBA007C3E92 /* Educator.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Educator.xcdatamodel; sourceTree = "<group>"; };
@@ -558,6 +562,8 @@
 				8754F8841E8B972E006B088A /* Momentum.metal */,
 				8754F8871E8B972E006B088A /* MomentumAdaDelta.swift */,
 				8754F8861E8B972E006B088A /* MomentumAdaDelta.metal */,
+				87A22D641F558FDA00BD7ED5 /* RMSProp.swift */,
+				87A22D661F558FF700BD7ED5 /* RMSProp.metal */,
 				8754F88A1E8B972E006B088A /* SMORMS3.swift */,
 				8754F8891E8B972E006B088A /* SMORMS3.metal */,
 				8754F88C1E8B972E006B088A /* StochasticGradientDescent.swift */,
@@ -582,8 +588,8 @@
 		8754F8A21E8B9F0E006B088A /* Adapter */ = {
 			isa = PBXGroup;
 			children = (
-				87263D461E97EAC900A4B75B /* RegFloor.metal */,
 				87263D471E97EAC900A4B75B /* RegFloor.swift */,
+				87263D461E97EAC900A4B75B /* RegFloor.metal */,
 				87C3C27C1E94C90100A62C11 /* Logistic.swift */,
 				87C3C27B1E94C90100A62C11 /* Logistic.metal */,
 				87B846281E9393B200844835 /* Softplus.swift */,
@@ -1220,12 +1226,14 @@
 				8754F8951E8B972E006B088A /* Optimizer.swift in Sources */,
 				8754F8921E8B972E006B088A /* Momentum.swift in Sources */,
 				8754F88F1E8B972E006B088A /* Adam.metal in Sources */,
+				87A22D671F558FF700BD7ED5 /* RMSProp.metal in Sources */,
 				8754F8941E8B972E006B088A /* MomentumAdaDelta.swift in Sources */,
 				87A79E961EA26126007C3E92 /* Adamax.metal in Sources */,
 				8754F88D1E8B972E006B088A /* AdaDelta.metal in Sources */,
 				8754F8971E8B972E006B088A /* SMORMS3.swift in Sources */,
 				8754F8961E8B972E006B088A /* SMORMS3.metal in Sources */,
 				8754F8911E8B972E006B088A /* Momentum.metal in Sources */,
+				87A22D651F558FDA00BD7ED5 /* RMSProp.swift in Sources */,
 				8754F8981E8B972E006B088A /* StochasticGradientDescent.metal in Sources */,
 				8754F88E1E8B972E006B088A /* AdaDelta.swift in Sources */,
 				8754F8991E8B972E006B088A /* StochasticGradientDescent.swift in Sources */,

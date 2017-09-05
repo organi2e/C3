@@ -30,12 +30,16 @@ extension Group {
 	@NSManaged public internal(set) var handle: String
 }
 public extension Group {
-	public func onehot<T>(count: Int, value: T) throws -> Array<T> {
+	public func onehot<T>(count: Int, value: (T, T)) throws -> Array<T> {
 		guard let index: Int = Int(handle), 0 <= index && index < count else { throw ErrorCases.InvalidFormat(of: handle, for: count) }
+		let result: Array<T> = Array<T>(repeating: value.0, count: count)
+		UnsafeMutablePointer<T>(mutating: result).advanced(by: index).pointee = value.1
+		return result
+		/*
 		return Data(count: count * MemoryLayout<T>.size).withUnsafeBytes { (src: UnsafePointer<T>) -> Array<T> in
 			UnsafeMutablePointer<T>(mutating: src).advanced(by: index).pointee = value
 			return Array<T>(UnsafeBufferPointer<T>(start: src, count: count))
-		}
+		}*/
 	}
 }
 public class Corpus: Group {
@@ -140,7 +144,7 @@ public class Educator: NSManagedObjectContext {
 		try persistentStoreCoordinator?.addPersistentStore(ofType: type, configurationName: nil, at: storage, options: nil)
 	}
 	public required init?(coder aDecoder: NSCoder) {
-		assertionFailure("init(coder:) has been not implemented")
+		assertionFailure("\(#function) has been not implemented")
 		return nil
 	}
 }
@@ -404,19 +408,18 @@ internal extension FileHandle {
 	}
 }
 public extension String {
-	public func onehot<T>(count: Int, value: T) throws -> Array<T> {
+	public func onehot<T>(count: Int, value: (T, T)) throws -> Array<T> {
 		guard let index: Int = Int(self), 0 <= index && index < count else { throw ErrorCases.InvalidFormat(of: self, for: count) }
-		return Data(count: count * MemoryLayout<T>.size).withUnsafeBytes { (src: UnsafePointer<T>) -> Array<T> in
-			UnsafeMutablePointer<T>(mutating: src).advanced(by: index).pointee = value
-			return Array<T>(UnsafeBufferPointer<T>(start: src, count: count))
-		}
+		let result: Array<T> = Array<T>(repeating: value.0, count: count)
+		UnsafeMutablePointer<T>(mutating: result).advanced(by: index).pointee = value.1
+		return result
 	}
 }
 public extension IntegerLiteralType {
-	public func onehot<T>(count: Int, value: T) throws -> Array<T> {
-		return Data(count: count * MemoryLayout<T>.size).withUnsafeBytes { (src: UnsafePointer<T>) -> Array<T> in
-			UnsafeMutablePointer<T>(mutating: src).advanced(by: self).pointee = value
-			return Array<T>(UnsafeBufferPointer<T>(start: src, count: count))
-		}
+	public func onehot<T>(count: Int, value: (T, T)) throws -> Array<T> {
+		guard 0 <= self && self < count else { throw ErrorCases.InvalidFormat(of: self, for: count) }
+		let result: Array<T> = Array<T>(repeating: value.0, count: count)
+		UnsafeMutablePointer<T>(mutating: result).advanced(by: self).pointee = value.1
+		return result
 	}
 }
